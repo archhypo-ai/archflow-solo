@@ -20,6 +20,12 @@ pub(crate) enum Focus {
 }
 
 #[derive(Debug)]
+pub(crate) enum Confirmation {
+    NewConversation,
+    DeleteConversation { thread_id: String, title: String },
+}
+
+#[derive(Debug)]
 pub(crate) struct UiMessage {
     pub(crate) role: &'static str,
     pub(crate) content: String,
@@ -33,7 +39,7 @@ pub struct App {
     pub(crate) conversations: Vec<ThreadSummary>,
     pub(crate) selected_entry: usize,
     pub(crate) focus: Focus,
-    pub(crate) confirming_new_conversation: bool,
+    pub(crate) confirmation: Option<Confirmation>,
     pub(crate) pending: Option<Receiver<Result<ChatResponse>>>,
     pub(crate) loading_tick: usize,
     pub(crate) status: String,
@@ -51,7 +57,7 @@ impl App {
             conversations: client.list_threads()?,
             selected_entry: 0,
             focus: Focus::Input,
-            confirming_new_conversation: false,
+            confirmation: None,
             pending: None,
             loading_tick: 0,
             status: String::from("Ready. Enter sends; Tab switches focus."),
@@ -85,16 +91,21 @@ impl App {
                 return Ok(());
             }
 
-            if self.confirming_new_conversation {
-                match key.code {
-                    KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y') => {
-                        self.new_conversation();
-                    }
-                    KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N') => {
-                        self.confirming_new_conversation = false;
-                        self.status = String::from("Ready.");
-                    }
-                    _ => {}
+            if let Some(confirmation) = self.confirmation.take() {
+                match (confirmation, key.code) {
+                    (
+                        Confirmation::NewConversation,
+                        KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y'),
+                    ) => self.new_conversation(),
+                    (
+                        Confirmation::DeleteConversation { thread_id, .. },
+                        KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y'),
+                    ) => self.delete_conversation(&thread_id),
+                    (
+                        Confirmation::NewConversation | Confirmation::DeleteConversation { .. },
+                        KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N'),
+                    ) => self.status = String::from("Ready."),
+                    (confirmation, _) => self.confirmation = Some(confirmation),
                 }
                 return Ok(());
             }
@@ -134,6 +145,7 @@ impl App {
                     KeyCode::Up => self.select_previous_entry(),
                     KeyCode::Down => self.select_next_entry(),
                     KeyCode::Enter => self.activate_selected_entry(),
+                    KeyCode::Char('d') | KeyCode::Char('D') => self.request_delete_conversation(),
                     _ => {}
                 },
             }
@@ -265,7 +277,7 @@ impl App {
             return;
         }
 
-        self.confirming_new_conversation = true;
+        self.confirmation = Some(Confirmation::NewConversation);
         self.status = String::from("Confirm new conversation: Enter/Y confirm, Esc/N cancel.");
     }
 
@@ -276,8 +288,51 @@ impl App {
         self.reset_cursor();
         self.selected_entry = 0;
         self.focus = Focus::Input;
-        self.confirming_new_conversation = false;
+        self.confirmation = None;
         self.status = String::from("New conversation.");
+    }
+
+    fn request_delete_conversation(&mut self) {
+        if self.selected_entry == 0 {
+            self.status = String::from("Select a conversation before deleting it.");
+            return;
+        }
+
+        let Some(conversation) = self.conversations.get(self.selected_entry - 1) else {
+            return;
+        };
+        self.confirmation = Some(Confirmation::DeleteConversation {
+            thread_id: conversation.thread_id.clone(),
+            title: conversation.title.clone(),
+        });
+        self.status = String::from("Confirm delete: Enter/Y confirm, Esc/N cancel.");
+    }
+
+    fn delete_conversation(&mut self, thread_id: &str) {
+        let title = self
+            .conversations
+            .iter()
+            .find(|conversation| conversation.thread_id == thread_id)
+            .map(|conversation| conversation.title.clone())
+            .unwrap_or_else(|| String::from("conversation"));
+
+        match self.client.delete_thread(thread_id) {
+            Ok(()) => {
+                if self.thread_id == thread_id {
+                    self.thread_id = Uuid::new_v4().to_string();
+                    self.messages.clear();
+                    self.input.clear();
+                    self.reset_cursor();
+                    self.selected_entry = 0;
+                    self.focus = Focus::Input;
+                }
+                self.refresh_conversations();
+                self.status = format!("Deleted: {title}");
+            }
+            Err(error) => {
+                self.status = format!("Could not delete conversation: {error}");
+            }
+        }
     }
 
     fn tick_loading(&mut self) {

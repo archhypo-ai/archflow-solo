@@ -24,7 +24,9 @@ def build_archwise_agent(
 
     The orchestrator currently has one conversational node. Future nodes will
     delegate to independent subagents without changing the public builder or
-    the checkpoint boundary.
+    the checkpoint boundary. The low-level builder uses ``InMemorySaver`` when
+    no checkpointer is supplied; application runtimes should inject their
+    owned persistent checkpointer.
     """
 
     chat_model = (

@@ -17,8 +17,9 @@ exits. Set `ARCHWISE_UV_BIN` when `uv` is not available under that name.
 
 Type a message and press `Enter`. Press `Tab` to focus the conversation list;
 use the arrow keys and `Enter` to switch conversations. Select `New conversation`
-or press `Ctrl+N` to create one. Existing content requires confirmation before
-being discarded. Press `Esc` or `Ctrl+C` to exit.
+or press `Ctrl+N` to create one. Select a conversation and press `d` to delete
+it. Both new conversation and delete actions require confirmation when needed.
+Press `Esc` or `Ctrl+C` to exit.
 
 The TUI shows animated `Connecting`, `Thinking`, and `Answering` phases while
 the backend request is pending. These are visual phases only; real LangGraph
@@ -37,5 +38,7 @@ src/
 └── ui.rs
 ```
 
-The backend currently uses in-memory checkpoints. Conversations disappear when
-its process stops until SQLite persistence is introduced.
+The backend stores checkpoints and conversation metadata in
+`.archhypo/runtime/checkpoints.sqlite` at the monorepo root. The database is
+created and migrated automatically on first startup. Set
+`ARCHWISE_STORAGE_ROOT` to use another local storage directory.

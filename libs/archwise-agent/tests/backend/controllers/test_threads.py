@@ -48,6 +48,27 @@ def test_threads_controller_lists_and_loads_conversations() -> None:
     }
 
 
+def test_threads_controller_deletes_a_conversation() -> None:
+    service = AgentService(
+        model=FakeListChatModel(responses=["reply"]),
+        checkpointer=InMemorySaver(),
+    )
+
+    with TestClient(create_app(service)) as client:
+        created = client.post(
+            "/api/chat",
+            json={"thread_id": "thread-to-delete", "message": "Delete me"},
+        )
+        deleted = client.delete("/api/threads/thread-to-delete")
+        listing = client.get("/api/threads")
+        detail = client.get("/api/threads/thread-to-delete")
+
+    assert created.status_code == 200
+    assert deleted.status_code == 204
+    assert listing.json() == []
+    assert detail.status_code == 404
+
+
 def test_threads_controller_returns_not_found_for_unknown_thread() -> None:
     service = AgentService(
         model=FakeListChatModel(responses=["unused"]),
@@ -56,5 +77,7 @@ def test_threads_controller_returns_not_found_for_unknown_thread() -> None:
 
     with TestClient(create_app(service)) as client:
         response = client.get("/api/threads/unknown")
+        delete_response = client.delete("/api/threads/unknown")
 
     assert response.status_code == 404
+    assert delete_response.status_code == 404

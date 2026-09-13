@@ -5,7 +5,7 @@ use ratatui::widgets::{Block, Clear, List, ListItem, Paragraph, Wrap};
 use ratatui::Frame;
 use unicode_width::UnicodeWidthStr;
 
-use crate::app::{App, Focus};
+use crate::app::{App, Confirmation, Focus};
 
 pub(crate) fn render(frame: &mut Frame, app: &App) {
     let [conversations_area, chat_area] = frame.area().layout(&Layout::horizontal([
@@ -16,8 +16,8 @@ pub(crate) fn render(frame: &mut Frame, app: &App) {
     render_conversations(frame, app, conversations_area);
     render_chat(frame, app, chat_area);
 
-    if app.confirming_new_conversation {
-        render_new_conversation_confirmation(frame);
+    if let Some(confirmation) = app.confirmation.as_ref() {
+        render_confirmation(frame, confirmation);
     }
 }
 
@@ -62,7 +62,7 @@ fn render_conversations(frame: &mut Frame, app: &App, area: Rect) {
     let list = List::new(items).block(
         Block::bordered()
             .title(title)
-            .title_bottom("Tab focus | Enter open"),
+            .title_bottom("d delete | Enter open"),
     );
     frame.render_widget(list, area);
 }
@@ -120,20 +120,30 @@ fn render_chat(frame: &mut Frame, app: &App, area: Rect) {
         status_area,
     );
 
-    if app.focus == Focus::Input && !app.is_waiting() && !app.confirming_new_conversation {
+    if app.focus == Focus::Input && !app.is_waiting() && app.confirmation.is_none() {
         let prefix = &app.input[..app.cursor_byte_index()];
         let cursor_x = input_area.x + 1 + prefix.width() as u16;
         frame.set_cursor_position(Position::new(cursor_x, input_area.y + 1));
     }
 }
 
-fn render_new_conversation_confirmation(frame: &mut Frame) {
-    let area = centered_rect(frame.area(), 58, 5);
+fn render_confirmation(frame: &mut Frame, confirmation: &Confirmation) {
+    let (title, message) = match confirmation {
+        Confirmation::NewConversation => (
+            "Confirm new conversation",
+            String::from("Start a new conversation?"),
+        ),
+        Confirmation::DeleteConversation { title, .. } => (
+            "Confirm deletion",
+            format!("Delete conversation \"{title}\"?"),
+        ),
+    };
+    let area = centered_rect(frame.area(), 58, 6);
     frame.render_widget(Clear, area);
     frame.render_widget(
-        Paragraph::new("Start a new conversation?\n\nEnter/Y confirm   Esc/N cancel")
+        Paragraph::new(format!("{message}\n\nEnter/Y confirm   Esc/N cancel"))
             .alignment(ratatui::layout::Alignment::Center)
-            .block(Block::bordered().title("Confirm")),
+            .block(Block::bordered().title(title)),
         area,
     );
 }

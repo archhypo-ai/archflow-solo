@@ -9,6 +9,7 @@ conversational agent built with LangGraph and OpenRouter.
 src/archwise_agent/
 ├── config/       # Pydantic environment-backed settings
 ├── core/         # Shared state contracts
+├── persistence/  # SQLite checkpoints, migrations, and local paths
 ├── providers/    # Model provider integrations
 ├── agents/       # Orchestrator and concrete agents
 │   ├── orchestrator/
@@ -47,9 +48,16 @@ uv sync --dev
 uv run pytest
 ```
 
-The agent uses `InMemorySaver` by default. The checkpointer is injectable in
-`build_archwise_agent` and `AgentService`, allowing a future SQLite
-implementation without changing the state contract or interface adapters.
+The backend uses a SQLite checkpointer at
+`.archhypo/runtime/checkpoints.sqlite` in the monorepo root. The directory is
+created on first startup and is ignored by Git. Database migrations run before
+LangGraph initializes its checkpoint tables. Set `ARCHWISE_STORAGE_ROOT` to
+use another storage directory.
+
+`build_archwise_agent` still accepts an injected checkpointer, which keeps unit
+tests and alternative runtimes independent from the local database. The
+application-facing `AgentService` opens and owns the SQLite connection by
+default.
 
 ## Local backend
 
@@ -59,6 +67,7 @@ uv sync --dev
 uv run fastapi dev --host 127.0.0.1 --port 8765
 ```
 
+The backend version is sourced from the package version in `pyproject.toml`.
 The backend listens on `http://127.0.0.1:8765` by default. The executable
 server entrypoint remains available with
 `uv run python -m archwise_agent.backend.server`.
@@ -72,5 +81,6 @@ curl -X POST http://127.0.0.1:8765/api/chat \\
 ```
 
 The backend creates one long-lived agent service and uses the supplied
-`thread_id` for in-memory conversation checkpoints. Conversations are lost
-when the process stops until a persistent checkpointer is introduced.
+`thread_id` for persistent conversation checkpoints. User-facing conversation
+metadata is kept in the same database catalog, while the transcript and graph
+state remain owned by LangGraph's checkpoint tables.

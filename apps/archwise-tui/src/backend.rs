@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use color_eyre::eyre::{eyre, Result, WrapErr};
 
-use crate::api::{BackendClient, DEFAULT_BACKEND_URL};
+use crate::api::{BackendClient, DEFAULT_BACKEND_URL, REQUIRED_BACKEND_API_VERSION};
 
 const STARTUP_ATTEMPTS: usize = 60;
 const STARTUP_INTERVAL: Duration = Duration::from_millis(250);
@@ -21,11 +21,18 @@ impl BackendProcess {
 
         // Reuse an already-running development backend instead of owning or
         // terminating a process started by another command.
-        if Self::is_ready(&client) {
-            return Ok(Self {
-                child: None,
-                client,
-            });
+        if let Ok(health) = client.health() {
+            if health.status == "ok" && health.agent_ready {
+                if health.api_version.as_deref() != Some(REQUIRED_BACKEND_API_VERSION) {
+                    return Err(eyre!(
+                        "An outdated ArchWise backend is already running. Restart the backend on port 8765 before starting the TUI."
+                    ));
+                }
+                return Ok(Self {
+                    child: None,
+                    client,
+                });
+            }
         }
 
         let backend_dir = backend_directory()?;
@@ -54,7 +61,11 @@ impl BackendProcess {
     fn is_ready(client: &BackendClient) -> bool {
         client
             .health()
-            .map(|health| health.status == "ok" && health.agent_ready)
+            .map(|health| {
+                health.status == "ok"
+                    && health.agent_ready
+                    && health.api_version.as_deref() == Some(REQUIRED_BACKEND_API_VERSION)
+            })
             .unwrap_or(false)
     }
 

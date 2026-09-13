@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -38,6 +40,10 @@ class AgentSettings(BaseSettings):
     openrouter_app_name: str | None = Field(
         default=None,
         validation_alias="OPENROUTER_APP_NAME",
+    )
+    archwise_storage_root: Path | None = Field(
+        default=None,
+        validation_alias="ARCHWISE_STORAGE_ROOT",
     )
 
     def require_openrouter_api_key(self) -> str:

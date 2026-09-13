@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import sqlite3
 from dataclasses import dataclass
+from pathlib import Path
+from threading import RLock
 from typing import Any, Literal
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -11,6 +14,11 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from archwise_agent.agents import build_archwise_agent
 from archwise_agent.config import AgentSettings
+from archwise_agent.persistence import (
+    CHECKPOINT_DB_PATH,
+    ConversationCatalog,
+    open_sqlite_checkpointer,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,12 +69,30 @@ class AgentService:
         configuration: AgentSettings | None = None,
         model: BaseChatModel | None = None,
         checkpointer: BaseCheckpointSaver | None = None,
+        database_path: Path | None = None,
     ) -> None:
-        self._agent = build_archwise_agent(
-            model=model,
-            configuration=configuration,
-            checkpointer=checkpointer,
-        )
+        self._lock = RLock()
+        self._connection: sqlite3.Connection | None = None
+        self._catalog: ConversationCatalog | None = None
+
+        if checkpointer is None:
+            active_checkpointer, connection = open_sqlite_checkpointer(
+                database_path or CHECKPOINT_DB_PATH
+            )
+            self._connection = connection
+            self._catalog = ConversationCatalog(connection)
+        else:
+            active_checkpointer = checkpointer
+
+        try:
+            self._agent = build_archwise_agent(
+                model=model,
+                configuration=configuration,
+                checkpointer=active_checkpointer,
+            )
+        except Exception:
+            self.close()
+            raise
 
     def send(self, *, thread_id: str, message: str) -> AgentTurn:
         """Send a message while preserving the supplied checkpoint thread."""
@@ -76,35 +102,54 @@ class AgentService:
         if not message.strip():
             raise ValueError("message must not be empty")
 
-        result: dict[str, Any] = self._agent.invoke(
-            {"messages": [HumanMessage(content=message)]},
-            {"configurable": {"thread_id": thread_id}},
-        )
-        response = result["messages"][-1]
-        if not isinstance(response, AIMessage):
-            raise TypeError("agent did not return an AI message")
+        with self._lock:
+            if self._catalog is not None:
+                self._catalog.ensure(thread_id, message)
+
+            result: dict[str, Any] = self._agent.invoke(
+                {"messages": [HumanMessage(content=message)]},
+                {"configurable": {"thread_id": thread_id}},
+            )
+            response = result["messages"][-1]
+            if not isinstance(response, AIMessage):
+                raise TypeError("agent did not return an AI message")
+
+            if self._catalog is not None:
+                self._catalog.ensure(thread_id)
+
         return AgentTurn(thread_id=thread_id, message=response)
 
     def list_conversations(self) -> list[ConversationSummary]:
         """List latest checkpoint state for every known thread."""
 
-        latest: dict[str, Any] = {}
-        for item in self._agent.checkpointer.list(None):
-            thread_id = _thread_id_from_checkpoint(item)
-            if not thread_id:
-                continue
-            current = latest.get(thread_id)
-            if current is None or _checkpoint_key(item) > _checkpoint_key(current):
-                latest[thread_id] = item
+        with self._lock:
+            latest: dict[str, Any] = {}
+            for item in self._agent.checkpointer.list(None):
+                thread_id = _thread_id_from_checkpoint(item)
+                if not thread_id:
+                    continue
+                current = latest.get(thread_id)
+                if current is None or _checkpoint_key(item) > _checkpoint_key(
+                    current
+                ):
+                    latest[thread_id] = item
 
-        conversations = [
-            _conversation_summary(
-                thread_id,
-                _messages_from_checkpoint(item),
+            metadata = (
+                {item.thread_id: item for item in self._catalog.list()}
+                if self._catalog is not None
+                else {}
             )
-            for thread_id, item in latest.items()
-        ]
-        return sorted(conversations, key=lambda item: item.title.casefold())
+            conversations = [
+                _conversation_summary(
+                    thread_id,
+                    _messages_from_checkpoint(item),
+                    title=metadata.get(thread_id).title
+                    if thread_id in metadata
+                    else None,
+                )
+                for thread_id, item in latest.items()
+            ]
+            return sorted(conversations, key=lambda item: item.title.casefold())
 
     def get_conversation(self, thread_id: str) -> Conversation | None:
         """Load one conversation from its checkpoint thread."""
@@ -112,27 +157,67 @@ class AgentService:
         if not thread_id.strip():
             raise ValueError("thread_id must not be empty")
 
-        state = self._agent.get_state(
-            {"configurable": {"thread_id": thread_id}}
-        )
-        values = state.values if isinstance(state.values, dict) else {}
-        messages = values.get("messages", [])
-        if not messages:
-            return None
+        with self._lock:
+            state = self._agent.get_state(
+                {"configurable": {"thread_id": thread_id}}
+            )
+            values = state.values if isinstance(state.values, dict) else {}
+            messages = values.get("messages", [])
+            if not messages:
+                return None
 
-        conversation = _conversation_summary(thread_id, messages)
-        return Conversation(
-            thread_id=conversation.thread_id,
-            title=conversation.title,
-            message_count=conversation.message_count,
-            messages=_conversation_messages(messages),
-        )
+            metadata = (
+                self._catalog.get(thread_id) if self._catalog is not None else None
+            )
+            conversation = _conversation_summary(
+                thread_id,
+                messages,
+                title=metadata.title if metadata is not None else None,
+            )
+            return Conversation(
+                thread_id=conversation.thread_id,
+                title=conversation.title,
+                message_count=conversation.message_count,
+                messages=_conversation_messages(messages),
+            )
+
+    def delete_conversation(self, thread_id: str) -> bool:
+        """Delete a thread checkpoint and its local conversation metadata."""
+
+        if not thread_id.strip():
+            raise ValueError("thread_id must not be empty")
+
+        with self._lock:
+            state = self._agent.get_state(
+                {"configurable": {"thread_id": thread_id}}
+            )
+            has_checkpoint = bool(state.values)
+            has_metadata = (
+                self._catalog is not None
+                and self._catalog.get(thread_id) is not None
+            )
+            if not has_checkpoint and not has_metadata:
+                return False
+
+            self._agent.checkpointer.delete_thread(thread_id)
+            if self._catalog is not None:
+                self._catalog.delete(thread_id)
+            return True
 
     @property
     def agent(self):
         """Expose the compiled agent to future streaming/resume adapters."""
 
         return self._agent
+
+    def close(self) -> None:
+        """Close resources owned by the default SQLite checkpointer."""
+
+        with self._lock:
+            if self._connection is not None:
+                self._connection.close()
+                self._connection = None
+                self._catalog = None
 
 
 def _thread_id_from_checkpoint(checkpoint: Any) -> str | None:
@@ -163,8 +248,10 @@ def _messages_from_checkpoint(checkpoint: Any) -> list[Any]:
 def _conversation_summary(
     thread_id: str,
     messages: list[Any],
+    *,
+    title: str | None = None,
 ) -> ConversationSummary:
-    title = next(
+    title = title or next(
         (
             _message_text(message)
             for message in messages

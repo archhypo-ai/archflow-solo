@@ -4,6 +4,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from archwise_agent import AgentService
 from archwise_agent.backend import create_app
+from archwise_agent.config import PACKAGE_VERSION
 
 
 def test_health_controller_reports_ready_agent() -> None:
@@ -16,4 +17,8 @@ def test_health_controller_reports_ready_agent() -> None:
         response = client.get("/api/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "agent_ready": True}
+    assert response.json() == {
+        "status": "ok",
+        "agent_ready": True,
+        "api_version": PACKAGE_VERSION,
+    }

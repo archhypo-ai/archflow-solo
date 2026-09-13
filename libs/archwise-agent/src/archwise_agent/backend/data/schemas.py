@@ -4,6 +4,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from archwise_agent.config import PACKAGE_VERSION
+
 
 class ChatRequest(BaseModel):
     """Input for one conversational turn."""
@@ -27,11 +29,15 @@ class ChatResponse(BaseModel):
     status: Literal["completed"] = "completed"
 
 
+BACKEND_API_VERSION = PACKAGE_VERSION
+
+
 class HealthResponse(BaseModel):
     """Backend readiness response."""
 
     status: Literal["ok"]
     agent_ready: bool
+    api_version: str = BACKEND_API_VERSION
 
 
 class ThreadSummaryResponse(BaseModel):
@@ -61,6 +67,7 @@ class ThreadResponse(BaseModel):
 __all__ = [
     "ChatRequest",
     "ChatResponse",
+    "BACKEND_API_VERSION",
     "HealthResponse",
     "ThreadMessageResponse",
     "ThreadResponse",

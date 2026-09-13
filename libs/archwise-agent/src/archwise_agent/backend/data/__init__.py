@@ -1,6 +1,7 @@
 """Data contracts exposed by the ArchWise backend."""
 
 from .schemas import (
+    BACKEND_API_VERSION,
     ChatRequest,
     ChatResponse,
     HealthResponse,
@@ -10,6 +11,7 @@ from .schemas import (
 )
 
 __all__ = [
+    "BACKEND_API_VERSION",
     "ChatRequest",
     "ChatResponse",
     "HealthResponse",

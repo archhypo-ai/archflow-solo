@@ -3,6 +3,7 @@ name = "archwise-tui"
 version = "0.1.0"
 edition = "2021"
 description = "Minimal Ratatui client for the ArchWise local backend"
+build = "build.rs"
 
 [dependencies]
 color-eyre = "0.6.5"

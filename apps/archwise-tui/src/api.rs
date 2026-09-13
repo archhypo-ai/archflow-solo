@@ -5,6 +5,7 @@ use reqwest::blocking::Client;
 use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_BACKEND_URL: &str = "http://127.0.0.1:8765";
+pub const REQUIRED_BACKEND_API_VERSION: &str = env!("ARCHWISE_BACKEND_API_VERSION");
 
 #[derive(Clone)]
 pub struct BackendClient {
@@ -22,6 +23,7 @@ struct ChatRequest<'a> {
 pub struct HealthResponse {
     pub status: String,
     pub agent_ready: bool,
+    pub api_version: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -88,6 +90,24 @@ impl BackendClient {
                 .post(format!("{}/api/chat", self.base_url))
                 .json(&ChatRequest { thread_id, message }),
         )
+    }
+
+    pub fn delete_thread(&self, thread_id: &str) -> Result<()> {
+        let response = self
+            .client
+            .delete(format!("{}/api/threads/{thread_id}", self.base_url))
+            .send()
+            .wrap_err("Could not reach ArchWise backend")?;
+        let status = response.status();
+        let body = response
+            .text()
+            .wrap_err("Could not read backend response")?;
+
+        if !status.is_success() {
+            return Err(eyre!("Backend returned HTTP {status}: {body}"));
+        }
+
+        Ok(())
     }
 
     fn request_json<T>(&self, request: reqwest::blocking::RequestBuilder) -> Result<T>

@@ -2,7 +2,7 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Response
 
 from archwise_agent.backend.data import (
     ThreadMessageResponse,
@@ -54,6 +54,24 @@ def get_thread(
             for message in conversation.messages
         ],
     )
+
+
+@router.delete("/threads/{thread_id}", status_code=204)
+def delete_thread(
+    thread_id: Annotated[str, Path(min_length=1)],
+    agent_service: AgentServiceDependency,
+) -> Response:
+    """Delete one conversation from the checkpoint and metadata stores."""
+
+    try:
+        deleted = agent_service.delete_conversation(thread_id)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Thread not found.")
+
+    return Response(status_code=204)
 
 
 __all__ = ["router"]
