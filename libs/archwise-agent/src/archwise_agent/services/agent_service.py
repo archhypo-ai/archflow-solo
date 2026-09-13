@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from threading import RLock
@@ -33,6 +34,16 @@ class AgentTurn:
     @property
     def text(self) -> str:
         return _message_text(self.message)
+
+
+@dataclass(frozen=True, slots=True)
+class AgentStreamEvent:
+    """Transport-neutral event emitted while an agent turn is running."""
+
+    kind: Literal["phase", "delta", "done"]
+    thread_id: str
+    phase: str | None = None
+    text: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -139,6 +150,82 @@ class AgentService:
                 self._conversation_service.ensure(thread_id)
 
         return AgentTurn(thread_id=thread_id, message=response)
+
+    def stream(
+        self,
+        *,
+        thread_id: str,
+        message: str,
+        workspace_id: str = DEFAULT_WORKSPACE_ID,
+        project_id: str | None = None,
+        user_id: str | None = None,
+    ) -> Iterator[AgentStreamEvent]:
+        """Stream one agent turn as phases and text deltas."""
+
+        if not thread_id.strip():
+            raise ValueError("thread_id must not be empty")
+        if not message.strip():
+            raise ValueError("message must not be empty")
+        context = ExecutionContext(
+            thread_id=thread_id,
+            workspace_id=workspace_id,
+            project_id=project_id,
+            user_id=user_id,
+        )
+
+        if self._conversation_service is not None:
+            self._conversation_service.ensure(thread_id, message)
+
+        yield AgentStreamEvent(
+            kind="phase",
+            thread_id=thread_id,
+            phase="thinking",
+        )
+
+        streamed_text = False
+        for item in self._agent.stream(
+            {"messages": [HumanMessage(content=message)]},
+            {"configurable": {"thread_id": thread_id}},
+            context=context.as_graph_context(),
+            stream_mode="messages",
+        ):
+            chunk = item[0] if isinstance(item, tuple) else item
+            text = _message_chunk_text(chunk)
+            if not text:
+                continue
+
+            if not streamed_text:
+                yield AgentStreamEvent(
+                    kind="phase",
+                    thread_id=thread_id,
+                    phase="answering",
+                )
+                streamed_text = True
+            yield AgentStreamEvent(
+                kind="delta",
+                thread_id=thread_id,
+                text=text,
+            )
+
+        if not streamed_text:
+            state = self._agent.get_state(
+                {"configurable": {"thread_id": thread_id}}
+            )
+            values = state.values if isinstance(state.values, dict) else {}
+            messages = values.get("messages", [])
+            if messages:
+                text = _message_text(messages[-1])
+                if text:
+                    yield AgentStreamEvent(
+                        kind="delta",
+                        thread_id=thread_id,
+                        text=text,
+                    )
+
+        if self._conversation_service is not None:
+            self._conversation_service.ensure(thread_id)
+
+        yield AgentStreamEvent(kind="done", thread_id=thread_id)
 
     def list_conversations(self) -> list[ConversationSummary]:
         """List latest checkpoint state for every known thread."""
@@ -353,10 +440,10 @@ def _message_role(message: Any) -> Literal["user", "assistant"] | None:
     return None
 
 
-def _message_text(message: BaseMessage | Any) -> str:
+def _message_chunk_text(message: BaseMessage | Any) -> str:
     content = getattr(message, "content", "")
     if isinstance(content, str):
-        return content.strip()
+        return content
     if isinstance(content, list):
         parts: list[str] = []
         for block in content:
@@ -366,8 +453,12 @@ def _message_text(message: BaseMessage | Any) -> str:
                 text = block.get("text") or block.get("content")
                 if isinstance(text, str):
                     parts.append(text)
-        return "".join(parts).strip()
-    return str(content).strip() if content else ""
+        return "".join(parts)
+    return str(content) if content else ""
+
+
+def _message_text(message: BaseMessage | Any) -> str:
+    return _message_chunk_text(message).strip()
 
 
 def _truncate(value: str, limit: int = 60) -> str:
@@ -376,6 +467,7 @@ def _truncate(value: str, limit: int = 60) -> str:
 
 __all__ = [
     "AgentService",
+    "AgentStreamEvent",
     "AgentTurn",
     "Conversation",
     "ConversationMessage",

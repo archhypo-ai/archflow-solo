@@ -21,9 +21,9 @@ or press `Ctrl+N` to create one. Select a conversation and press `d` to delete
 it. Both new conversation and delete actions require confirmation when needed.
 Press `Esc` or `Ctrl+C` to exit.
 
-The TUI shows animated `Connecting`, `Thinking`, and `Answering` phases while
-the backend request is pending. These are visual phases only; real LangGraph
-events and token streaming will be added later.
+The TUI consumes `POST /api/chat/stream` using Server-Sent Events (SSE).
+`Connecting`, `Thinking`, and `Answering` phases come from the backend, and
+assistant text is appended as delta events arrive.
 
 The TUI uses Ratatui widgets (`Block`, `List`, `Paragraph`, and `Wrap`) and
 keeps application state, HTTP communication, process management, and rendering

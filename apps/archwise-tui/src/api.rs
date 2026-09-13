@@ -1,8 +1,9 @@
+use std::io::{BufRead, BufReader};
 use std::time::Duration;
 
 use color_eyre::eyre::{eyre, Result, WrapErr};
-use reqwest::blocking::Client;
-use serde::{Deserialize, Serialize};
+use reqwest::blocking::{Client, Response};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 pub const DEFAULT_BACKEND_URL: &str = "http://127.0.0.1:8765";
 pub const REQUIRED_BACKEND_API_VERSION: &str = env!("ARCHWISE_BACKEND_API_VERSION");
@@ -47,9 +48,95 @@ pub struct ThreadResponse {
     pub messages: Vec<ThreadMessage>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ChatResponse {
-    pub message: String,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ChatStreamEvent {
+    Phase { phase: String },
+    Delta { text: String },
+    Done,
+    Error { message: String },
+}
+
+pub struct ChatStream {
+    reader: Box<dyn BufRead + Send>,
+    event_type: Option<String>,
+    data_lines: Vec<String>,
+}
+
+impl ChatStream {
+    fn from_response(response: Response) -> Self {
+        Self::from_reader(BufReader::new(response))
+    }
+
+    fn from_reader<R>(reader: R) -> Self
+    where
+        R: BufRead + Send + 'static,
+    {
+        Self {
+            reader: Box::new(reader),
+            event_type: None,
+            data_lines: Vec::new(),
+        }
+    }
+
+    fn dispatch_pending(&mut self) -> Option<Result<ChatStreamEvent>> {
+        let event_type = self
+            .event_type
+            .take()
+            .unwrap_or_else(|| String::from("message"));
+        let data = std::mem::take(&mut self.data_lines).join("\n");
+        if data.is_empty() {
+            return None;
+        }
+
+        match decode_event(&event_type, &data) {
+            Ok(Some(event)) => Some(Ok(event)),
+            Ok(None) => None,
+            Err(error) => Some(Err(error)),
+        }
+    }
+}
+
+impl Iterator for ChatStream {
+    type Item = Result<ChatStreamEvent>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            let mut line = String::new();
+            match self.reader.read_line(&mut line) {
+                Ok(0) => {
+                    if self.event_type.is_some() || !self.data_lines.is_empty() {
+                        if let Some(event) = self.dispatch_pending() {
+                            return Some(event);
+                        }
+                    }
+                    return None;
+                }
+                Ok(_) => {}
+                Err(error) => return Some(Err(error.into())),
+            }
+
+            let line = line.trim_end_matches(&['\r', '\n'][..]);
+            if line.is_empty() {
+                if let Some(event) = self.dispatch_pending() {
+                    return Some(event);
+                }
+                continue;
+            }
+            if line.starts_with(':') {
+                continue;
+            }
+
+            let Some((field, value)) = line.split_once(':') else {
+                continue;
+            };
+            let value = value.strip_prefix(' ').unwrap_or(value);
+            match field {
+                "event" => self.event_type = Some(value.to_owned()),
+                "data" => self.data_lines.push(value.to_owned()),
+                _ => {}
+            }
+        }
+    }
 }
 
 impl BackendClient {
@@ -84,12 +171,23 @@ impl BackendClient {
         )
     }
 
-    pub fn send_message(&self, thread_id: &str, message: &str) -> Result<ChatResponse> {
-        self.request_json(
-            self.client
-                .post(format!("{}/api/chat", self.base_url))
-                .json(&ChatRequest { thread_id, message }),
-        )
+    pub fn send_message_stream(&self, thread_id: &str, message: &str) -> Result<ChatStream> {
+        let response = self
+            .client
+            .post(format!("{}/api/chat/stream", self.base_url))
+            .header("Accept", "text/event-stream")
+            .json(&ChatRequest { thread_id, message })
+            .send()
+            .wrap_err("Could not reach ArchWise backend")?;
+        let status = response.status();
+        if !status.is_success() {
+            let body = response
+                .text()
+                .wrap_err("Could not read backend response")?;
+            return Err(eyre!("Backend returned HTTP {status}: {body}"));
+        }
+
+        Ok(ChatStream::from_response(response))
     }
 
     pub fn delete_thread(&self, thread_id: &str) -> Result<()> {
@@ -127,5 +225,93 @@ impl BackendClient {
         }
 
         serde_json::from_str(&body).wrap_err("Invalid backend response")
+    }
+}
+
+fn decode_event(event_type: &str, data: &str) -> Result<Option<ChatStreamEvent>> {
+    match event_type {
+        "phase" => {
+            let payload: PhasePayload = parse_event_payload(event_type, data)?;
+            Ok(Some(ChatStreamEvent::Phase {
+                phase: payload.phase,
+            }))
+        }
+        "delta" => {
+            let payload: DeltaPayload = parse_event_payload(event_type, data)?;
+            Ok(Some(ChatStreamEvent::Delta { text: payload.text }))
+        }
+        "done" => Ok(Some(ChatStreamEvent::Done)),
+        "error" => {
+            let payload: ErrorPayload = parse_event_payload(event_type, data)?;
+            Ok(Some(ChatStreamEvent::Error {
+                message: payload.message,
+            }))
+        }
+        _ => Ok(None),
+    }
+}
+
+fn parse_event_payload<T>(event_type: &str, data: &str) -> Result<T>
+where
+    T: DeserializeOwned,
+{
+    serde_json::from_str(data)
+        .wrap_err_with(|| format!("Invalid SSE data for event '{event_type}'"))
+}
+
+#[derive(Debug, Deserialize)]
+struct PhasePayload {
+    phase: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct DeltaPayload {
+    text: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ErrorPayload {
+    message: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+
+    use super::{ChatStream, ChatStreamEvent};
+
+    #[test]
+    fn parses_sse_events_and_ignores_comments() {
+        let source = concat!(
+            ": keep-alive\n\n",
+            "event: phase\n",
+            "data: {\"phase\":\"thinking\"}\n\n",
+            "event: delta\n",
+            "data: {\"text\":\"hello\"}\n\n",
+            "event: delta\n",
+            "data: {\"text\":\" world\"}\n\n",
+            "event: done\n",
+            "data: {\"thread_id\":\"test\"}\n\n",
+        );
+
+        let events = ChatStream::from_reader(Cursor::new(source.as_bytes()))
+            .collect::<Result<Vec<_>, _>>()
+            .expect("SSE stream should parse");
+
+        assert_eq!(
+            events,
+            vec![
+                ChatStreamEvent::Phase {
+                    phase: String::from("thinking"),
+                },
+                ChatStreamEvent::Delta {
+                    text: String::from("hello"),
+                },
+                ChatStreamEvent::Delta {
+                    text: String::from(" world"),
+                },
+                ChatStreamEvent::Done,
+            ]
+        );
     }
 }

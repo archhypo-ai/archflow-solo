@@ -7,10 +7,9 @@ use crossterm::event::{self, KeyCode, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
 use uuid::Uuid;
 
-use crate::api::{BackendClient, ChatResponse, ThreadSummary};
+use crate::api::{BackendClient, ChatStreamEvent, ThreadSummary};
 use crate::ui;
 
-const LOADING_PHASES: [&str; 3] = ["Connecting", "Thinking", "Answering"];
 const LOADING_FRAMES: [&str; 4] = ["|", "/", "-", "\\"];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,7 +39,8 @@ pub struct App {
     pub(crate) selected_entry: usize,
     pub(crate) focus: Focus,
     pub(crate) confirmation: Option<Confirmation>,
-    pub(crate) pending: Option<Receiver<Result<ChatResponse>>>,
+    pub(crate) pending: Option<Receiver<Result<ChatStreamEvent>>>,
+    pub(crate) streaming_message_index: Option<usize>,
     pub(crate) loading_tick: usize,
     pub(crate) status: String,
     client: BackendClient,
@@ -59,6 +59,7 @@ impl App {
             focus: Focus::Input,
             confirmation: None,
             pending: None,
+            streaming_message_index: None,
             loading_tick: 0,
             status: String::from("Ready. Enter sends; Tab switches focus."),
             client,
@@ -167,8 +168,13 @@ impl App {
             role: "You",
             content: message.clone(),
         });
+        self.messages.push(UiMessage {
+            role: "ArchWise",
+            content: String::new(),
+        });
+        self.streaming_message_index = Some(self.messages.len() - 1);
         self.loading_tick = 0;
-        self.status = String::from("Waiting for backend...");
+        self.status = String::from("Connecting");
 
         let client = self.client.clone();
         let thread_id = self.thread_id.clone();
@@ -176,41 +182,95 @@ impl App {
         self.pending = Some(receiver);
 
         thread::spawn(move || {
-            let result = client.send_message(&thread_id, &message);
-            let _ = sender.send(result);
+            let result = client.send_message_stream(&thread_id, &message);
+            match result {
+                Ok(stream) => {
+                    for event in stream {
+                        let failed = event.is_err();
+                        if sender.send(event).is_err() || failed {
+                            break;
+                        }
+                    }
+                }
+                Err(error) => {
+                    let _ = sender.send(Err(error));
+                }
+            }
         });
     }
 
     fn poll_response(&mut self) {
-        let result = match self.pending.as_ref() {
-            None => return,
-            Some(receiver) => match receiver.try_recv() {
-                Ok(result) => result,
-                Err(TryRecvError::Empty) => return,
-                Err(TryRecvError::Disconnected) => Err(color_eyre::eyre::eyre!(
-                    "Backend request channel disconnected."
-                )),
-            },
+        let Some(receiver) = self.pending.take() else {
+            return;
         };
+        let mut keep_pending = true;
 
-        self.pending = None;
-        match result {
-            Ok(response) => {
-                self.messages.push(UiMessage {
-                    role: "ArchWise",
-                    content: response.message,
-                });
-                self.status = String::from("Ready.");
-                self.refresh_conversations();
-            }
-            Err(error) => {
-                self.messages.push(UiMessage {
-                    role: "Error",
-                    content: error.to_string(),
-                });
-                self.status = String::from("Request failed.");
+        loop {
+            match receiver.try_recv() {
+                Ok(Ok(event)) => match event {
+                    ChatStreamEvent::Phase { phase } => {
+                        self.status = phase;
+                    }
+                    ChatStreamEvent::Delta { text } => {
+                        self.status = String::from("Answering");
+                        self.append_stream_text(&text);
+                    }
+                    ChatStreamEvent::Done => {
+                        keep_pending = false;
+                        self.streaming_message_index = None;
+                        self.status = String::from("Ready.");
+                        self.refresh_conversations();
+                        break;
+                    }
+                    ChatStreamEvent::Error { message } => {
+                        keep_pending = false;
+                        self.finish_stream_with_error(message);
+                        break;
+                    }
+                },
+                Ok(Err(error)) => {
+                    keep_pending = false;
+                    self.finish_stream_with_error(error.to_string());
+                    break;
+                }
+                Err(TryRecvError::Empty) => break,
+                Err(TryRecvError::Disconnected) => {
+                    keep_pending = false;
+                    self.finish_stream_with_error(String::from(
+                        "Backend stream disconnected before completion.",
+                    ));
+                    break;
+                }
             }
         }
+
+        if keep_pending {
+            self.pending = Some(receiver);
+        }
+    }
+
+    fn append_stream_text(&mut self, text: &str) {
+        let Some(index) = self.streaming_message_index else {
+            return;
+        };
+        if let Some(message) = self.messages.get_mut(index) {
+            message.content.push_str(text);
+        }
+    }
+
+    fn finish_stream_with_error(&mut self, error: String) {
+        if let Some(index) = self.streaming_message_index.take() {
+            if let Some(message) = self.messages.get_mut(index) {
+                message.role = "Error";
+                message.content = error;
+            }
+        } else {
+            self.messages.push(UiMessage {
+                role: "Error",
+                content: error,
+            });
+        }
+        self.status = String::from("Request failed.");
     }
 
     fn refresh_conversations(&mut self) {
@@ -248,6 +308,7 @@ impl App {
             Ok(conversation) => {
                 let message_count = conversation.message_count;
                 self.thread_id = conversation.thread_id;
+                self.streaming_message_index = None;
                 self.messages = conversation
                     .messages
                     .into_iter()
@@ -286,6 +347,7 @@ impl App {
         self.messages.clear();
         self.input.clear();
         self.reset_cursor();
+        self.streaming_message_index = None;
         self.selected_entry = 0;
         self.focus = Focus::Input;
         self.confirmation = None;
@@ -323,6 +385,7 @@ impl App {
                     self.messages.clear();
                     self.input.clear();
                     self.reset_cursor();
+                    self.streaming_message_index = None;
                     self.selected_entry = 0;
                     self.focus = Focus::Input;
                 }
@@ -342,9 +405,8 @@ impl App {
     }
 
     pub(crate) fn loading_status(&self) -> String {
-        let phase = LOADING_PHASES[(self.loading_tick / 8) % LOADING_PHASES.len()];
         let frame = LOADING_FRAMES[self.loading_tick % LOADING_FRAMES.len()];
-        format!("{phase} {frame}")
+        format!("{} {frame}", self.status)
     }
 
     fn select_previous_entry(&mut self) {

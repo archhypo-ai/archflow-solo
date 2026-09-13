@@ -78,10 +78,17 @@ curl http://127.0.0.1:8765/api/health
 curl -X POST http://127.0.0.1:8765/api/chat \\
   -H 'Content-Type: application/json' \\
   -d '{"thread_id":"curl-test","message":"Explain ArchHypo briefly."}'
+
+curl -N -X POST http://127.0.0.1:8765/api/chat/stream \\
+  -H 'Accept: text/event-stream' \\
+  -H 'Content-Type: application/json' \\
+  -d '{"thread_id":"curl-stream-test","message":"Explain ArchHypo briefly."}'
 ```
 
 The backend creates one long-lived agent service and uses the supplied
-`thread_id` for persistent conversation checkpoints. User-facing conversation
+`thread_id` for persistent conversation checkpoints. The `/api/chat/stream`
+endpoint uses standard SSE events (`phase`, `delta`, `done`, and `error`) for
+clients that need progressive responses. User-facing conversation
 metadata is kept in the same database catalog, while the transcript and graph
 state remain owned by LangGraph's checkpoint tables. Execution context already
 has contracts for `thread_id`, `workspace_id`, `project_id`, `user_id`, and
