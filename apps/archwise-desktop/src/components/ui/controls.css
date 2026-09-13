@@ -1,0 +1,20 @@
+.icon-button {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-muted);
+}
+
+.icon-button:hover {
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+
+.icon-button svg {
+  width: 16px;
+  height: 16px;
+}
