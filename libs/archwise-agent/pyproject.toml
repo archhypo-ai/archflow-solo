@@ -1,0 +1,31 @@
+[build-system]
+requires = ["hatchling>=1.27,<2.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "archwise-agent"
+version = "0.1.0"
+description = "Initial agent runtime for ArchWise"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "langchain>=1.0,<2.0",
+  "langchain-core>=1.0,<2.0",
+  "langchain-openrouter>=0.2.8,<0.3.0",
+  "langgraph>=1.0,<2.0",
+  "pydantic-settings>=2.0,<3.0",
+  "python-dotenv>=1.0,<2.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0,<9.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/archwise_agent"]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+pythonpath = ["src"]
+testpaths = ["tests"]
