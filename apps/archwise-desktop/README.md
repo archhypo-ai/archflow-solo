@@ -4,7 +4,7 @@ Tauri 2 desktop shell for ArchWISE.
 
 ## Current scope
 
-This first increment is visual only. It includes a React/Vite shell, a collapsible sidebar, local conversation navigation, theme tokens, and an assistant-ui thread/composer runtime that stores messages locally. It does not start the Python backend or communicate with the agent.
+This first increment is visual only. It includes a React/Vite shell, a collapsible sidebar, local conversation navigation, an Anonymous account menu, Settings (General and Agent), theme tokens, and an assistant-ui thread/composer runtime that stores messages locally. It does not start the Python backend or communicate with the agent.
 
 The local runtime is deliberately isolated in `src/features/chat/hooks/useLocalChatRuntime.ts`. It can later be replaced by the agent runtime without changing the shell components.
 

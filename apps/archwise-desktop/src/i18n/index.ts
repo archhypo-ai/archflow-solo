@@ -1,2 +1,3 @@
+export { I18nProvider, useI18n } from "./I18nProvider";
 export { default as i18n } from "./config";
-export { useTranslation as useI18n } from "react-i18next";
+export type { Language } from "./types";

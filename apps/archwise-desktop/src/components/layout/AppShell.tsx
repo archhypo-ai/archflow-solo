@@ -7,6 +7,7 @@ export type AppShellProps = PropsWithChildren<{
   conversations: readonly Conversation[];
   activeConversationId?: string;
   onNewConversation: () => void;
+  onSettingsOpen: () => void;
   onConversationSelect: (conversation: Conversation) => void;
 }>;
 
@@ -15,6 +16,7 @@ export function AppShell({
   conversations,
   activeConversationId,
   onNewConversation,
+  onSettingsOpen,
   onConversationSelect,
 }: AppShellProps) {
   const sidebar = useSidebar();
@@ -25,6 +27,7 @@ export function AppShell({
         collapsed={sidebar.collapsed}
         onToggle={sidebar.toggle}
         onNewConversation={onNewConversation}
+        onSettingsOpen={onSettingsOpen}
         conversations={conversations}
         activeConversationId={activeConversationId}
         onConversationSelect={onConversationSelect}

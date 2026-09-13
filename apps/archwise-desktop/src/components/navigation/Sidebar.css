@@ -208,6 +208,81 @@
   font-size: 11px;
 }
 
+.sidebar-user {
+  margin-top: auto;
+  padding: 12px 0 0;
+}
+
+.sidebar-user-trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-muted);
+  padding: 7px 8px;
+  text-align: left;
+}
+
+.sidebar-user-trigger:hover,
+.sidebar-user-trigger[aria-expanded="true"] {
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+
+.user-avatar {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  place-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 50%;
+  background: var(--color-surface-muted);
+  color: var(--color-foreground);
+  font-family: var(--font-code);
+  font-size: 10px;
+}
+
+.sidebar-user-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.sidebar-user-trigger .sidebar-chevron {
+  width: 14px;
+  height: 14px;
+}
+
+.sidebar-user-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  left: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-surface-raised);
+  padding: 4px;
+  box-shadow: 0 14px 30px #0004;
+}
+
+.sidebar.is-collapsed .sidebar-user-trigger {
+  justify-content: center;
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.sidebar.is-collapsed .sidebar-user-name,
+.sidebar.is-collapsed .sidebar-user-trigger .sidebar-chevron {
+  display: none;
+}
+
 @media (max-width: 680px) {
   .sidebar,
   .sidebar.is-collapsed {
@@ -238,6 +313,10 @@
   }
 
   .sidebar-sections {
+    display: none;
+  }
+
+  .sidebar-user {
     display: none;
   }
 

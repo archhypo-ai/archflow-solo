@@ -8,9 +8,12 @@
 @import "@assistant-ui/react-ui/styles/themes/default.css";
 @import "./theme/tokens.css";
 @import "./components/ui/controls.css";
+@import "./components/overlay/Menu.css";
+@import "./components/overlay/SelectMenu.css";
 @import "./components/navigation/Sidebar.css";
 @import "./components/layout/AppShell.css";
 @import "./features/chat/components/ArchwiseThread.css";
+@import "./features/settings/components/SettingsModal.css";
 
 :root {
   font-family: var(--font-sans);

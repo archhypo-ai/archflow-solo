@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { AppShell } from "../components/layout/AppShell";
 import { ArchwiseChat } from "../features/chat";
 import { useConversations } from "../features/conversations";
-import { I18nProvider } from "../i18n/I18nProvider";
+import { SettingsModal } from "../features/settings";
 import { ThemeProvider } from "../features/theme";
+import { I18nProvider, useI18n } from "../i18n";
 
 function AppContent() {
+  const { t } = useI18n();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const {
     conversations,
     activeConversationId,
@@ -16,19 +20,26 @@ function AppContent() {
   );
 
   return (
-    <AppShell
-      conversations={conversations}
-      activeConversationId={activeConversationId}
-      onNewConversation={newConversation}
-      onConversationSelect={selectConversation}
-    >
-      <header className="content-header">
-        <h1>{activeConversation?.label ?? "New conversation"}</h1>
-      </header>
-      <main className="chat-area">
-        <ArchwiseChat key={activeConversationId ?? "new-conversation"} />
-      </main>
-    </AppShell>
+    <>
+      <AppShell
+        conversations={conversations}
+        activeConversationId={activeConversationId}
+        onNewConversation={newConversation}
+        onSettingsOpen={() => setSettingsOpen(true)}
+        onConversationSelect={selectConversation}
+      >
+        <header className="content-header">
+          <h1>{activeConversation?.label ?? t("app.newConversation")}</h1>
+        </header>
+        <main className="chat-area">
+          <ArchwiseChat key={activeConversationId ?? "new-conversation"} />
+        </main>
+      </AppShell>
+      <SettingsModal
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+      />
+    </>
   );
 }
 
