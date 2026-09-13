@@ -6,8 +6,15 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from threading import RLock
-from typing import Any, Literal
+from typing import Any, Literal, TypeAlias
 
+from agent_stream_py import (
+    AgentEvent,
+    cancelled_event,
+    done_event,
+    phase_event,
+    text_delta_event,
+)
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -41,15 +48,7 @@ class AgentTurn:
         return _message_text(self.message)
 
 
-@dataclass(frozen=True, slots=True)
-class AgentStreamEvent:
-    """Transport-neutral event emitted while an agent turn is running."""
-
-    kind: Literal["phase", "delta", "done", "cancelled"]
-    thread_id: str
-    run_id: str
-    phase: str | None = None
-    text: str | None = None
+AgentStreamEvent: TypeAlias = AgentEvent
 
 
 @dataclass(frozen=True, slots=True)
@@ -168,7 +167,7 @@ class AgentService:
         user_id: str | None = None,
         run_id: str | None = None,
     ) -> Iterator[AgentStreamEvent]:
-        """Stream one agent turn as phases, text deltas, and completion."""
+        """Stream one agent turn using the shared agent stream protocol."""
 
         if not thread_id.strip():
             raise ValueError("thread_id must not be empty")
@@ -191,8 +190,7 @@ class AgentService:
             if self._conversation_service is not None:
                 self._conversation_service.ensure(thread_id, message)
 
-            yield AgentStreamEvent(
-                kind="phase",
+            yield phase_event(
                 thread_id=thread_id,
                 run_id=context.run_id,
                 phase="thinking",
@@ -217,15 +215,13 @@ class AgentService:
                     continue
 
                 if not streamed_text:
-                    yield AgentStreamEvent(
-                        kind="phase",
+                    yield phase_event(
                         thread_id=thread_id,
                         run_id=context.run_id,
                         phase="answering",
                     )
                     streamed_text = True
-                yield AgentStreamEvent(
-                    kind="delta",
+                yield text_delta_event(
                     thread_id=thread_id,
                     run_id=context.run_id,
                     text=text,
@@ -245,8 +241,7 @@ class AgentService:
                 if messages:
                     text = _message_text(messages[-1])
                     if text:
-                        yield AgentStreamEvent(
-                            kind="delta",
+                        yield text_delta_event(
                             thread_id=thread_id,
                             run_id=context.run_id,
                             text=text,
@@ -255,16 +250,15 @@ class AgentService:
             if self._conversation_service is not None:
                 self._conversation_service.ensure(thread_id)
 
-            yield AgentStreamEvent(
-                kind="done",
+            yield done_event(
                 thread_id=thread_id,
                 run_id=context.run_id,
             )
-        except AgentCancelledError:
-            yield AgentStreamEvent(
-                kind="cancelled",
+        except AgentCancelledError as error:
+            yield cancelled_event(
                 thread_id=thread_id,
                 run_id=context.run_id,
+                reason=str(error),
             )
         finally:
             with self._lock:

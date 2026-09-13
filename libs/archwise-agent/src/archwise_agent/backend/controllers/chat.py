@@ -4,6 +4,7 @@ import logging
 from collections.abc import Iterator
 from typing import Annotated
 
+from agent_stream_py import agent_event_data, error_event
 from fastapi import APIRouter, HTTPException, Path
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 
@@ -61,21 +62,17 @@ def chat_stream(
         ):
             yield _to_server_sent_event(event)
     except ValueError as error:
-        yield ServerSentEvent(
-            event="error",
-            data={
-                "thread_id": payload.thread_id,
-                "message": str(error),
-            },
+        yield _error_server_sent_event(
+            thread_id=payload.thread_id,
+            run_id=payload.run_id or "unknown",
+            message=str(error),
         )
     except Exception:
         logger.exception("ArchWise agent stream failed")
-        yield ServerSentEvent(
-            event="error",
-            data={
-                "thread_id": payload.thread_id,
-                "message": "Agent execution failed.",
-            },
+        yield _error_server_sent_event(
+            thread_id=payload.thread_id,
+            run_id=payload.run_id or "unknown",
+            message="Agent execution failed.",
         )
 
 
@@ -98,20 +95,25 @@ def cancel_chat_run(
 
 
 def _to_server_sent_event(event: AgentStreamEvent) -> ServerSentEvent:
-    data: dict[str, str] = {
-        "thread_id": event.thread_id,
-        "run_id": event.run_id,
-    }
-    if event.phase is not None:
-        data["phase"] = event.phase
-    if event.text is not None:
-        data["text"] = event.text
-    if event.kind == "done":
-        data["status"] = "completed"
-    elif event.kind == "cancelled":
-        data["status"] = "cancelled"
+    return ServerSentEvent(
+        event="archwise",
+        data=agent_event_data(event),
+    )
 
-    return ServerSentEvent(event=event.kind, data=data)
+
+def _error_server_sent_event(
+    *, thread_id: str, run_id: str, message: str
+) -> ServerSentEvent:
+    return ServerSentEvent(
+        event="archwise",
+        data=agent_event_data(
+            error_event(
+                thread_id=thread_id,
+                run_id=run_id,
+                message=message,
+            )
+        ),
+    )
 
 
 __all__ = ["router"]

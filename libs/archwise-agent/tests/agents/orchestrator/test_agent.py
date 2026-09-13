@@ -33,7 +33,7 @@ def test_agent_stream_can_be_cancelled() -> None:
         message="hello",
         run_id="cancel-run",
     )
-    assert next(stream).kind == "phase"
+    assert next(stream).type == "phase"
 
     events = []
     consumer = threading.Thread(target=lambda: events.extend(stream))
@@ -44,8 +44,8 @@ def test_agent_stream_can_be_cancelled() -> None:
     consumer.join(timeout=3)
 
     assert not consumer.is_alive()
-    assert any(event.kind == "cancelled" for event in events)
-    assert not any(event.kind == "done" for event in events)
+    assert any(event.type == "cancelled" for event in events)
+    assert not any(event.type == "done" for event in events)
 
 
 def test_build_agent_accepts_injected_model() -> None:

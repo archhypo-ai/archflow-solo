@@ -55,11 +55,14 @@ def test_chat_stream_controller_emits_sse_events() -> None:
         if line.startswith("data: ")
     ]
 
-    assert events[0] == "phase"
-    assert events[1] == "phase"
-    assert events[-1] == "done"
+    assert events == ["archwise"] * len(payloads)
+    assert payloads[0]["type"] == "phase"
+    assert payloads[1]["type"] == "phase"
+    assert payloads[-1]["type"] == "done"
     assert "".join(
-        payload["text"] for event, payload in zip(events, payloads) if event == "delta"
+        payload["text"]
+        for payload in payloads
+        if payload["type"] == "text_delta"
     ) == "hello world"
     assert service.get_conversation("stream-test").message_count == 2
 

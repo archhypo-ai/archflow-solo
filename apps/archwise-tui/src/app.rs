@@ -4,12 +4,12 @@ use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use color_eyre::eyre::Result;
+use color_eyre::eyre::{eyre, Result};
 use crossterm::event::{self, KeyCode, KeyModifiers};
 use ratatui::{DefaultTerminal, Frame};
 use uuid::Uuid;
 
-use crate::api::{BackendClient, ChatStreamEvent, ThreadSummary};
+use crate::api::{AgentEvent, BackendClient, ThreadSummary};
 use crate::ui;
 
 const LOADING_FRAMES: [&str; 4] = ["|", "/", "-", "\\"];
@@ -41,7 +41,7 @@ pub struct App {
     pub(crate) selected_entry: usize,
     pub(crate) focus: Focus,
     pub(crate) confirmation: Option<Confirmation>,
-    pub(crate) pending: Option<Receiver<Result<ChatStreamEvent>>>,
+    pub(crate) pending: Option<Receiver<Result<AgentEvent>>>,
     pub(crate) streaming_message_index: Option<usize>,
     pub(crate) cancellation: Option<Arc<AtomicBool>>,
     pub(crate) active_run_id: Option<String>,
@@ -202,15 +202,15 @@ impl App {
         thread::spawn(move || {
             let result = client.send_message_stream(&thread_id, &message, &run_id);
             match result {
-                Ok(mut stream) => loop {
-                    let Some(event) = stream.next_with_cancellation(&cancellation) else {
-                        break;
-                    };
-                    let failed = event.is_err();
-                    if sender.send(event).is_err() || failed {
-                        break;
+                Ok(mut stream) => {
+                    while let Some(event) = stream.next_with_cancellation(&cancellation) {
+                        let failed = event.is_err();
+                        let event = event.map_err(|error| eyre!(error.to_string()));
+                        if sender.send(event).is_err() || failed {
+                            break;
+                        }
                     }
-                },
+                }
                 Err(error) => {
                     let _ = sender.send(Err(error));
                 }
@@ -227,14 +227,14 @@ impl App {
         loop {
             match receiver.try_recv() {
                 Ok(Ok(event)) => match event {
-                    ChatStreamEvent::Phase { phase } => {
+                    AgentEvent::Phase { phase, .. } => {
                         self.status = phase;
                     }
-                    ChatStreamEvent::Delta { text } => {
+                    AgentEvent::TextDelta { text, .. } => {
                         self.status = String::from("Answering");
                         self.append_stream_text(&text);
                     }
-                    ChatStreamEvent::Done => {
+                    AgentEvent::Done { .. } => {
                         keep_pending = false;
                         if self.cancel_requested {
                             self.finish_stream_as_cancelled();
@@ -247,15 +247,25 @@ impl App {
                         self.refresh_conversations();
                         break;
                     }
-                    ChatStreamEvent::Cancelled => {
+                    AgentEvent::Cancelled { .. } => {
                         keep_pending = false;
                         self.finish_stream_as_cancelled();
                         break;
                     }
-                    ChatStreamEvent::Error { message } => {
+                    AgentEvent::Error { message, .. } => {
                         keep_pending = false;
                         self.finish_stream_with_error(message);
                         break;
+                    }
+                    AgentEvent::ToolCallStart { name, .. } => {
+                        self.status = format!("Using tool: {name}");
+                    }
+                    AgentEvent::ToolCallDelta { .. } => {}
+                    AgentEvent::ToolResult { .. } => {
+                        self.status = String::from("Tool completed");
+                    }
+                    AgentEvent::Interrupt { message, .. } => {
+                        self.status = format!("Approval required: {message}");
                     }
                 },
                 Ok(Err(error)) => {

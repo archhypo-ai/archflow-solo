@@ -6,6 +6,7 @@ description = "Minimal Ratatui client for the ArchWise local backend"
 build = "build.rs"
 
 [dependencies]
+agent-stream-rust = { path = "../../libs/agent-stream-rust" }
 color-eyre = "0.6.5"
 crossterm = "0.29.0"
 ratatui = "0.30.2"

@@ -24,7 +24,8 @@ Press `Esc` or `Ctrl+C` to exit.
 
 The TUI consumes `POST /api/chat/stream` using Server-Sent Events (SSE).
 `Connecting`, `Thinking`, and `Answering` phases come from the backend, and
-assistant text is appended as delta events arrive.
+assistant text is appended as `text_delta` events arrive. The shared Rust
+protocol decoder is provided by `libs/agent-stream-rust`.
 
 The TUI uses Ratatui widgets (`Block`, `List`, `Paragraph`, and `Wrap`) and
 keeps application state, HTTP communication, process management, and rendering
