@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { listThreads } from "../../agent";
+import {
+  deleteThread,
+  listThreads,
+  updateThread,
+} from "../../agent";
+import type { BackendThreadSummary } from "../../agent";
 import type { Conversation } from "../types";
 
 const INITIAL_LOAD_ATTEMPTS = 40;
@@ -15,6 +20,14 @@ function wait(milliseconds: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
 }
 
+function toConversation(thread: BackendThreadSummary): Conversation {
+  return {
+    id: thread.thread_id,
+    label: thread.title,
+    pinned: thread.pinned,
+  };
+}
+
 export function useConversations() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState(newId);
@@ -23,12 +36,7 @@ export function useConversations() {
 
   const refreshConversations = useCallback(async () => {
     const threads = await listThreads();
-    const nextConversations = threads.map((thread) => ({
-      id: thread.thread_id,
-      label: thread.title,
-      // Pinning is not exposed by the current backend contract yet.
-      pinned: false,
-    }));
+    const nextConversations = threads.map(toConversation);
 
     setConversations(nextConversations);
     setActiveConversationId((current) =>
@@ -47,11 +55,7 @@ export function useConversations() {
           const threads = await listThreads();
           if (!active) return;
 
-          const loaded = threads.map((thread) => ({
-            id: thread.thread_id,
-            label: thread.title,
-            pinned: false,
-          }));
+          const loaded = threads.map(toConversation);
           setConversations(loaded);
           if (initialSelectionPending.current && loaded[0]) {
             setActiveConversationId(loaded[0].id);
@@ -88,6 +92,31 @@ export function useConversations() {
     setActiveConversationId(conversation.id);
   }, []);
 
+  const togglePinned = useCallback((conversation: Conversation) => {
+    void updateThread(conversation.id, { pinned: !conversation.pinned })
+      .then((updated) => {
+        setConversations((current) =>
+          current.map((item) =>
+            item.id === updated.thread_id ? toConversation(updated) : item,
+          ),
+        );
+      })
+      .catch(() => undefined);
+  }, []);
+
+  const deleteConversation = useCallback((conversation: Conversation) => {
+    void deleteThread(conversation.id)
+      .then(() => {
+        setConversations((current) =>
+          current.filter((item) => item.id !== conversation.id),
+        );
+        setActiveConversationId((current) =>
+          current === conversation.id ? newId() : current,
+        );
+      })
+      .catch(() => undefined);
+  }, []);
+
   return {
     conversations,
     activeConversationId,
@@ -95,5 +124,7 @@ export function useConversations() {
     newConversation,
     refreshConversations,
     selectConversation,
+    togglePinned,
+    deleteConversation,
   };
 }

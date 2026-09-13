@@ -34,6 +34,14 @@ class ConversationRepository(Protocol):
         title: str | None = None,
     ) -> ConversationMetadata: ...
 
+    def update(
+        self,
+        thread_id: str,
+        *,
+        title: str | None = None,
+        pinned: bool | None = None,
+    ) -> ConversationMetadata | None: ...
+
     def delete(self, thread_id: str) -> bool: ...
 
 
@@ -104,6 +112,40 @@ class SQLiteConversationRepository:
         if metadata is None:
             raise RuntimeError("Conversation catalog entry was not created")
         return metadata
+
+    def update(
+        self,
+        thread_id: str,
+        *,
+        title: str | None = None,
+        pinned: bool | None = None,
+    ) -> ConversationMetadata | None:
+        """Update metadata fields and return the resulting conversation."""
+
+        current = self.get(thread_id)
+        if current is None:
+            return None
+
+        fields: list[str] = []
+        values: list[object] = []
+        if title is not None:
+            fields.append("title = ?")
+            values.append(_clean_title(title))
+        if pinned is not None:
+            fields.append("pinned = ?")
+            values.append(int(pinned))
+        if not fields:
+            return current
+
+        fields.append("updated_at = ?")
+        values.append(_now())
+        values.append(thread_id)
+        self._connection.execute(
+            f"UPDATE conversations SET {', '.join(fields)} WHERE thread_id = ?",
+            values,
+        )
+        self._connection.commit()
+        return self.get(thread_id)
 
     def delete(self, thread_id: str, *, commit: bool = True) -> bool:
         """Delete metadata, optionally leaving commit control to a unit of work."""

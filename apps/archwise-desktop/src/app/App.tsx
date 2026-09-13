@@ -15,6 +15,8 @@ function AppContent() {
     newConversation,
     refreshConversations,
     selectConversation,
+    togglePinned,
+    deleteConversation,
   } = useConversations();
   const activeConversation = conversations.find(
     (conversation) => conversation.id === activeConversationId,
@@ -28,6 +30,8 @@ function AppContent() {
         onNewConversation={newConversation}
         onSettingsOpen={() => setSettingsOpen(true)}
         onConversationSelect={selectConversation}
+        onConversationPinToggle={togglePinned}
+        onConversationDelete={deleteConversation}
       >
         <header className="content-header">
           <h1>{activeConversation?.label ?? t("app.newConversation")}</h1>

@@ -9,6 +9,8 @@ export type AppShellProps = PropsWithChildren<{
   onNewConversation: () => void;
   onSettingsOpen: () => void;
   onConversationSelect: (conversation: Conversation) => void;
+  onConversationPinToggle: (conversation: Conversation) => void;
+  onConversationDelete: (conversation: Conversation) => void;
 }>;
 
 export function AppShell({
@@ -18,6 +20,8 @@ export function AppShell({
   onNewConversation,
   onSettingsOpen,
   onConversationSelect,
+  onConversationPinToggle,
+  onConversationDelete,
 }: AppShellProps) {
   const sidebar = useSidebar();
 
@@ -31,6 +35,8 @@ export function AppShell({
         conversations={conversations}
         activeConversationId={activeConversationId}
         onConversationSelect={onConversationSelect}
+        onConversationPinToggle={onConversationPinToggle}
+        onConversationDelete={onConversationDelete}
       />
       <section className="main-content">{children}</section>
     </main>

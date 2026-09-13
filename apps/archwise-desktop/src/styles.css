@@ -8,6 +8,7 @@
 @import "@assistant-ui/react-ui/styles/themes/default.css";
 @import "./theme/tokens.css";
 @import "./components/ui/controls.css";
+@import "./components/overlay/ConfirmDialog.css";
 @import "./components/overlay/Menu.css";
 @import "./components/overlay/SelectMenu.css";
 @import "./components/navigation/Sidebar.css";

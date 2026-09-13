@@ -3,6 +3,7 @@ export {
   getThread,
   listThreads,
   sendChatMessage,
+  updateThread,
 } from "./api";
 export type {
   BackendChatResponse,

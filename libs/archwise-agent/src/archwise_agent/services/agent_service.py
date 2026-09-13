@@ -50,6 +50,7 @@ class ConversationSummary:
     thread_id: str
     title: str
     message_count: int
+    pinned: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -60,6 +61,7 @@ class Conversation:
     title: str
     message_count: int
     messages: list[ConversationMessage]
+    pinned: bool = False
 
 
 class AgentService:
@@ -168,6 +170,9 @@ class AgentService:
                     title=metadata.get(thread_id).title
                     if thread_id in metadata
                     else None,
+                    pinned=metadata.get(thread_id).pinned
+                    if thread_id in metadata
+                    else False,
                 )
                 for thread_id, item in latest.items()
             ]
@@ -197,12 +202,49 @@ class AgentService:
                 thread_id,
                 messages,
                 title=metadata.title if metadata is not None else None,
+                pinned=metadata.pinned if metadata is not None else False,
             )
             return Conversation(
                 thread_id=conversation.thread_id,
                 title=conversation.title,
                 message_count=conversation.message_count,
                 messages=_conversation_messages(messages),
+                pinned=conversation.pinned,
+            )
+
+    def update_conversation(
+        self,
+        thread_id: str,
+        *,
+        title: str | None = None,
+        pinned: bool | None = None,
+    ) -> ConversationSummary | None:
+        """Update metadata for an existing checkpointed conversation."""
+
+        if not thread_id.strip():
+            raise ValueError("thread_id must not be empty")
+        if self._conversation_service is None:
+            return None
+
+        with self._lock:
+            metadata = self._conversation_service.update(
+                thread_id,
+                title=title,
+                pinned=pinned,
+            )
+            if metadata is None:
+                return None
+
+            state = self._agent.get_state(
+                {"configurable": {"thread_id": thread_id}}
+            )
+            values = state.values if isinstance(state.values, dict) else {}
+            messages = values.get("messages", [])
+            return _conversation_summary(
+                thread_id,
+                list(messages),
+                title=metadata.title,
+                pinned=metadata.pinned,
             )
 
     def delete_conversation(self, thread_id: str) -> bool:
@@ -275,6 +317,7 @@ def _conversation_summary(
     messages: list[Any],
     *,
     title: str | None = None,
+    pinned: bool = False,
 ) -> ConversationSummary:
     title = title or next(
         (
@@ -288,6 +331,7 @@ def _conversation_summary(
         thread_id=thread_id,
         title=_truncate(title),
         message_count=len(messages),
+        pinned=pinned,
     )
 
 

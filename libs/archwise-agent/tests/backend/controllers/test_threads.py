@@ -32,6 +32,7 @@ def test_threads_controller_lists_and_loads_conversations() -> None:
             "thread_id": "thread-a",
             "title": "First question",
             "message_count": 4,
+            "pinned": False,
         }
     ]
     assert detail.status_code == 200
@@ -45,6 +46,7 @@ def test_threads_controller_lists_and_loads_conversations() -> None:
             {"role": "user", "content": "Second question"},
             {"role": "assistant", "content": "second reply"},
         ],
+        "pinned": False,
     }
 
 
@@ -67,6 +69,49 @@ def test_threads_controller_deletes_a_conversation() -> None:
     assert deleted.status_code == 204
     assert listing.json() == []
     assert detail.status_code == 404
+
+
+def test_threads_controller_updates_pinned_state(tmp_path) -> None:
+    service = AgentService(
+        model=FakeListChatModel(responses=["reply"]),
+        database_path=tmp_path / "checkpoints.sqlite",
+    )
+
+    try:
+        with TestClient(create_app(service)) as client:
+            client.post(
+                "/api/chat",
+                json={"thread_id": "thread-to-pin", "message": "Pin me"},
+            )
+            pinned = client.patch(
+                "/api/threads/thread-to-pin",
+                json={"pinned": True},
+            )
+            listing = client.get("/api/threads")
+            unpinned = client.patch(
+                "/api/threads/thread-to-pin",
+                json={"pinned": False},
+            )
+    finally:
+        service.close()
+
+    assert pinned.status_code == 200
+    assert pinned.json()["pinned"] is True
+    assert listing.json()[0]["pinned"] is True
+    assert unpinned.status_code == 200
+    assert unpinned.json()["pinned"] is False
+
+
+def test_threads_controller_rejects_empty_update() -> None:
+    service = AgentService(
+        model=FakeListChatModel(responses=["unused"]),
+        checkpointer=InMemorySaver(),
+    )
+
+    with TestClient(create_app(service)) as client:
+        response = client.patch("/api/threads/unknown", json={})
+
+    assert response.status_code == 422
 
 
 def test_threads_controller_returns_not_found_for_unknown_thread() -> None:

@@ -80,6 +80,20 @@ export async function sendChatMessage(
   });
 }
 
+export async function updateThread(
+  threadId: string,
+  update: { pinned?: boolean; title?: string },
+): Promise<BackendThreadSummary> {
+  return request<BackendThreadSummary>(
+    `${API_URL}/api/threads/${encodeURIComponent(threadId)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(update),
+    },
+  );
+}
+
 export async function deleteThread(threadId: string): Promise<void> {
   await request<void>(`${API_URL}/api/threads/${encodeURIComponent(threadId)}`, {
     method: "DELETE",

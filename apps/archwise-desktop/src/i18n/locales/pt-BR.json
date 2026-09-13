@@ -14,11 +14,15 @@
     "logout": "Sair",
     "account": "Conta",
     "anonymous": "Anônimo",
+    "conversationOptions": "Opções da conversa",
+    "options": "Opções",
+    "pin": "Fixar",
+    "unpin": "Desafixar",
+    "delete": "Excluir",
+    "deleteConversationTitle": "Excluir conversa?",
+    "deleteConversationDescription": "A conversa “{{title}}” e seu histórico serão removidos permanentemente.",
+    "cancel": "Cancelar",
     "noConversations": "Nenhuma conversa"
-  },
-  "conversation": {
-    "architectureDiscussion": "Discussão de arquitetura",
-    "hypothesisEngineering": "Engenharia de hipóteses"
   },
   "chat": {
     "welcomeTitle": "Projete arquiteturas melhores.",
@@ -26,7 +30,11 @@
     "inputPlaceholder": "Pergunte qualquer coisa ao ArchWISE...", 
     "message": "Mensagem",
     "addAttachment": "Adicionar anexo",
+    "copyMessage": "Copiar mensagem",
     "send": "Enviar mensagem",
+    "stop": "Parar execução",
+    "thinking": "Pensando...",
+    "connecting": "Conectando",
     "communicationError": "Não foi possível comunicar com o ArchWISE.",
     "executionError": "Não foi possível executar o agente.",
     "validationDisclaimer": "O ArchWISE é um protótipo de pesquisa. Valide as decisões geradas."

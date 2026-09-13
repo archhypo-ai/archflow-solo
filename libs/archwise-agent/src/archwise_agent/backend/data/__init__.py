@@ -8,6 +8,7 @@ from .schemas import (
     ThreadMessageResponse,
     ThreadResponse,
     ThreadSummaryResponse,
+    ThreadUpdateRequest,
 )
 
 __all__ = [
@@ -18,4 +19,5 @@ __all__ = [
     "ThreadMessageResponse",
     "ThreadResponse",
     "ThreadSummaryResponse",
+    "ThreadUpdateRequest",
 ]

@@ -2,6 +2,7 @@ export type BackendThreadSummary = {
   thread_id: string;
   title: string;
   message_count: number;
+  pinned: boolean;
 };
 
 export type BackendThreadMessage = {

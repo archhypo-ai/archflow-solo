@@ -2,7 +2,7 @@
 
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from archwise_agent.config import PACKAGE_VERSION
 
@@ -56,6 +56,20 @@ class ThreadSummaryResponse(BaseModel):
     thread_id: str
     title: str
     message_count: int
+    pinned: bool
+
+
+class ThreadUpdateRequest(BaseModel):
+    """Mutable metadata fields for an existing conversation."""
+
+    title: Annotated[str | None, Field(min_length=1, max_length=80)] = None
+    pinned: bool | None = None
+
+    @model_validator(mode="after")
+    def require_an_update(self) -> "ThreadUpdateRequest":
+        if self.title is None and self.pinned is None:
+            raise ValueError("at least one conversation field must be provided")
+        return self
 
 
 class ThreadMessageResponse(BaseModel):
@@ -72,6 +86,7 @@ class ThreadResponse(BaseModel):
     title: str
     message_count: int
     messages: list[ThreadMessageResponse]
+    pinned: bool
 
 
 __all__ = [
@@ -82,4 +97,5 @@ __all__ = [
     "ThreadMessageResponse",
     "ThreadResponse",
     "ThreadSummaryResponse",
+    "ThreadUpdateRequest",
 ]

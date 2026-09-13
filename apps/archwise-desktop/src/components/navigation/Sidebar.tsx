@@ -24,6 +24,8 @@ export type SidebarProps = {
   conversations: readonly Conversation[];
   activeConversationId?: string;
   onConversationSelect: (conversation: Conversation) => void;
+  onConversationPinToggle: (conversation: Conversation) => void;
+  onConversationDelete: (conversation: Conversation) => void;
 };
 
 export function Sidebar({
@@ -34,6 +36,8 @@ export function Sidebar({
   conversations,
   activeConversationId,
   onConversationSelect,
+  onConversationPinToggle,
+  onConversationDelete,
 }: SidebarProps) {
   const { t } = useI18n();
   const accountMenu = useSidebarAccountMenu();
@@ -87,6 +91,8 @@ export function Sidebar({
           activeItemId={activeConversationId}
           emptyLabel={t("app.noConversations")}
           onItemSelect={onConversationSelect}
+          onItemPinToggle={onConversationPinToggle}
+          onItemDelete={onConversationDelete}
         />
         <SidebarSection
           icon={<Pin aria-hidden="true" />}
@@ -95,6 +101,8 @@ export function Sidebar({
           activeItemId={activeConversationId}
           emptyLabel={t("app.noConversations")}
           onItemSelect={onConversationSelect}
+          onItemPinToggle={onConversationPinToggle}
+          onItemDelete={onConversationDelete}
         />
       </div>
 

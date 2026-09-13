@@ -30,6 +30,17 @@ class ConversationService:
 
         return self._repository.ensure(thread_id, title)
 
+    def update(
+        self,
+        thread_id: str,
+        *,
+        title: str | None = None,
+        pinned: bool | None = None,
+    ) -> ConversationMetadata | None:
+        """Update conversation metadata."""
+
+        return self._repository.update(thread_id, title=title, pinned=pinned)
+
     def delete(self, thread_id: str) -> bool:
         """Delete metadata for one thread."""
 

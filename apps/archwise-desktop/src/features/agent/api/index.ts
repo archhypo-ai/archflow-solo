@@ -3,4 +3,5 @@ export {
   getThread,
   listThreads,
   sendChatMessage,
+  updateThread,
 } from "./agentClient";

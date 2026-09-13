@@ -14,11 +14,15 @@
     "logout": "Log out",
     "account": "Account",
     "anonymous": "Anonymous",
+    "conversationOptions": "Conversation options",
+    "options": "Options",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "delete": "Delete",
+    "deleteConversationTitle": "Delete conversation?",
+    "deleteConversationDescription": "The conversation “{{title}}” and its history will be permanently removed.",
+    "cancel": "Cancel",
     "noConversations": "No conversations"
-  },
-  "conversation": {
-    "architectureDiscussion": "Architecture discussion",
-    "hypothesisEngineering": "Hypothesis engineering"
   },
   "chat": {
     "welcomeTitle": "Design better architectures.",
@@ -26,7 +30,11 @@
     "inputPlaceholder": "Ask ArchWISE anything...", 
     "message": "Message",
     "addAttachment": "Add attachment",
+    "copyMessage": "Copy message",
     "send": "Send message",
+    "stop": "Stop execution",
+    "thinking": "Thinking...",
+    "connecting": "Connecting",
     "communicationError": "Could not communicate with ArchWISE.",
     "executionError": "The agent could not be executed.",
     "validationDisclaimer": "ArchWISE is a research prototype. Validate generated decisions."

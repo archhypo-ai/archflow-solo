@@ -101,6 +101,7 @@
 
 .sidebar.is-collapsed .sidebar-new-chat span,
 .sidebar.is-collapsed .sidebar-nav-item span,
+.sidebar.is-collapsed .sidebar-sections,
 .sidebar.is-collapsed .sidebar-section-title,
 .sidebar.is-collapsed .sidebar-empty {
   display: none;
@@ -181,9 +182,24 @@
   margin: 6px 0 0 4px;
 }
 
+.sidebar-conversation-row {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 2px;
+  border-radius: 6px;
+}
+
+.sidebar-conversation-row.is-active,
+.sidebar-conversation-row:hover {
+  background: var(--color-surface-raised);
+}
+
 .sidebar-conversation {
   min-width: 0;
   overflow: hidden;
+  flex: 1;
   border: 0;
   border-radius: 6px;
   background: transparent;
@@ -197,9 +213,64 @@
 }
 
 .sidebar-conversation:hover,
-.sidebar-conversation.is-active {
-  background: var(--color-surface-raised);
+.sidebar-conversation-row.is-active .sidebar-conversation {
   color: var(--color-foreground);
+}
+
+.sidebar-conversation-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.sidebar-conversation-menu-trigger {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  margin-right: 3px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-subtle);
+  opacity: 0;
+}
+
+.sidebar-conversation-row:hover .sidebar-conversation-menu-trigger,
+.sidebar-conversation-menu-trigger[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.sidebar-conversation-menu-trigger:hover,
+.sidebar-conversation-menu-trigger[aria-expanded="true"] {
+  background: var(--color-surface-muted);
+  color: var(--color-foreground);
+}
+
+.sidebar-conversation-menu-trigger svg {
+  width: 15px;
+  height: 15px;
+}
+
+.sidebar-conversation-menu-content {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 3px);
+  right: 3px;
+  min-width: 150px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-raised);
+  padding: 4px;
+  box-shadow: 0 12px 28px #0004;
+}
+
+.menu-item-danger {
+  color: #f87171;
+}
+
+.menu-item-danger:hover {
+  background: color-mix(in srgb, #ef4444 15%, transparent);
+  color: #fca5a5;
 }
 
 .sidebar-empty {
