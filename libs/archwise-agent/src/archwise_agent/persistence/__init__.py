@@ -1,10 +1,16 @@
 """Persistence adapters and local storage paths for ArchWise."""
 
-from .checkpoints import open_sqlite_checkpointer
+from .checkpoints import (
+    SQLitePersistence,
+    TransactionalSqliteSaver,
+    open_sqlite_checkpointer,
+    open_sqlite_persistence,
+)
 from .conversations import (
-    ConversationCatalog,
     ConversationMetadata,
+    ConversationRepository,
     DEFAULT_CONVERSATION_TITLE,
+    SQLiteConversationRepository,
 )
 from .migrations import CURRENT_SCHEMA_VERSION, migrate_connection, migrate_database
 from .paths import (
@@ -17,13 +23,17 @@ from .paths import (
 __all__ = [
     "APPLICATION_ROOT",
     "CHECKPOINT_DB_PATH",
-    "ConversationCatalog",
     "ConversationMetadata",
+    "ConversationRepository",
     "CURRENT_SCHEMA_VERSION",
     "DEFAULT_CONVERSATION_TITLE",
     "RUNTIME_ROOT",
+    "SQLiteConversationRepository",
+    "SQLitePersistence",
     "STORAGE_ROOT",
+    "TransactionalSqliteSaver",
     "migrate_connection",
     "migrate_database",
     "open_sqlite_checkpointer",
+    "open_sqlite_persistence",
 ]

@@ -12,11 +12,21 @@ class ChatRequest(BaseModel):
 
     thread_id: Annotated[str, Field(min_length=1)]
     message: Annotated[str, Field(min_length=1)]
+    workspace_id: Annotated[str, Field(min_length=1)] = "default"
+    project_id: Annotated[str | None, Field(min_length=1)] = None
+    user_id: Annotated[str | None, Field(min_length=1)] = None
 
-    @field_validator("thread_id", "message")
+    @field_validator("thread_id", "message", "workspace_id")
     @classmethod
     def reject_blank_values(cls, value: str) -> str:
         if not value.strip():
+            raise ValueError("value must not be blank")
+        return value
+
+    @field_validator("project_id", "user_id")
+    @classmethod
+    def reject_blank_optional_values(cls, value: str | None) -> str | None:
+        if value is not None and not value.strip():
             raise ValueError("value must not be blank")
         return value
 

@@ -8,8 +8,8 @@ conversational agent built with LangGraph and OpenRouter.
 ```text
 src/archwise_agent/
 ├── config/       # Pydantic environment-backed settings
-├── core/         # Shared state contracts
-├── persistence/  # SQLite checkpoints, migrations, and local paths
+├── core/         # State, execution context, and agent contracts
+├── persistence/  # SQLite checkpoints, repositories, migrations, and paths
 ├── providers/    # Model provider integrations
 ├── agents/       # Orchestrator and concrete agents
 │   ├── orchestrator/
@@ -83,4 +83,6 @@ curl -X POST http://127.0.0.1:8765/api/chat \\
 The backend creates one long-lived agent service and uses the supplied
 `thread_id` for persistent conversation checkpoints. User-facing conversation
 metadata is kept in the same database catalog, while the transcript and graph
-state remain owned by LangGraph's checkpoint tables.
+state remain owned by LangGraph's checkpoint tables. Execution context already
+has contracts for `thread_id`, `workspace_id`, `project_id`, `user_id`, and
+`run_id`; workspace metadata will be persisted in a later schema version.

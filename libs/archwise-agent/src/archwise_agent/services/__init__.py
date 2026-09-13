@@ -7,6 +7,7 @@ from .agent_service import (
     ConversationMessage,
     ConversationSummary,
 )
+from .conversation_service import ConversationService
 
 __all__ = [
     "AgentService",
@@ -14,4 +15,5 @@ __all__ = [
     "Conversation",
     "ConversationMessage",
     "ConversationSummary",
+    "ConversationService",
 ]

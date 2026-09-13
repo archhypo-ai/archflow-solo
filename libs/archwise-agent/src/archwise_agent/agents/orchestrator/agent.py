@@ -8,7 +8,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from archwise_agent.config import AgentSettings
-from archwise_agent.core import AgentState
+from archwise_agent.core import AgentState, RunContext
 from archwise_agent.providers import create_openrouter_model
 
 from .nodes import create_respond_node
@@ -35,7 +35,7 @@ def build_archwise_agent(
         else create_openrouter_model(configuration)
     )
 
-    workflow = StateGraph(AgentState)
+    workflow = StateGraph(AgentState, context_schema=RunContext)
     workflow.add_node("respond", create_respond_node(chat_model))
     workflow.add_edge(START, "respond")
     workflow.add_edge("respond", END)

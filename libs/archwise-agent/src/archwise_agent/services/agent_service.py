@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 from threading import RLock
@@ -14,11 +13,14 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from archwise_agent.agents import build_archwise_agent
 from archwise_agent.config import AgentSettings
+from archwise_agent.core import DEFAULT_WORKSPACE_ID, ExecutionContext
 from archwise_agent.persistence import (
     CHECKPOINT_DB_PATH,
-    ConversationCatalog,
-    open_sqlite_checkpointer,
+    SQLitePersistence,
+    open_sqlite_persistence,
 )
+
+from .conversation_service import ConversationService
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,15 +74,17 @@ class AgentService:
         database_path: Path | None = None,
     ) -> None:
         self._lock = RLock()
-        self._connection: sqlite3.Connection | None = None
-        self._catalog: ConversationCatalog | None = None
+        self._persistence: SQLitePersistence | None = None
+        self._conversation_service: ConversationService | None = None
 
         if checkpointer is None:
-            active_checkpointer, connection = open_sqlite_checkpointer(
+            self._persistence = open_sqlite_persistence(
                 database_path or CHECKPOINT_DB_PATH
             )
-            self._connection = connection
-            self._catalog = ConversationCatalog(connection)
+            self._conversation_service = ConversationService(
+                self._persistence.conversations
+            )
+            active_checkpointer = self._persistence.checkpointer
         else:
             active_checkpointer = checkpointer
 
@@ -94,28 +98,43 @@ class AgentService:
             self.close()
             raise
 
-    def send(self, *, thread_id: str, message: str) -> AgentTurn:
-        """Send a message while preserving the supplied checkpoint thread."""
+    def send(
+        self,
+        *,
+        thread_id: str,
+        message: str,
+        workspace_id: str = DEFAULT_WORKSPACE_ID,
+        project_id: str | None = None,
+        user_id: str | None = None,
+    ) -> AgentTurn:
+        """Send a message while preserving thread and execution context."""
 
         if not thread_id.strip():
             raise ValueError("thread_id must not be empty")
         if not message.strip():
             raise ValueError("message must not be empty")
+        context = ExecutionContext(
+            thread_id=thread_id,
+            workspace_id=workspace_id,
+            project_id=project_id,
+            user_id=user_id,
+        )
 
         with self._lock:
-            if self._catalog is not None:
-                self._catalog.ensure(thread_id, message)
+            if self._conversation_service is not None:
+                self._conversation_service.ensure(thread_id, message)
 
             result: dict[str, Any] = self._agent.invoke(
                 {"messages": [HumanMessage(content=message)]},
                 {"configurable": {"thread_id": thread_id}},
+                context=context.as_graph_context(),
             )
             response = result["messages"][-1]
             if not isinstance(response, AIMessage):
                 raise TypeError("agent did not return an AI message")
 
-            if self._catalog is not None:
-                self._catalog.ensure(thread_id)
+            if self._conversation_service is not None:
+                self._conversation_service.ensure(thread_id)
 
         return AgentTurn(thread_id=thread_id, message=response)
 
@@ -135,8 +154,11 @@ class AgentService:
                     latest[thread_id] = item
 
             metadata = (
-                {item.thread_id: item for item in self._catalog.list()}
-                if self._catalog is not None
+                {
+                    item.thread_id: item
+                    for item in self._conversation_service.list()
+                }
+                if self._conversation_service is not None
                 else {}
             )
             conversations = [
@@ -167,7 +189,9 @@ class AgentService:
                 return None
 
             metadata = (
-                self._catalog.get(thread_id) if self._catalog is not None else None
+                self._conversation_service.get(thread_id)
+                if self._conversation_service is not None
+                else None
             )
             conversation = _conversation_summary(
                 thread_id,
@@ -193,15 +217,16 @@ class AgentService:
             )
             has_checkpoint = bool(state.values)
             has_metadata = (
-                self._catalog is not None
-                and self._catalog.get(thread_id) is not None
+                self._conversation_service is not None
+                and self._conversation_service.get(thread_id) is not None
             )
             if not has_checkpoint and not has_metadata:
                 return False
 
-            self._agent.checkpointer.delete_thread(thread_id)
-            if self._catalog is not None:
-                self._catalog.delete(thread_id)
+            if self._persistence is not None:
+                self._persistence.delete_thread(thread_id)
+            else:
+                self._agent.checkpointer.delete_thread(thread_id)
             return True
 
     @property
@@ -214,10 +239,10 @@ class AgentService:
         """Close resources owned by the default SQLite checkpointer."""
 
         with self._lock:
-            if self._connection is not None:
-                self._connection.close()
-                self._connection = None
-                self._catalog = None
+            if self._persistence is not None:
+                self._persistence.close()
+                self._persistence = None
+                self._conversation_service = None
 
 
 def _thread_id_from_checkpoint(checkpoint: Any) -> str | None:

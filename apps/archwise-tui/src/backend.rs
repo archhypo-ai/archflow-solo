@@ -1,6 +1,9 @@
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::thread;
+
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 use std::time::Duration;
 
 use color_eyre::eyre::{eyre, Result, WrapErr};
@@ -37,12 +40,17 @@ impl BackendProcess {
 
         let backend_dir = backend_directory()?;
         let uv = std::env::var_os("ARCHWISE_UV_BIN").unwrap_or_else(|| "uv".into());
-        let child = Command::new(uv)
+        let mut command = Command::new(uv);
+        command
             .args(["run", "python", "-m", "archwise_agent.backend.server"])
             .current_dir(&backend_dir)
             .stdin(Stdio::null())
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
+            .stderr(Stdio::null());
+        #[cfg(unix)]
+        command.process_group(0);
+
+        let child = command
             .spawn()
             .wrap_err("Could not start the ArchWise Python backend")?;
 
@@ -100,9 +108,35 @@ impl Drop for BackendProcess {
             return;
         };
 
-        let _ = child.kill();
-        let _ = child.wait();
+        terminate_backend(child);
     }
+}
+
+#[cfg(unix)]
+fn terminate_backend(child: &mut Child) {
+    let process_group = child.id() as libc::pid_t;
+    unsafe {
+        libc::kill(-process_group, libc::SIGTERM);
+    }
+
+    for _ in 0..20 {
+        match child.try_wait() {
+            Ok(Some(_)) => return,
+            Ok(None) => thread::sleep(Duration::from_millis(25)),
+            Err(_) => break,
+        }
+    }
+
+    unsafe {
+        libc::kill(-process_group, libc::SIGKILL);
+    }
+    let _ = child.wait();
+}
+
+#[cfg(not(unix))]
+fn terminate_backend(child: &mut Child) {
+    let _ = child.kill();
+    let _ = child.wait();
 }
 
 fn backend_directory() -> Result<PathBuf> {

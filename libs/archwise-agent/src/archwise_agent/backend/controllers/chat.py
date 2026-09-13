@@ -19,6 +19,9 @@ def chat(
         turn = agent_service.send(
             thread_id=payload.thread_id,
             message=payload.message,
+            workspace_id=payload.workspace_id,
+            project_id=payload.project_id,
+            user_id=payload.user_id,
         )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error

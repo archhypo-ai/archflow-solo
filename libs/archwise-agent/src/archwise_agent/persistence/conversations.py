@@ -1,17 +1,18 @@
-"""SQLite catalog for user-facing conversation metadata."""
+"""Conversation metadata contracts and the SQLite repository adapter."""
 
 from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from typing import Protocol
 
 DEFAULT_CONVERSATION_TITLE = "Untitled conversation"
 
 
 @dataclass(frozen=True, slots=True)
 class ConversationMetadata:
-    """Metadata stored separately from the graph transcript and state."""
+    """Metadata stored separately from graph transcript and state."""
 
     thread_id: str
     title: str
@@ -20,8 +21,24 @@ class ConversationMetadata:
     pinned: bool
 
 
-class ConversationCatalog:
-    """Persist conversation metadata using the checkpointer connection."""
+class ConversationRepository(Protocol):
+    """Storage contract independent from SQLite or another local adapter."""
+
+    def list(self) -> list[ConversationMetadata]: ...
+
+    def get(self, thread_id: str) -> ConversationMetadata | None: ...
+
+    def ensure(
+        self,
+        thread_id: str,
+        title: str | None = None,
+    ) -> ConversationMetadata: ...
+
+    def delete(self, thread_id: str) -> bool: ...
+
+
+class SQLiteConversationRepository:
+    """Persist conversation metadata on a shared SQLite connection."""
 
     def __init__(self, connection: sqlite3.Connection) -> None:
         self._connection = connection
@@ -46,16 +63,6 @@ class ConversationCatalog:
             (thread_id,),
         ).fetchone()
         return _metadata_from_row(row) if row else None
-
-    def delete(self, thread_id: str) -> bool:
-        """Delete conversation metadata and report whether it existed."""
-
-        cursor = self._connection.execute(
-            "DELETE FROM conversations WHERE thread_id = ?",
-            (thread_id,),
-        )
-        self._connection.commit()
-        return cursor.rowcount > 0
 
     def ensure(
         self,
@@ -98,6 +105,17 @@ class ConversationCatalog:
             raise RuntimeError("Conversation catalog entry was not created")
         return metadata
 
+    def delete(self, thread_id: str, *, commit: bool = True) -> bool:
+        """Delete metadata, optionally leaving commit control to a unit of work."""
+
+        cursor = self._connection.execute(
+            "DELETE FROM conversations WHERE thread_id = ?",
+            (thread_id,),
+        )
+        if commit:
+            self._connection.commit()
+        return cursor.rowcount > 0
+
 
 def _metadata_from_row(row: sqlite3.Row | tuple[object, ...]) -> ConversationMetadata:
     return ConversationMetadata(
@@ -121,7 +139,8 @@ def _now() -> str:
 
 
 __all__ = [
-    "ConversationCatalog",
     "ConversationMetadata",
+    "ConversationRepository",
     "DEFAULT_CONVERSATION_TITLE",
+    "SQLiteConversationRepository",
 ]
