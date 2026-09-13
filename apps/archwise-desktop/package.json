@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:backend": "node scripts/start-backend.mjs",
+    "dev:all": "concurrently --names backend,frontend --prefix-colors blue,green \"npm:dev:backend\" \"npm:dev\"",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
@@ -30,6 +32,7 @@
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "@vitejs/plugin-react": "^4.4.1",
+    "concurrently": "^9.1.2",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
   },

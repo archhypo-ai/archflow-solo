@@ -27,6 +27,8 @@
     "message": "Mensagem",
     "addAttachment": "Adicionar anexo",
     "send": "Enviar mensagem",
+    "communicationError": "Não foi possível comunicar com o ArchWISE.",
+    "executionError": "Não foi possível executar o agente.",
     "validationDisclaimer": "O ArchWISE é um protótipo de pesquisa. Valide as decisões geradas."
   },
   "settings": {

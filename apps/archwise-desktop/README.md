@@ -4,16 +4,18 @@ Tauri 2 desktop shell for ArchWISE.
 
 ## Current scope
 
-This first increment is visual only. It includes a React/Vite shell, a collapsible sidebar, local conversation navigation, an Anonymous account menu, Settings (General and Agent), theme tokens, and an assistant-ui thread/composer runtime that stores messages locally. It does not start the Python backend or communicate with the agent.
+The shell includes a collapsible sidebar, local conversation navigation, an Anonymous account menu, Settings (General and Agent), theme tokens, and an assistant-ui thread/composer runtime.
 
-The local runtime is deliberately isolated in `src/features/chat/hooks/useLocalChatRuntime.ts`. It can later be replaced by the agent runtime without changing the shell components.
+The development process starts the Python backend with `scripts/start-backend.mjs`; the Tauri layer remains a native window shell. The React webview communicates with the backend over its HTTP API. The chat currently uses request/response HTTP; streaming and SSE will be introduced when the backend exposes a streaming contract.
+
+The agent runtime is isolated in `src/features/chat/hooks/useAgentChatRuntime.ts`, and HTTP transport is isolated in `src/features/agent/api/agentClient.ts`. Shell components do not import transport code.
 
 ## Development
 
 ```bash
 npm install
-npm run dev          # Browser preview
-npm run tauri:dev    # Tauri desktop window
+npm run dev:all      # Browser preview + Python backend
+npm run tauri:dev    # Tauri desktop window + Python backend
 ```
 
 ## Architecture rule

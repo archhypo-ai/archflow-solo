@@ -1,10 +1,17 @@
 import { AssistantRuntimeProvider } from "@assistant-ui/react";
-import { useLocalChatRuntime } from "./hooks/useLocalChatRuntime";
 import { ArchwiseThread } from "./components/ArchwiseThread";
+import { useAgentChatRuntime } from "./hooks/useAgentChatRuntime";
 
-/** Desktop chat surface. Agent communication will be injected later. */
-export function ArchwiseChat() {
-  const runtime = useLocalChatRuntime();
+type ArchwiseChatProps = {
+  threadId: string;
+  onThreadUpdated?: () => void;
+};
+
+export function ArchwiseChat({
+  threadId,
+  onThreadUpdated,
+}: ArchwiseChatProps) {
+  const runtime = useAgentChatRuntime(threadId, { onThreadUpdated });
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>

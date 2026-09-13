@@ -13,6 +13,7 @@ function AppContent() {
     conversations,
     activeConversationId,
     newConversation,
+    refreshConversations,
     selectConversation,
   } = useConversations();
   const activeConversation = conversations.find(
@@ -32,7 +33,11 @@ function AppContent() {
           <h1>{activeConversation?.label ?? t("app.newConversation")}</h1>
         </header>
         <main className="chat-area">
-          <ArchwiseChat key={activeConversationId ?? "new-conversation"} />
+          <ArchwiseChat
+            key={activeConversationId ?? "new-conversation"}
+            threadId={activeConversationId ?? "new-conversation"}
+            onThreadUpdated={refreshConversations}
+          />
         </main>
       </AppShell>
       <SettingsModal

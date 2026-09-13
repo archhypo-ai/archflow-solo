@@ -6,6 +6,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from archwise_agent.services import AgentService
 from archwise_agent.config import PACKAGE_VERSION
@@ -38,6 +39,18 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
         title="ArchWise Agent Backend",
         version=PACKAGE_VERSION,
         lifespan=_create_lifespan(agent_service),
+    )
+    application.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "http://127.0.0.1:1420",
+            "http://localhost:1420",
+            "tauri://localhost",
+            "http://tauri.localhost",
+        ],
+        allow_credentials=False,
+        allow_methods=["GET", "POST", "PATCH", "DELETE"],
+        allow_headers=["Content-Type"],
     )
     application.include_router(health_router)
     application.include_router(chat_router)
