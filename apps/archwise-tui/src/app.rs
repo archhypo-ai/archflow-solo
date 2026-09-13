@@ -5,7 +5,7 @@ use std::thread;
 use std::time::Duration;
 
 use color_eyre::eyre::{eyre, Result};
-use crossterm::event::{self, KeyCode, KeyModifiers};
+use crossterm::event::{self, KeyCode, KeyModifiers, MouseEventKind};
 use ratatui::{DefaultTerminal, Frame};
 use uuid::Uuid;
 
@@ -46,6 +46,7 @@ pub struct App {
     pub(crate) cancellation: Option<Arc<AtomicBool>>,
     pub(crate) active_run_id: Option<String>,
     pub(crate) cancel_requested: bool,
+    pub(crate) chat_scroll_from_bottom: u16,
     pub(crate) loading_tick: usize,
     pub(crate) status: String,
     client: BackendClient,
@@ -68,8 +69,9 @@ impl App {
             cancellation: None,
             active_run_id: None,
             cancel_requested: false,
+            chat_scroll_from_bottom: 0,
             loading_tick: 0,
-            status: String::from("Ready. Enter sends; Tab switches focus."),
+            status: String::from("Ready. Enter sends; Ctrl+L clears chat; Tab switches focus."),
             client,
             should_quit: false,
         })
@@ -94,75 +96,123 @@ impl App {
             return Ok(());
         }
 
-        if let Some(key) = event::read()?.as_key_press_event() {
-            if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
-                self.cancel_stream();
-                self.should_quit = true;
-                return Ok(());
+        let input_event = event::read()?;
+        if let Some(mouse) = input_event.as_mouse_event() {
+            match mouse.kind {
+                MouseEventKind::ScrollUp => self.scroll_chat_up(),
+                MouseEventKind::ScrollDown => self.scroll_chat_down(),
+                _ => {}
             }
+            return Ok(());
+        }
 
-            if let Some(confirmation) = self.confirmation.take() {
-                match (confirmation, key.code) {
-                    (
-                        Confirmation::NewConversation,
-                        KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y'),
-                    ) => self.new_conversation(),
-                    (
-                        Confirmation::DeleteConversation { thread_id, .. },
-                        KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y'),
-                    ) => self.delete_conversation(&thread_id),
-                    (
-                        Confirmation::NewConversation | Confirmation::DeleteConversation { .. },
-                        KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N'),
-                    ) => self.status = String::from("Ready."),
-                    (confirmation, _) => self.confirmation = Some(confirmation),
-                }
-                return Ok(());
+        let Some(key) = input_event.as_key_press_event() else {
+            return Ok(());
+        };
+
+        if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+            self.cancel_stream();
+            self.should_quit = true;
+            return Ok(());
+        }
+
+        if let Some(confirmation) = self.confirmation.take() {
+            match (confirmation, key.code) {
+                (
+                    Confirmation::NewConversation,
+                    KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y'),
+                ) => self.new_conversation(),
+                (
+                    Confirmation::DeleteConversation { thread_id, .. },
+                    KeyCode::Enter | KeyCode::Char('y') | KeyCode::Char('Y'),
+                ) => self.delete_conversation(&thread_id),
+                (
+                    Confirmation::NewConversation | Confirmation::DeleteConversation { .. },
+                    KeyCode::Esc | KeyCode::Char('n') | KeyCode::Char('N'),
+                ) => self.status = String::from("Ready."),
+                (confirmation, _) => self.confirmation = Some(confirmation),
             }
+            return Ok(());
+        }
 
-            if key.code == KeyCode::Esc {
-                if self.is_waiting() {
-                    self.cancel_stream();
-                } else {
-                    self.should_quit = true;
-                }
-                return Ok(());
-            }
-
+        if key.code == KeyCode::Esc {
             if self.is_waiting() {
+                self.cancel_stream();
+            } else {
+                self.should_quit = true;
+            }
+            return Ok(());
+        }
+
+        match key.code {
+            KeyCode::Up if self.focus == Focus::Input => {
+                self.scroll_chat_up();
                 return Ok(());
             }
-
-            if key.code == KeyCode::Char('n') && key.modifiers.contains(KeyModifiers::CONTROL) {
-                self.request_new_conversation();
+            KeyCode::Down if self.focus == Focus::Input => {
+                self.scroll_chat_down();
                 return Ok(());
             }
-
-            if key.code == KeyCode::Tab {
-                self.focus = match self.focus {
-                    Focus::Input => Focus::Conversations,
-                    Focus::Conversations => Focus::Input,
-                };
+            KeyCode::PageUp => {
+                self.scroll_chat_up();
                 return Ok(());
             }
-
-            match self.focus {
-                Focus::Input => match key.code {
-                    KeyCode::Enter => self.submit(),
-                    KeyCode::Left => self.move_cursor_left(),
-                    KeyCode::Right => self.move_cursor_right(),
-                    KeyCode::Backspace => self.delete_char(),
-                    KeyCode::Char(character) => self.enter_char(character),
-                    _ => {}
-                },
-                Focus::Conversations => match key.code {
-                    KeyCode::Up => self.select_previous_entry(),
-                    KeyCode::Down => self.select_next_entry(),
-                    KeyCode::Enter => self.activate_selected_entry(),
-                    KeyCode::Char('d') | KeyCode::Char('D') => self.request_delete_conversation(),
-                    _ => {}
-                },
+            KeyCode::PageDown => {
+                self.scroll_chat_down();
+                return Ok(());
             }
+            KeyCode::Home => {
+                self.scroll_chat_top();
+                return Ok(());
+            }
+            KeyCode::End => {
+                self.scroll_chat_bottom();
+                return Ok(());
+            }
+            _ => {}
+        }
+
+        if self.is_waiting() {
+            return Ok(());
+        }
+
+        if key.code == KeyCode::Char('l')
+            && key.modifiers.contains(KeyModifiers::CONTROL)
+            && self.focus == Focus::Input
+        {
+            self.request_new_conversation();
+            return Ok(());
+        }
+
+        if key.code == KeyCode::Char('n') && key.modifiers.contains(KeyModifiers::CONTROL) {
+            self.request_new_conversation();
+            return Ok(());
+        }
+
+        if key.code == KeyCode::Tab {
+            self.focus = match self.focus {
+                Focus::Input => Focus::Conversations,
+                Focus::Conversations => Focus::Input,
+            };
+            return Ok(());
+        }
+
+        match self.focus {
+            Focus::Input => match key.code {
+                KeyCode::Enter => self.submit(),
+                KeyCode::Left => self.move_cursor_left(),
+                KeyCode::Right => self.move_cursor_right(),
+                KeyCode::Backspace => self.delete_char(),
+                KeyCode::Char(character) => self.enter_char(character),
+                _ => {}
+            },
+            Focus::Conversations => match key.code {
+                KeyCode::Up => self.select_previous_entry(),
+                KeyCode::Down => self.select_next_entry(),
+                KeyCode::Enter => self.activate_selected_entry(),
+                KeyCode::Char('d') | KeyCode::Char('D') => self.request_delete_conversation(),
+                _ => {}
+            },
         }
 
         Ok(())
@@ -177,6 +227,7 @@ impl App {
 
         self.input.clear();
         self.reset_cursor();
+        self.chat_scroll_from_bottom = 0;
         self.messages.push(UiMessage {
             role: "You",
             content: message.clone(),
@@ -393,6 +444,7 @@ impl App {
                 let message_count = conversation.message_count;
                 self.thread_id = conversation.thread_id;
                 self.streaming_message_index = None;
+                self.chat_scroll_from_bottom = 0;
                 self.messages = conversation
                     .messages
                     .into_iter()
@@ -431,6 +483,7 @@ impl App {
         self.messages.clear();
         self.input.clear();
         self.reset_cursor();
+        self.chat_scroll_from_bottom = 0;
         self.streaming_message_index = None;
         self.selected_entry = 0;
         self.focus = Focus::Input;
@@ -469,6 +522,7 @@ impl App {
                     self.messages.clear();
                     self.input.clear();
                     self.reset_cursor();
+                    self.chat_scroll_from_bottom = 0;
                     self.streaming_message_index = None;
                     self.selected_entry = 0;
                     self.focus = Focus::Input;
@@ -480,6 +534,28 @@ impl App {
                 self.status = format!("Could not delete conversation: {error}");
             }
         }
+    }
+
+    fn scroll_chat_up(&mut self) {
+        self.chat_scroll_from_bottom = self.chat_scroll_from_bottom.saturating_add(5);
+        self.status = String::from("Chat scrolled up. PageDown returns to the latest message.");
+    }
+
+    fn scroll_chat_down(&mut self) {
+        self.chat_scroll_from_bottom = self.chat_scroll_from_bottom.saturating_sub(5);
+        if self.chat_scroll_from_bottom == 0 {
+            self.status = String::from("Chat at latest message.");
+        }
+    }
+
+    fn scroll_chat_top(&mut self) {
+        self.chat_scroll_from_bottom = u16::MAX;
+        self.status = String::from("Chat at top. End returns to the latest message.");
+    }
+
+    fn scroll_chat_bottom(&mut self) {
+        self.chat_scroll_from_bottom = 0;
+        self.status = String::from("Chat at latest message.");
     }
 
     fn tick_loading(&mut self) {

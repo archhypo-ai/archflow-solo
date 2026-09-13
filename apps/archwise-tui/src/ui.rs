@@ -81,28 +81,54 @@ fn render_chat(frame: &mut Frame, app: &App, area: Rect) {
             app.messages
                 .iter()
                 .flat_map(|message| {
-                    [
-                        Line::from(Span::styled(
-                            format!("{}:", message.role),
-                            Style::default().add_modifier(Modifier::BOLD),
-                        )),
-                        Line::from(message.content.as_str()),
-                        Line::from(""),
-                    ]
+                    let mut lines = vec![Line::from(Span::styled(
+                        format!("{}:", message.role),
+                        Style::default().add_modifier(Modifier::BOLD),
+                    ))];
+                    lines.extend(
+                        crate::markdown::render(
+                            &message.content,
+                            transcript_area.width.saturating_sub(2),
+                        )
+                        .lines,
+                    );
+                    lines.push(Line::from(""));
+                    lines
                 })
                 .collect::<Vec<_>>(),
         )
     };
 
+    let chat_title = if app.focus == Focus::Input {
+        "Chat [focused]"
+    } else {
+        "Chat"
+    };
+    let viewport_height = usize::from(transcript_area.height.saturating_sub(2));
+    let max_scroll = transcript
+        .lines
+        .len()
+        .saturating_sub(viewport_height)
+        .min(usize::from(u16::MAX)) as u16;
+    let scroll = max_scroll.saturating_sub(app.chat_scroll_from_bottom.min(max_scroll));
     frame.render_widget(
         Paragraph::new(transcript)
-            .block(Block::bordered().title("Chat"))
-            .wrap(Wrap { trim: false }),
+            .block(
+                Block::bordered()
+                    .title(chat_title)
+                    .title_bottom("Up/Down PgUp/PgDn scroll | End latest"),
+            )
+            .scroll((scroll, 0)),
         transcript_area,
     );
 
+    let input_title = if app.focus == Focus::Input {
+        "Message [focused]"
+    } else {
+        "Message"
+    };
     frame.render_widget(
-        Paragraph::new(app.input.as_str()).block(Block::bordered().title("Message")),
+        Paragraph::new(app.input.as_str()).block(Block::bordered().title(input_title)),
         input_area,
     );
 
