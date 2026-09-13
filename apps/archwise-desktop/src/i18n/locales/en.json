@@ -1,0 +1,55 @@
+{
+  "app": {
+    "newConversation": "New conversation",
+    "newConversationTitle": "New conversation",
+    "mainNavigation": "Main navigation",
+    "sections": "Sections",
+    "showSidebar": "Show sidebar",
+    "hideSidebar": "Hide sidebar",
+    "brandTagline": "Hypothesis Architecture Agents",
+    "chat": "Chat",
+    "recent": "Recent",
+    "pinned": "Pinned",
+    "settings": "Settings",
+    "logout": "Log out",
+    "account": "Account",
+    "anonymous": "Anonymous",
+    "noConversations": "No conversations"
+  },
+  "conversation": {
+    "architectureDiscussion": "Architecture discussion",
+    "hypothesisEngineering": "Hypothesis engineering"
+  },
+  "chat": {
+    "welcomeTitle": "Design better architectures.",
+    "welcomeDescription": "Explore hypotheses, risks, and technical decisions with your agents.",
+    "inputPlaceholder": "Ask ArchWISE anything...", 
+    "message": "Message",
+    "addAttachment": "Add attachment",
+    "send": "Send message",
+    "validationDisclaimer": "ArchWISE is a research prototype. Validate generated decisions."
+  },
+  "settings": {
+    "sections": "Settings sections",
+    "title": "Settings",
+    "close": "Close settings",
+    "general": "General",
+    "generalDescription": "Manage the appearance and behavior of the desktop application.",
+    "appearance": "Appearance",
+    "appearanceDescription": "Choose how ArchWISE should look.",
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark",
+    "language": "Language",
+    "languageDescription": "Choose the language used by ArchWISE.",
+    "english": "English",
+    "portuguese": "Portuguese (Brazil)",
+    "agent": "Agent",
+    "agentDescription": "Configure the agents used to reason about your architecture.",
+    "execution": "Execution",
+    "agentExecutionDescription": "Agent configuration will be available here as execution profiles are introduced.",
+    "rootAgent": "Root agent",
+    "rootAgentDescription": "The default agent for new conversations.",
+    "solo": "Solo"
+  }
+}

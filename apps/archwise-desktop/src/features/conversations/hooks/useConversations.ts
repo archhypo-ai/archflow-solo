@@ -1,18 +1,6 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "../../../i18n";
 import type { Conversation } from "../types";
-
-const initialConversations: Conversation[] = [
-  {
-    id: "demo-architecture",
-    label: "Architecture discussion",
-    pinned: false,
-  },
-  {
-    id: "demo-hypothesis",
-    label: "Hypothesis engineering",
-    pinned: true,
-  },
-];
 
 function newId() {
   return typeof crypto.randomUUID === "function"
@@ -21,21 +9,52 @@ function newId() {
 }
 
 export function useConversations() {
-  const [conversations, setConversations] =
-    useState<Conversation[]>(initialConversations);
+  const { language, t } = useI18n();
+  const [conversations, setConversations] = useState<Conversation[]>(() => [
+    {
+      id: "demo-architecture",
+      label: t("conversation.architectureDiscussion"),
+      pinned: false,
+    },
+    {
+      id: "demo-hypothesis",
+      label: t("conversation.hypothesisEngineering"),
+      pinned: true,
+    },
+  ]);
   const [activeConversationId, setActiveConversationId] = useState<
     string | undefined
-  >(initialConversations[0]?.id);
+  >("demo-architecture");
+
+  useEffect(() => {
+    setConversations((current) =>
+      current.map((conversation) => {
+        if (conversation.id === "demo-architecture") {
+          return {
+            ...conversation,
+            label: t("conversation.architectureDiscussion"),
+          };
+        }
+        if (conversation.id === "demo-hypothesis") {
+          return {
+            ...conversation,
+            label: t("conversation.hypothesisEngineering"),
+          };
+        }
+        return conversation;
+      }),
+    );
+  }, [language]);
 
   const newConversation = useCallback(() => {
     const conversation = {
       id: newId(),
-      label: "New conversation",
+      label: t("app.newConversation"),
       pinned: false,
     };
     setConversations((current) => [conversation, ...current]);
     setActiveConversationId(conversation.id);
-  }, []);
+  }, [t]);
 
   const selectConversation = useCallback((conversation: Conversation) => {
     setActiveConversationId(conversation.id);

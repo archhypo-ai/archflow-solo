@@ -8,11 +8,13 @@ import { ArrowUp, Plus } from "lucide-react";
 import { useI18n } from "../../../i18n";
 
 function Welcome() {
+  const { t } = useI18n();
+
   return (
     <section className="chat-welcome" aria-labelledby="welcome-title">
       <span className="chat-eyebrow">ARCHWISE</span>
-      <h2 id="welcome-title">Design better architectures.</h2>
-      <p>Explore hypotheses, risks, and technical decisions with your agents.</p>
+      <h2 id="welcome-title">{t("chat.welcomeTitle")}</h2>
+      <p>{t("chat.welcomeDescription")}</p>
     </section>
   );
 }

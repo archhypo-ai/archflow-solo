@@ -49,11 +49,14 @@ export function Sidebar({
   const pinnedConversations = conversations.filter((item) => item.pinned);
 
   return (
-    <aside className={`sidebar${collapsed ? " is-collapsed" : ""}`}>
+    <aside
+      className={`sidebar${collapsed ? " is-collapsed" : ""}`}
+      aria-label={t("app.mainNavigation")}
+    >
       <div className="sidebar-header">
         <div className="sidebar-brand">
           <strong>ArchWISE</strong>
-          <span>Hypothesis Architecture Agents</span>
+          <span>{t("app.brandTagline")}</span>
         </div>
         <IconButton
           className="sidebar-toggle"
@@ -74,7 +77,7 @@ export function Sidebar({
         <span>{t("app.newConversation")}</span>
       </button>
 
-      <SidebarNav ariaLabel={t("app.mainNavigation")} items={navigationItems} />
+      <SidebarNav ariaLabel={t("app.sections")} items={navigationItems} />
 
       <div className="sidebar-sections">
         <SidebarSection

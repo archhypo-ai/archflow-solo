@@ -1,0 +1,55 @@
+{
+  "app": {
+    "newConversation": "Nova conversa",
+    "newConversationTitle": "Nova conversa",
+    "mainNavigation": "Navegação principal",
+    "sections": "Seções",
+    "showSidebar": "Mostrar barra lateral",
+    "hideSidebar": "Ocultar barra lateral",
+    "brandTagline": "Agentes de Arquitetura de Hipóteses",
+    "chat": "Chat",
+    "recent": "Recentes",
+    "pinned": "Fixados",
+    "settings": "Configurações",
+    "logout": "Sair",
+    "account": "Conta",
+    "anonymous": "Anônimo",
+    "noConversations": "Nenhuma conversa"
+  },
+  "conversation": {
+    "architectureDiscussion": "Discussão de arquitetura",
+    "hypothesisEngineering": "Engenharia de hipóteses"
+  },
+  "chat": {
+    "welcomeTitle": "Projete arquiteturas melhores.",
+    "welcomeDescription": "Explore hipóteses, riscos e decisões técnicas com seus agentes.",
+    "inputPlaceholder": "Pergunte qualquer coisa ao ArchWISE...", 
+    "message": "Mensagem",
+    "addAttachment": "Adicionar anexo",
+    "send": "Enviar mensagem",
+    "validationDisclaimer": "O ArchWISE é um protótipo de pesquisa. Valide as decisões geradas."
+  },
+  "settings": {
+    "sections": "Seções de configurações",
+    "title": "Configurações",
+    "close": "Fechar configurações",
+    "general": "Geral",
+    "generalDescription": "Gerencie a aparência e o comportamento do aplicativo desktop.",
+    "appearance": "Aparência",
+    "appearanceDescription": "Escolha a aparência do ArchWISE.",
+    "system": "Sistema",
+    "light": "Claro",
+    "dark": "Escuro",
+    "language": "Idioma",
+    "languageDescription": "Escolha o idioma usado pelo ArchWISE.",
+    "english": "Inglês",
+    "portuguese": "Português (Brasil)",
+    "agent": "Agente",
+    "agentDescription": "Configure os agentes usados para raciocinar sobre sua arquitetura.",
+    "execution": "Execução",
+    "agentExecutionDescription": "A configuração estará disponível quando os perfis de execução forem introduzidos.",
+    "rootAgent": "Agente raiz",
+    "rootAgentDescription": "O agente padrão para novas conversas.",
+    "solo": "Solo"
+  }
+}

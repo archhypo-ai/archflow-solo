@@ -12,13 +12,10 @@ export type SidebarNavEntry = {
 
 type SidebarNavProps = {
   items: readonly SidebarNavEntry[];
-  ariaLabel?: string;
+  ariaLabel: string;
 };
 
-export function SidebarNav({
-  items,
-  ariaLabel = "Sections",
-}: SidebarNavProps) {
+export function SidebarNav({ items, ariaLabel }: SidebarNavProps) {
   return (
     <nav className="sidebar-nav" aria-label={ariaLabel}>
       {items.map((item) => (
