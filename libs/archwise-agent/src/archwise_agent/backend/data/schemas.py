@@ -15,6 +15,7 @@ class ChatRequest(BaseModel):
     workspace_id: Annotated[str, Field(min_length=1)] = "default"
     project_id: Annotated[str | None, Field(min_length=1)] = None
     user_id: Annotated[str | None, Field(min_length=1)] = None
+    run_id: Annotated[str | None, Field(min_length=1)] = None
 
     @field_validator("thread_id", "message", "workspace_id")
     @classmethod
@@ -23,7 +24,7 @@ class ChatRequest(BaseModel):
             raise ValueError("value must not be blank")
         return value
 
-    @field_validator("project_id", "user_id")
+    @field_validator("project_id", "user_id", "run_id")
     @classmethod
     def reject_blank_optional_values(cls, value: str | None) -> str | None:
         if value is not None and not value.strip():
@@ -39,6 +40,13 @@ class ChatResponse(BaseModel):
     status: Literal["completed"] = "completed"
 
 
+class ChatCancelResponse(BaseModel):
+    """Result of requesting cancellation for an active agent run."""
+
+    run_id: str
+    cancelled: bool
+
+
 BACKEND_API_VERSION = PACKAGE_VERSION
 
 
@@ -48,6 +56,7 @@ class HealthResponse(BaseModel):
     status: Literal["ok"]
     agent_ready: bool
     api_version: str = BACKEND_API_VERSION
+    sse_chat: bool = True
 
 
 class ThreadSummaryResponse(BaseModel):
@@ -90,6 +99,7 @@ class ThreadResponse(BaseModel):
 
 
 __all__ = [
+    "ChatCancelResponse",
     "ChatRequest",
     "ChatResponse",
     "BACKEND_API_VERSION",

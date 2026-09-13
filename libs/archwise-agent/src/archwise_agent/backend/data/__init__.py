@@ -2,6 +2,7 @@
 
 from .schemas import (
     BACKEND_API_VERSION,
+    ChatCancelResponse,
     ChatRequest,
     ChatResponse,
     HealthResponse,
@@ -13,6 +14,7 @@ from .schemas import (
 
 __all__ = [
     "BACKEND_API_VERSION",
+    "ChatCancelResponse",
     "ChatRequest",
     "ChatResponse",
     "HealthResponse",

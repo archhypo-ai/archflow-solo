@@ -21,4 +21,5 @@ def test_health_controller_reports_ready_agent() -> None:
         "status": "ok",
         "agent_ready": True,
         "api_version": PACKAGE_VERSION,
+        "sse_chat": True,
     }

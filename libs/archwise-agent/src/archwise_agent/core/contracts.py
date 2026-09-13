@@ -18,6 +18,10 @@ WorkflowPhase = Literal[
 AgentRunStatus = Literal["pending", "running", "completed", "failed", "skipped"]
 
 
+class AgentCancelledError(Exception):
+    """Raised when a client requests cancellation of an active run."""
+
+
 class AgentResult(TypedDict):
     """Serializable result envelope returned by a subagent execution."""
 
@@ -27,4 +31,9 @@ class AgentResult(TypedDict):
     error: NotRequired[str]
 
 
-__all__ = ["AgentResult", "AgentRunStatus", "WorkflowPhase"]
+__all__ = [
+    "AgentCancelledError",
+    "AgentResult",
+    "AgentRunStatus",
+    "WorkflowPhase",
+]

@@ -15,7 +15,8 @@ The TUI starts the Python backend automatically with
 `GET /api/health`, and terminates only the process it started when the TUI
 exits. Set `ARCHWISE_UV_BIN` when `uv` is not available under that name.
 
-Type a message and press `Enter`. Press `Tab` to focus the conversation list;
+Type a message and press `Enter`. Press `Esc` during generation to cancel it;
+`Ctrl+C` exits the TUI. Press `Tab` to focus the conversation list;
 use the arrow keys and `Enter` to switch conversations. Select `New conversation`
 or press `Ctrl+N` to create one. Select a conversation and press `d` to delete
 it. Both new conversation and delete actions require confirmation when needed.

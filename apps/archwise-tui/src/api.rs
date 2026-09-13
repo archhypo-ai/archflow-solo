@@ -1,4 +1,5 @@
 use std::io::{BufRead, BufReader};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use color_eyre::eyre::{eyre, Result, WrapErr};
@@ -18,6 +19,7 @@ pub struct BackendClient {
 struct ChatRequest<'a> {
     thread_id: &'a str,
     message: &'a str,
+    run_id: &'a str,
 }
 
 #[derive(Debug, Deserialize)]
@@ -25,6 +27,7 @@ pub struct HealthResponse {
     pub status: String,
     pub agent_ready: bool,
     pub api_version: Option<String>,
+    pub sse_chat: Option<bool>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -53,6 +56,7 @@ pub enum ChatStreamEvent {
     Phase { phase: String },
     Delta { text: String },
     Done,
+    Cancelled,
     Error { message: String },
 }
 
@@ -96,11 +100,19 @@ impl ChatStream {
     }
 }
 
-impl Iterator for ChatStream {
-    type Item = Result<ChatStreamEvent>;
+impl ChatStream {
+    pub fn next_with_cancellation(
+        &mut self,
+        cancellation: &AtomicBool,
+    ) -> Option<Result<ChatStreamEvent>> {
+        self.next_event(Some(cancellation))
+    }
 
-    fn next(&mut self) -> Option<Self::Item> {
+    fn next_event(&mut self, cancellation: Option<&AtomicBool>) -> Option<Result<ChatStreamEvent>> {
         loop {
+            if cancellation.is_some_and(|token| token.load(Ordering::Relaxed)) {
+                return None;
+            }
             let mut line = String::new();
             match self.reader.read_line(&mut line) {
                 Ok(0) => {
@@ -112,6 +124,7 @@ impl Iterator for ChatStream {
                     return None;
                 }
                 Ok(_) => {}
+                Err(error) if error.kind() == std::io::ErrorKind::TimedOut => continue,
                 Err(error) => return Some(Err(error.into())),
             }
 
@@ -139,13 +152,20 @@ impl Iterator for ChatStream {
     }
 }
 
+impl Iterator for ChatStream {
+    type Item = Result<ChatStreamEvent>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next_event(None)
+    }
+}
+
 impl BackendClient {
     pub fn new(base_url: impl Into<String>) -> Result<Self> {
         let client = Client::builder()
             .timeout(Duration::from_secs(180))
             .build()
             .wrap_err("Could not build HTTP client")?;
-
         Ok(Self {
             client,
             base_url: base_url.into().trim_end_matches('/').to_owned(),
@@ -171,12 +191,21 @@ impl BackendClient {
         )
     }
 
-    pub fn send_message_stream(&self, thread_id: &str, message: &str) -> Result<ChatStream> {
+    pub fn send_message_stream(
+        &self,
+        thread_id: &str,
+        message: &str,
+        run_id: &str,
+    ) -> Result<ChatStream> {
         let response = self
             .client
             .post(format!("{}/api/chat/stream", self.base_url))
             .header("Accept", "text/event-stream")
-            .json(&ChatRequest { thread_id, message })
+            .json(&ChatRequest {
+                thread_id,
+                message,
+                run_id,
+            })
             .send()
             .wrap_err("Could not reach ArchWise backend")?;
         let status = response.status();
@@ -188,6 +217,25 @@ impl BackendClient {
         }
 
         Ok(ChatStream::from_response(response))
+    }
+
+    pub fn cancel_run(&self, run_id: &str) -> Result<bool> {
+        let response = self
+            .client
+            .post(format!("{}/api/chat/runs/{run_id}/cancel", self.base_url))
+            .send()
+            .wrap_err("Could not reach ArchWise backend")?;
+        let status = response.status();
+        let body = response
+            .text()
+            .wrap_err("Could not read backend response")?;
+        if !status.is_success() {
+            return Err(eyre!("Backend returned HTTP {status}: {body}"));
+        }
+
+        let payload: ChatCancelResponse =
+            serde_json::from_str(&body).wrap_err("Invalid cancel response")?;
+        Ok(payload.cancelled)
     }
 
     pub fn delete_thread(&self, thread_id: &str) -> Result<()> {
@@ -241,6 +289,7 @@ fn decode_event(event_type: &str, data: &str) -> Result<Option<ChatStreamEvent>>
             Ok(Some(ChatStreamEvent::Delta { text: payload.text }))
         }
         "done" => Ok(Some(ChatStreamEvent::Done)),
+        "cancelled" => Ok(Some(ChatStreamEvent::Cancelled)),
         "error" => {
             let payload: ErrorPayload = parse_event_payload(event_type, data)?;
             Ok(Some(ChatStreamEvent::Error {
@@ -257,6 +306,11 @@ where
 {
     serde_json::from_str(data)
         .wrap_err_with(|| format!("Invalid SSE data for event '{event_type}'"))
+}
+
+#[derive(Debug, Deserialize)]
+struct ChatCancelResponse {
+    cancelled: bool,
 }
 
 #[derive(Debug, Deserialize)]

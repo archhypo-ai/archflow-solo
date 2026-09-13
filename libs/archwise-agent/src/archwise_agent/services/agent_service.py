@@ -11,10 +11,15 @@ from typing import Any, Literal
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.runtime import RunControl
 
 from archwise_agent.agents import build_archwise_agent
 from archwise_agent.config import AgentSettings
-from archwise_agent.core import DEFAULT_WORKSPACE_ID, ExecutionContext
+from archwise_agent.core import (
+    AgentCancelledError,
+    DEFAULT_WORKSPACE_ID,
+    ExecutionContext,
+)
 from archwise_agent.persistence import (
     CHECKPOINT_DB_PATH,
     SQLitePersistence,
@@ -40,8 +45,9 @@ class AgentTurn:
 class AgentStreamEvent:
     """Transport-neutral event emitted while an agent turn is running."""
 
-    kind: Literal["phase", "delta", "done"]
+    kind: Literal["phase", "delta", "done", "cancelled"]
     thread_id: str
+    run_id: str
     phase: str | None = None
     text: str | None = None
 
@@ -87,6 +93,7 @@ class AgentService:
         database_path: Path | None = None,
     ) -> None:
         self._lock = RLock()
+        self._active_runs: dict[str, RunControl] = {}
         self._persistence: SQLitePersistence | None = None
         self._conversation_service: ConversationService | None = None
 
@@ -159,8 +166,9 @@ class AgentService:
         workspace_id: str = DEFAULT_WORKSPACE_ID,
         project_id: str | None = None,
         user_id: str | None = None,
+        run_id: str | None = None,
     ) -> Iterator[AgentStreamEvent]:
-        """Stream one agent turn as phases and text deltas."""
+        """Stream one agent turn as phases, text deltas, and completion."""
 
         if not thread_id.strip():
             raise ValueError("thread_id must not be empty")
@@ -171,61 +179,108 @@ class AgentService:
             workspace_id=workspace_id,
             project_id=project_id,
             user_id=user_id,
+            **({"run_id": run_id} if run_id is not None else {}),
         )
+        control = RunControl()
+        with self._lock:
+            if context.run_id in self._active_runs:
+                raise ValueError("run_id is already active")
+            self._active_runs[context.run_id] = control
 
-        if self._conversation_service is not None:
-            self._conversation_service.ensure(thread_id, message)
+        try:
+            if self._conversation_service is not None:
+                self._conversation_service.ensure(thread_id, message)
 
-        yield AgentStreamEvent(
-            kind="phase",
-            thread_id=thread_id,
-            phase="thinking",
-        )
-
-        streamed_text = False
-        for item in self._agent.stream(
-            {"messages": [HumanMessage(content=message)]},
-            {"configurable": {"thread_id": thread_id}},
-            context=context.as_graph_context(),
-            stream_mode="messages",
-        ):
-            chunk = item[0] if isinstance(item, tuple) else item
-            text = _message_chunk_text(chunk)
-            if not text:
-                continue
-
-            if not streamed_text:
-                yield AgentStreamEvent(
-                    kind="phase",
-                    thread_id=thread_id,
-                    phase="answering",
-                )
-                streamed_text = True
             yield AgentStreamEvent(
-                kind="delta",
+                kind="phase",
                 thread_id=thread_id,
-                text=text,
+                run_id=context.run_id,
+                phase="thinking",
             )
 
-        if not streamed_text:
-            state = self._agent.get_state(
-                {"configurable": {"thread_id": thread_id}}
-            )
-            values = state.values if isinstance(state.values, dict) else {}
-            messages = values.get("messages", [])
-            if messages:
-                text = _message_text(messages[-1])
-                if text:
-                    yield AgentStreamEvent(
-                        kind="delta",
-                        thread_id=thread_id,
-                        text=text,
+            streamed_text = False
+            for item in self._agent.stream(
+                {"messages": [HumanMessage(content=message)]},
+                {"configurable": {"thread_id": thread_id}},
+                context=context.as_graph_context(),
+                control=control,
+                stream_mode="messages",
+            ):
+                if control.drain_requested:
+                    raise AgentCancelledError(
+                        control.drain_reason or "client_cancelled"
                     )
 
-        if self._conversation_service is not None:
-            self._conversation_service.ensure(thread_id)
+                chunk = item[0] if isinstance(item, tuple) else item
+                text = _message_chunk_text(chunk)
+                if not text:
+                    continue
 
-        yield AgentStreamEvent(kind="done", thread_id=thread_id)
+                if not streamed_text:
+                    yield AgentStreamEvent(
+                        kind="phase",
+                        thread_id=thread_id,
+                        run_id=context.run_id,
+                        phase="answering",
+                    )
+                    streamed_text = True
+                yield AgentStreamEvent(
+                    kind="delta",
+                    thread_id=thread_id,
+                    run_id=context.run_id,
+                    text=text,
+                )
+
+            if control.drain_requested:
+                raise AgentCancelledError(
+                    control.drain_reason or "client_cancelled"
+                )
+
+            if not streamed_text:
+                state = self._agent.get_state(
+                    {"configurable": {"thread_id": thread_id}}
+                )
+                values = state.values if isinstance(state.values, dict) else {}
+                messages = values.get("messages", [])
+                if messages:
+                    text = _message_text(messages[-1])
+                    if text:
+                        yield AgentStreamEvent(
+                            kind="delta",
+                            thread_id=thread_id,
+                            run_id=context.run_id,
+                            text=text,
+                        )
+
+            if self._conversation_service is not None:
+                self._conversation_service.ensure(thread_id)
+
+            yield AgentStreamEvent(
+                kind="done",
+                thread_id=thread_id,
+                run_id=context.run_id,
+            )
+        except AgentCancelledError:
+            yield AgentStreamEvent(
+                kind="cancelled",
+                thread_id=thread_id,
+                run_id=context.run_id,
+            )
+        finally:
+            with self._lock:
+                self._active_runs.pop(context.run_id, None)
+
+    def cancel_run(self, run_id: str) -> bool:
+        """Request cooperative cancellation for one active agent run."""
+
+        if not run_id.strip():
+            raise ValueError("run_id must not be empty")
+        with self._lock:
+            control = self._active_runs.get(run_id)
+        if control is None:
+            return False
+        control.request_drain("client_cancelled")
+        return True
 
     def list_conversations(self) -> list[ConversationSummary]:
         """List latest checkpoint state for every known thread."""

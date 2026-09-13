@@ -128,22 +128,51 @@ fn render_chat(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 fn render_confirmation(frame: &mut Frame, confirmation: &Confirmation) {
-    let (title, message) = match confirmation {
+    let (title, message, height, accent) = match confirmation {
         Confirmation::NewConversation => (
-            "Confirm new conversation",
-            String::from("Start a new conversation?"),
+            " Confirm new conversation ",
+            Text::from(vec![
+                Line::from("Start a new conversation?"),
+                Line::from(""),
+                Line::from("Your current conversation will remain saved."),
+                Line::from(""),
+                Line::from("Enter/Y confirm    Esc/N cancel"),
+            ]),
+            8,
+            Color::Yellow,
         ),
         Confirmation::DeleteConversation { title, .. } => (
-            "Confirm deletion",
-            format!("Delete conversation \"{title}\"?"),
+            " DELETE CONVERSATION ",
+            Text::from(vec![
+                Line::from(Span::styled(
+                    "PERMANENT ACTION",
+                    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD),
+                )),
+                Line::from(""),
+                Line::from(format!("Conversation: \"{title}\"")),
+                Line::from(""),
+                Line::from("All messages and checkpoint data will be removed."),
+                Line::from("This action cannot be undone."),
+                Line::from(""),
+                Line::from("Enter/Y delete    Esc/N cancel"),
+            ]),
+            11,
+            Color::Red,
         ),
     };
-    let area = centered_rect(frame.area(), 58, 6);
+    let border_style = Style::default().fg(accent);
+    let area = centered_rect(frame.area(), 76, height);
     frame.render_widget(Clear, area);
     frame.render_widget(
-        Paragraph::new(format!("{message}\n\nEnter/Y confirm   Esc/N cancel"))
+        Paragraph::new(message)
             .alignment(ratatui::layout::Alignment::Center)
-            .block(Block::bordered().title(title)),
+            .wrap(Wrap { trim: false })
+            .block(
+                Block::bordered()
+                    .title(title)
+                    .title_style(border_style.add_modifier(Modifier::BOLD))
+                    .border_style(border_style),
+            ),
         area,
     );
 }

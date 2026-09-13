@@ -87,8 +87,10 @@ curl -N -X POST http://127.0.0.1:8765/api/chat/stream \\
 
 The backend creates one long-lived agent service and uses the supplied
 `thread_id` for persistent conversation checkpoints. The `/api/chat/stream`
-endpoint uses standard SSE events (`phase`, `delta`, `done`, and `error`) for
-clients that need progressive responses. User-facing conversation
+endpoint uses standard SSE events (`phase`, `delta`, `done`, `cancelled`, and
+`error`) for clients that need progressive responses. Active runs can receive a
+cooperative cancellation request through
+`POST /api/chat/runs/{run_id}/cancel`. User-facing conversation
 metadata is kept in the same database catalog, while the transcript and graph
 state remain owned by LangGraph's checkpoint tables. Execution context already
 has contracts for `thread_id`, `workspace_id`, `project_id`, `user_id`, and

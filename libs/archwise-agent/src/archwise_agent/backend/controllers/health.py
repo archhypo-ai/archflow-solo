@@ -16,6 +16,7 @@ def health(agent_service: AgentServiceDependency) -> HealthResponse:
         status="ok",
         agent_ready=agent_service is not None,
         api_version=BACKEND_API_VERSION,
+        sse_chat=True,
     )
 
 

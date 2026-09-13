@@ -64,6 +64,22 @@ def test_chat_stream_controller_emits_sse_events() -> None:
     assert service.get_conversation("stream-test").message_count == 2
 
 
+def test_chat_cancel_controller_is_idempotent_for_finished_run() -> None:
+    service = AgentService(
+        model=FakeListChatModel(responses=["unused"]),
+        checkpointer=InMemorySaver(),
+    )
+
+    with TestClient(create_app(service)) as client:
+        response = client.post("/api/chat/runs/not-active/cancel")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "run_id": "not-active",
+        "cancelled": False,
+    }
+
+
 def test_chat_controller_rejects_blank_message() -> None:
     service = AgentService(
         model=FakeListChatModel(responses=["unused"]),

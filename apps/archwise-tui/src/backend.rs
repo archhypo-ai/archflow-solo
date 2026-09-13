@@ -26,7 +26,9 @@ impl BackendProcess {
         // terminating a process started by another command.
         if let Ok(health) = client.health() {
             if health.status == "ok" && health.agent_ready {
-                if health.api_version.as_deref() != Some(REQUIRED_BACKEND_API_VERSION) {
+                if health.api_version.as_deref() != Some(REQUIRED_BACKEND_API_VERSION)
+                    || health.sse_chat != Some(true)
+                {
                     return Err(eyre!(
                         "An outdated ArchWise backend is already running. Restart the backend on port 8765 before starting the TUI."
                     ));
@@ -73,6 +75,7 @@ impl BackendProcess {
                 health.status == "ok"
                     && health.agent_ready
                     && health.api_version.as_deref() == Some(REQUIRED_BACKEND_API_VERSION)
+                    && health.sse_chat == Some(true)
             })
             .unwrap_or(false)
     }

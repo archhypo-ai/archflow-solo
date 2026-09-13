@@ -1,4 +1,6 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, TryRecvError};
+use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
@@ -41,6 +43,9 @@ pub struct App {
     pub(crate) confirmation: Option<Confirmation>,
     pub(crate) pending: Option<Receiver<Result<ChatStreamEvent>>>,
     pub(crate) streaming_message_index: Option<usize>,
+    pub(crate) cancellation: Option<Arc<AtomicBool>>,
+    pub(crate) active_run_id: Option<String>,
+    pub(crate) cancel_requested: bool,
     pub(crate) loading_tick: usize,
     pub(crate) status: String,
     client: BackendClient,
@@ -60,6 +65,9 @@ impl App {
             confirmation: None,
             pending: None,
             streaming_message_index: None,
+            cancellation: None,
+            active_run_id: None,
+            cancel_requested: false,
             loading_tick: 0,
             status: String::from("Ready. Enter sends; Tab switches focus."),
             client,
@@ -88,6 +96,7 @@ impl App {
 
         if let Some(key) = event::read()?.as_key_press_event() {
             if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+                self.cancel_stream();
                 self.should_quit = true;
                 return Ok(());
             }
@@ -112,7 +121,11 @@ impl App {
             }
 
             if key.code == KeyCode::Esc {
-                self.should_quit = true;
+                if self.is_waiting() {
+                    self.cancel_stream();
+                } else {
+                    self.should_quit = true;
+                }
                 return Ok(());
             }
 
@@ -178,20 +191,26 @@ impl App {
 
         let client = self.client.clone();
         let thread_id = self.thread_id.clone();
+        let run_id = Uuid::new_v4().to_string();
+        let cancellation = Arc::new(AtomicBool::new(false));
+        self.active_run_id = Some(run_id.clone());
+        self.cancellation = Some(cancellation.clone());
+        self.cancel_requested = false;
         let (sender, receiver) = mpsc::channel();
         self.pending = Some(receiver);
 
         thread::spawn(move || {
-            let result = client.send_message_stream(&thread_id, &message);
+            let result = client.send_message_stream(&thread_id, &message, &run_id);
             match result {
-                Ok(stream) => {
-                    for event in stream {
-                        let failed = event.is_err();
-                        if sender.send(event).is_err() || failed {
-                            break;
-                        }
+                Ok(mut stream) => loop {
+                    let Some(event) = stream.next_with_cancellation(&cancellation) else {
+                        break;
+                    };
+                    let failed = event.is_err();
+                    if sender.send(event).is_err() || failed {
+                        break;
                     }
-                }
+                },
                 Err(error) => {
                     let _ = sender.send(Err(error));
                 }
@@ -217,9 +236,20 @@ impl App {
                     }
                     ChatStreamEvent::Done => {
                         keep_pending = false;
-                        self.streaming_message_index = None;
-                        self.status = String::from("Ready.");
+                        if self.cancel_requested {
+                            self.finish_stream_as_cancelled();
+                        } else {
+                            self.streaming_message_index = None;
+                            self.active_run_id = None;
+                            self.cancellation = None;
+                            self.status = String::from("Ready.");
+                        }
                         self.refresh_conversations();
+                        break;
+                    }
+                    ChatStreamEvent::Cancelled => {
+                        keep_pending = false;
+                        self.finish_stream_as_cancelled();
                         break;
                     }
                     ChatStreamEvent::Error { message } => {
@@ -236,9 +266,13 @@ impl App {
                 Err(TryRecvError::Empty) => break,
                 Err(TryRecvError::Disconnected) => {
                     keep_pending = false;
-                    self.finish_stream_with_error(String::from(
-                        "Backend stream disconnected before completion.",
-                    ));
+                    if self.cancel_requested {
+                        self.finish_stream_as_cancelled();
+                    } else {
+                        self.finish_stream_with_error(String::from(
+                            "Backend stream disconnected before completion.",
+                        ));
+                    }
                     break;
                 }
             }
@@ -258,7 +292,18 @@ impl App {
         }
     }
 
+    fn finish_stream_as_cancelled(&mut self) {
+        self.remove_streaming_message();
+        self.active_run_id = None;
+        self.cancellation = None;
+        self.cancel_requested = false;
+        self.status = String::from("Cancelled.");
+    }
+
     fn finish_stream_with_error(&mut self, error: String) {
+        self.active_run_id = None;
+        self.cancellation = None;
+        self.cancel_requested = false;
         if let Some(index) = self.streaming_message_index.take() {
             if let Some(message) = self.messages.get_mut(index) {
                 message.role = "Error";
@@ -271,6 +316,35 @@ impl App {
             });
         }
         self.status = String::from("Request failed.");
+    }
+
+    fn remove_streaming_message(&mut self) {
+        if let Some(index) = self.streaming_message_index.take() {
+            if index < self.messages.len() {
+                self.messages.remove(index);
+            }
+        }
+    }
+
+    fn cancel_stream(&mut self) {
+        let Some(cancellation) = self.cancellation.as_ref() else {
+            return;
+        };
+        if self.cancel_requested {
+            return;
+        }
+        cancellation.store(true, Ordering::Relaxed);
+        self.cancel_requested = true;
+
+        if let Some(run_id) = self.active_run_id.clone() {
+            let client = self.client.clone();
+            thread::spawn(move || {
+                let _ = client.cancel_run(&run_id);
+            });
+        }
+
+        self.remove_streaming_message();
+        self.status = String::from("Cancelling...");
     }
 
     fn refresh_conversations(&mut self) {
