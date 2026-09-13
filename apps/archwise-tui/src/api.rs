@@ -19,6 +19,33 @@ struct ChatRequest<'a> {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct HealthResponse {
+    pub status: String,
+    pub agent_ready: bool,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct ThreadSummary {
+    pub thread_id: String,
+    pub title: String,
+    pub message_count: usize,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ThreadMessage {
+    pub role: String,
+    pub content: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ThreadResponse {
+    pub thread_id: String,
+    pub title: String,
+    pub message_count: usize,
+    pub messages: Vec<ThreadMessage>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct ChatResponse {
     pub message: String,
 }
@@ -36,14 +63,40 @@ impl BackendClient {
         })
     }
 
+    pub fn health(&self) -> Result<HealthResponse> {
+        self.request_json(
+            self.client
+                .get(format!("{}/api/health", self.base_url))
+                .timeout(Duration::from_secs(2)),
+        )
+    }
+
+    pub fn list_threads(&self) -> Result<Vec<ThreadSummary>> {
+        self.request_json(self.client.get(format!("{}/api/threads", self.base_url)))
+    }
+
+    pub fn get_thread(&self, thread_id: &str) -> Result<ThreadResponse> {
+        self.request_json(
+            self.client
+                .get(format!("{}/api/threads/{thread_id}", self.base_url)),
+        )
+    }
+
     pub fn send_message(&self, thread_id: &str, message: &str) -> Result<ChatResponse> {
-        let response = self
-            .client
-            .post(format!("{}/api/chat", self.base_url))
-            .json(&ChatRequest { thread_id, message })
+        self.request_json(
+            self.client
+                .post(format!("{}/api/chat", self.base_url))
+                .json(&ChatRequest { thread_id, message }),
+        )
+    }
+
+    fn request_json<T>(&self, request: reqwest::blocking::RequestBuilder) -> Result<T>
+    where
+        T: for<'de> Deserialize<'de>,
+    {
+        let response = request
             .send()
             .wrap_err("Could not reach ArchWise backend")?;
-
         let status = response.status();
         let body = response
             .text()

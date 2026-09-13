@@ -9,7 +9,7 @@ from fastapi import FastAPI
 
 from archwise_agent.services import AgentService
 
-from .controllers import chat_router, health_router
+from .controllers import chat_router, health_router, threads_router
 
 
 def _create_lifespan(
@@ -35,6 +35,7 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
     )
     application.include_router(health_router)
     application.include_router(chat_router)
+    application.include_router(threads_router)
     return application
 
 

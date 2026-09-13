@@ -34,4 +34,35 @@ class HealthResponse(BaseModel):
     agent_ready: bool
 
 
-__all__ = ["ChatRequest", "ChatResponse", "HealthResponse"]
+class ThreadSummaryResponse(BaseModel):
+    """Conversation metadata shown in a client conversation list."""
+
+    thread_id: str
+    title: str
+    message_count: int
+
+
+class ThreadMessageResponse(BaseModel):
+    """User-visible message in a conversation transcript."""
+
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ThreadResponse(BaseModel):
+    """Conversation metadata and transcript."""
+
+    thread_id: str
+    title: str
+    message_count: int
+    messages: list[ThreadMessageResponse]
+
+
+__all__ = [
+    "ChatRequest",
+    "ChatResponse",
+    "HealthResponse",
+    "ThreadMessageResponse",
+    "ThreadResponse",
+    "ThreadSummaryResponse",
+]
