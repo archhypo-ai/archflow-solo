@@ -13,7 +13,7 @@ src/archwise_agent/
 ├── providers/    # Model provider integrations
 ├── agents/       # Orchestrator and concrete agents
 │   ├── orchestrator/
-│   └── subagents/ # Added as workflows are introduced
+│   └── hypothesis/  # First ArchHypo workflow agent
 ├── services/     # Application API for future interfaces
 └── backend/      # Minimal HTTP adapter for local clients
 ```

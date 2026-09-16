@@ -1,4 +1,4 @@
-"""Typed envelopes shared by the orchestrator and future subagents."""
+"""Typed envelopes shared by the orchestrator and workflow agents."""
 
 from __future__ import annotations
 
