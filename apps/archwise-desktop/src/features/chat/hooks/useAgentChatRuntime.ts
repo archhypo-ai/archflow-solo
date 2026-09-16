@@ -12,6 +12,8 @@ type UserThreadMessage = Extract<ThreadMessage, { role: "user" }>;
 type AssistantThreadMessage = Extract<ThreadMessage, { role: "assistant" }>;
 
 type UseAgentChatRuntimeOptions = {
+  persisted?: boolean;
+  onConversationStarted?: (threadId: string, message: string) => void;
   onThreadUpdated?: () => void;
 };
 
@@ -87,7 +89,11 @@ function restoreMessages(thread: BackendThread): ThreadMessage[] {
 /** Bridge assistant-ui to the HTTP client used by the desktop webview. */
 export function useAgentChatRuntime(
   threadId: string,
-  { onThreadUpdated }: UseAgentChatRuntimeOptions = {},
+  {
+    persisted = true,
+    onConversationStarted,
+    onThreadUpdated,
+  }: UseAgentChatRuntimeOptions = {},
 ) {
   const { t } = useI18n();
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
@@ -102,6 +108,11 @@ export function useAgentChatRuntime(
     setIsLoading(true);
     setIsRunning(false);
     setMessages([]);
+
+    if (!persisted) {
+      setIsLoading(false);
+      return;
+    }
 
     void getThread(threadId)
       .then((thread) => {
@@ -120,6 +131,9 @@ export function useAgentChatRuntime(
     };
   }, [threadId]);
 
+  // A draft becomes persisted when its first message is sent. The parent
+  // updates the sidebar optimistically; loading is intentionally keyed only
+  // by threadId so that this transition does not trigger a second GET.
   const onNew = useCallback(
     async (message: AppendMessage) => {
       if (isLoading || isRunning) return;
@@ -138,6 +152,7 @@ export function useAgentChatRuntime(
         status: { type: "running" },
       };
 
+      onConversationStarted?.(threadId, text);
       setMessages((current) => [...current, userMessage, pendingMessage]);
       setIsRunning(true);
 
@@ -186,7 +201,14 @@ export function useAgentChatRuntime(
         }
       }
     },
-    [isLoading, isRunning, onThreadUpdated, t, threadId],
+    [
+      isLoading,
+      isRunning,
+      onConversationStarted,
+      onThreadUpdated,
+      t,
+      threadId,
+    ],
   );
 
   const onCancel = useCallback(async () => {

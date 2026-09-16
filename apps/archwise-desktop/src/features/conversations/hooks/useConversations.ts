@@ -28,6 +28,10 @@ function toConversation(thread: BackendThreadSummary): Conversation {
   };
 }
 
+function titleFromMessage(message: string) {
+  return message.replace(/\s+/g, " ").trim().slice(0, 80).trim();
+}
+
 export function useConversations() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConversationId, setActiveConversationId] = useState(newId);
@@ -84,8 +88,23 @@ export function useConversations() {
 
   const newConversation = useCallback(() => {
     initialSelectionPending.current = false;
-    setActiveConversationId(newId());
-  }, []);
+    setActiveConversationId((current) =>
+      current && conversations.some((item) => item.id === current)
+        ? newId()
+        : current,
+    );
+  }, [conversations]);
+
+  const ensureConversation = useCallback(
+    (threadId: string, message: string) => {
+      const title = titleFromMessage(message);
+      setConversations((current) => {
+        if (current.some((item) => item.id === threadId)) return current;
+        return [{ id: threadId, label: title, pinned: false }, ...current];
+      });
+    },
+    [],
+  );
 
   const selectConversation = useCallback((conversation: Conversation) => {
     initialSelectionPending.current = false;
@@ -122,6 +141,7 @@ export function useConversations() {
     activeConversationId,
     isLoading,
     newConversation,
+    ensureConversation,
     refreshConversations,
     selectConversation,
     togglePinned,

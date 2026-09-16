@@ -13,6 +13,7 @@ function AppContent() {
     conversations,
     activeConversationId,
     newConversation,
+    ensureConversation,
     refreshConversations,
     selectConversation,
     togglePinned,
@@ -40,6 +41,8 @@ function AppContent() {
           <ArchwiseChat
             key={activeConversationId ?? "new-conversation"}
             threadId={activeConversationId ?? "new-conversation"}
+            persisted={Boolean(activeConversation)}
+            onConversationStarted={ensureConversation}
             onThreadUpdated={refreshConversations}
           />
         </main>
