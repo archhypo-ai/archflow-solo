@@ -1,4 +1,4 @@
-"""Main ArchWise orchestrator."""
+"""ArchHypo orchestrator."""
 
 from __future__ import annotations
 
@@ -7,11 +7,10 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
+from archwise_agent.agents.hypothesis import build_hypothesis_agent
 from archwise_agent.config import AgentSettings
 from archwise_agent.core import AgentState, RunContext
 from archwise_agent.providers import create_openrouter_model
-
-from .nodes import create_respond_node
 
 
 def build_archwise_agent(
@@ -20,13 +19,11 @@ def build_archwise_agent(
     configuration: AgentSettings | None = None,
     checkpointer: BaseCheckpointSaver | None = None,
 ):
-    """Build and compile the initial ArchWise orchestrator.
+    """Build the ArchHypo orchestrator with its first workflow node.
 
-    The orchestrator currently has one conversational node. Future nodes will
-    delegate to independent subagents without changing the public builder or
-    the checkpoint boundary. The low-level builder uses ``InMemorySaver`` when
-    no checkpointer is supplied; application runtimes should inject their
-    owned persistent checkpointer.
+    The parent graph owns conversation memory. The hypothesis agent is added
+    as the first independent node so later NFR and planning agents can be
+    appended without replacing the orchestration boundary.
     """
 
     chat_model = (
@@ -34,11 +31,11 @@ def build_archwise_agent(
         if model is not None
         else create_openrouter_model(configuration)
     )
-
+    hypothesis_agent = build_hypothesis_agent(chat_model)
     workflow = StateGraph(AgentState, context_schema=RunContext)
-    workflow.add_node("respond", create_respond_node(chat_model))
-    workflow.add_edge(START, "respond")
-    workflow.add_edge("respond", END)
+    workflow.add_node("hypothesis_agent", hypothesis_agent)
+    workflow.add_edge(START, "hypothesis_agent")
+    workflow.add_edge("hypothesis_agent", END)
 
     return workflow.compile(
         checkpointer=(

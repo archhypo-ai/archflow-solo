@@ -203,13 +203,20 @@ class AgentService:
                 context=context.as_graph_context(),
                 control=control,
                 stream_mode="messages",
+                subgraphs=True,
             ):
                 if control.drain_requested:
                     raise AgentCancelledError(
                         control.drain_reason or "client_cancelled"
                     )
 
-                chunk = item[0] if isinstance(item, tuple) else item
+                chunk, _metadata = _stream_message(item)
+                if getattr(chunk, "type", None) not in (
+                    "ai",
+                    "AIMessage",
+                    "AIMessageChunk",
+                ):
+                    continue
                 text = _message_chunk_text(chunk)
                 if not text:
                     continue
@@ -487,6 +494,26 @@ def _message_role(message: Any) -> Literal["user", "assistant"] | None:
     if isinstance(message, AIMessage) or getattr(message, "type", None) == "ai":
         return "assistant"
     return None
+
+
+def _stream_message(item: Any) -> tuple[Any, dict[str, Any]]:
+    """Unwrap a message event with or without nested subgraph metadata."""
+
+    if (
+        isinstance(item, tuple)
+        and len(item) == 2
+        and isinstance(item[0], tuple)
+        and isinstance(item[1], tuple)
+        and len(item[1]) == 2
+    ):
+        chunk, metadata = item[1]
+        return chunk, metadata if isinstance(metadata, dict) else {}
+
+    if isinstance(item, tuple) and len(item) == 2:
+        chunk, metadata = item
+        return chunk, metadata if isinstance(metadata, dict) else {}
+
+    return item, {}
 
 
 def _message_chunk_text(message: BaseMessage | Any) -> str:

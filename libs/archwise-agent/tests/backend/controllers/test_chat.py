@@ -59,6 +59,10 @@ def test_chat_stream_controller_emits_sse_events() -> None:
     assert payloads[0]["type"] == "phase"
     assert payloads[1]["type"] == "phase"
     assert payloads[-1]["type"] == "done"
+    text_payloads = [
+        payload for payload in payloads if payload["type"] == "text_delta"
+    ]
+    assert len(text_payloads) > 1
     assert "".join(
         payload["text"]
         for payload in payloads
