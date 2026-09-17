@@ -1,4 +1,5 @@
 export {
+  cancelChatRun,
   deleteThread,
   getThread,
   listThreads,

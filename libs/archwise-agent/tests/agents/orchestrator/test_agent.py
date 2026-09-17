@@ -5,6 +5,7 @@ from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from archwise_agent import AgentService, Hypothesis, build_archwise_agent
+from archwise_agent.core import AgentCancelledError
 from tests.fakes import archhypo_json, fake_hypothesis_model
 
 
@@ -62,6 +63,70 @@ def test_agent_stream_can_be_cancelled() -> None:
     assert not consumer.is_alive()
     assert any(event.type == "cancelled" for event in events)
     assert not any(event.type == "done" for event in events)
+
+
+def test_deleting_an_active_run_cancels_it_and_removes_the_thread() -> None:
+    service = AgentService(
+        model=fake_hypothesis_model(["reply"], sleep=0.2),
+        checkpointer=InMemorySaver(),
+    )
+    errors: list[Exception] = []
+
+    def run() -> None:
+        try:
+            service.send(
+                thread_id="delete-thread",
+                message="delete this",
+                run_id="delete-run",
+            )
+        except Exception as error:
+            errors.append(error)
+
+    worker = threading.Thread(target=run)
+    worker.start()
+    time.sleep(0.05)
+
+    assert service.delete_conversation("delete-thread") is True
+    assert service.get_conversation("delete-thread") is None
+    assert service.list_conversations() == []
+    worker.join(timeout=3)
+
+    assert not worker.is_alive()
+    assert errors and isinstance(errors[0], AgentCancelledError)
+    assert service.get_conversation("delete-thread") is None
+    assert service.cancel_run("delete-run") is False
+
+
+def test_cancelling_an_active_run_does_not_persist_its_response() -> None:
+    service = AgentService(
+        model=fake_hypothesis_model(["reply"], sleep=0.2),
+        checkpointer=InMemorySaver(),
+    )
+    errors: list[Exception] = []
+
+    def run() -> None:
+        try:
+            service.send(
+                thread_id="cancel-thread",
+                message="stop this",
+                run_id="cancel-run",
+            )
+        except Exception as error:
+            errors.append(error)
+
+    worker = threading.Thread(target=run)
+    worker.start()
+    time.sleep(0.05)
+
+    assert service.cancel_run("cancel-run") is True
+    worker.join(timeout=3)
+
+    assert not worker.is_alive()
+    assert errors and isinstance(errors[0], AgentCancelledError)
+    conversation = service.get_conversation("cancel-thread")
+    assert conversation is not None
+    assert len(conversation.messages) == 1
+    assert conversation.messages[0].role == "user"
 
 
 def test_build_agent_accepts_injected_model() -> None:

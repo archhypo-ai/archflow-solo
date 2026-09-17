@@ -4,7 +4,11 @@ import {
   type ThreadMessage,
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
-import { getThread, sendChatMessage } from "../../agent";
+import {
+  cancelChatRun,
+  getThread,
+  sendChatMessage,
+} from "../../agent";
 import type { BackendThread } from "../../agent";
 import { useI18n } from "../../../i18n";
 
@@ -12,6 +16,12 @@ type UserThreadMessage = Extract<ThreadMessage, { role: "user" }>;
 type AssistantThreadMessage = Extract<ThreadMessage, { role: "assistant" }>;
 
 type UseAgentChatRuntimeOptions = {
+  persisted?: boolean;
+  onConversationStarted?: (threadId: string, message: string) => void;
+  onRegisterCancellation?: (
+    threadId: string,
+    cancel: () => Promise<void>,
+  ) => () => void;
   onThreadUpdated?: () => void;
 };
 
@@ -87,14 +97,53 @@ function restoreMessages(thread: BackendThread): ThreadMessage[] {
 /** Bridge assistant-ui to the HTTP client used by the desktop webview. */
 export function useAgentChatRuntime(
   threadId: string,
-  { onThreadUpdated }: UseAgentChatRuntimeOptions = {},
+  {
+    persisted = true,
+    onConversationStarted,
+    onRegisterCancellation,
+    onThreadUpdated,
+  }: UseAgentChatRuntimeOptions = {},
 ) {
   const { t } = useI18n();
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const abortRef = useRef<AbortController | null>(null);
+  const cancelPromiseRef = useRef<Promise<void> | null>(null);
   const generationRef = useRef(0);
+  const runIdRef = useRef<string | null>(null);
+  const pendingMessageIdRef = useRef<string | null>(null);
+
+  const cancelActiveRun = useCallback(async () => {
+    setIsRunning(false);
+    if (cancelPromiseRef.current) {
+      await cancelPromiseRef.current;
+      return;
+    }
+
+    const runId = runIdRef.current;
+    const pendingId = pendingMessageIdRef.current;
+    if (pendingId) {
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === pendingId
+            ? assistantMessage(pendingId, "", {
+                type: "incomplete",
+                reason: "cancelled",
+              })
+            : item,
+        ),
+      );
+    }
+    abortRef.current?.abort();
+    if (!runId) return;
+
+    const cancellation = cancelChatRun(runId)
+      .catch(() => undefined)
+      .then(() => undefined);
+    cancelPromiseRef.current = cancellation;
+    await cancellation;
+  }, []);
 
   useEffect(() => {
     const generation = ++generationRef.current;
@@ -102,6 +151,11 @@ export function useAgentChatRuntime(
     setIsLoading(true);
     setIsRunning(false);
     setMessages([]);
+
+    if (!persisted) {
+      setIsLoading(false);
+      return;
+    }
 
     void getThread(threadId)
       .then((thread) => {
@@ -116,9 +170,13 @@ export function useAgentChatRuntime(
       });
 
     return () => {
-      abortRef.current?.abort();
+      void cancelActiveRun();
     };
-  }, [threadId]);
+  }, [cancelActiveRun, threadId]);
+
+  useEffect(() => {
+    return onRegisterCancellation?.(threadId, cancelActiveRun);
+  }, [cancelActiveRun, onRegisterCancellation, threadId]);
 
   const onNew = useCallback(
     async (message: AppendMessage) => {
@@ -129,6 +187,9 @@ export function useAgentChatRuntime(
 
       const generation = generationRef.current;
       const controller = new AbortController();
+      const runId = newId("run");
+      cancelPromiseRef.current = null;
+      runIdRef.current = runId;
       abortRef.current = controller;
       const userMessage = userMessageFromAppend(message);
       const pendingId = newId("assistant-pending");
@@ -137,12 +198,19 @@ export function useAgentChatRuntime(
         content: [],
         status: { type: "running" },
       };
+      pendingMessageIdRef.current = pendingId;
 
+      onConversationStarted?.(threadId, text);
       setMessages((current) => [...current, userMessage, pendingMessage]);
       setIsRunning(true);
 
       try {
-        const result = await sendChatMessage(threadId, text, controller.signal);
+        const result = await sendChatMessage(
+          threadId,
+          text,
+          controller.signal,
+          runId,
+        );
         if (
           generationRef.current !== generation ||
           controller.signal.aborted
@@ -182,16 +250,47 @@ export function useAgentChatRuntime(
       } finally {
         if (generationRef.current === generation) {
           if (abortRef.current === controller) abortRef.current = null;
+          if (runIdRef.current === runId) runIdRef.current = null;
+          if (pendingMessageIdRef.current === pendingId) {
+            pendingMessageIdRef.current = null;
+          }
+          if (cancelPromiseRef.current) cancelPromiseRef.current = null;
           setIsRunning(false);
         }
       }
     },
-    [isLoading, isRunning, onThreadUpdated, t, threadId],
+    [
+      isLoading,
+      isRunning,
+      onConversationStarted,
+      onThreadUpdated,
+      t,
+      threadId,
+    ],
   );
 
   const onCancel = useCallback(async () => {
-    abortRef.current?.abort();
-  }, []);
+    const pendingId = pendingMessageIdRef.current;
+    await cancelActiveRun();
+
+    // assistant-ui resynchronizes its repository after onCancel returns.
+    // Apply the terminal status after that resync so the pending message does
+    // not become running again.
+    if (pendingId) {
+      setTimeout(() => {
+        setMessages((current) =>
+          current.map((item) =>
+            item.id === pendingId
+              ? assistantMessage(pendingId, "", {
+                  type: "incomplete",
+                  reason: "cancelled",
+                })
+              : item,
+          ),
+        );
+      }, 0);
+    }
+  }, [cancelActiveRun]);
 
   const store = useMemo(
     () => ({

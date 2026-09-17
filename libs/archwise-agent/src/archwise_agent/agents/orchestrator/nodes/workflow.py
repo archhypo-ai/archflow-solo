@@ -7,18 +7,21 @@ from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable
+from langgraph.runtime import Runtime
 
 from archwise_agent.agents.classifier.agent import classifier_input
 from archwise_agent.agents.hypothesis.agent import hypothesis_input
 from archwise_agent.core import (
+    AgentCancelledError,
     ArchHypo,
     ArchHypoState,
     Hypothesis,
     HypothesisClassification,
+    RunContext,
     TechnicalPlan,
 )
 
-Node = Callable[[ArchHypoState], dict[str, object]]
+Node = Callable[[ArchHypoState, Runtime[RunContext]], dict[str, object]]
 
 
 def create_formulate_hypothesis_node(
@@ -26,12 +29,17 @@ def create_formulate_hypothesis_node(
 ) -> Node:
     """Create the node that formulates one hypothesis from one uncertainty."""
 
-    def formulate_hypothesis(state: ArchHypoState) -> dict[str, object]:
+    def formulate_hypothesis(
+        state: ArchHypoState,
+        runtime: Runtime[RunContext] | None = None,
+    ) -> dict[str, object]:
         """Formulate exactly one testable architectural hypothesis."""
 
+        _raise_if_cancelled(runtime)
         hypothesis = Hypothesis.model_validate(
             hypothesis_agent.invoke(hypothesis_input(state["uncertainty"]))
         )
+        _raise_if_cancelled(runtime)
         return {
             "uncertainty": hypothesis.uncertainty,
             "hypothesis": hypothesis,
@@ -46,9 +54,13 @@ def create_classify_hypothesis_node(
 ) -> Node:
     """Create the node that classifies NFR, impact, and uncertainty."""
 
-    def classify_hypothesis(state: ArchHypoState) -> dict[str, object]:
+    def classify_hypothesis(
+        state: ArchHypoState,
+        runtime: Runtime[RunContext] | None = None,
+    ) -> dict[str, object]:
         """Classify the hypothesis using independent justifications."""
 
+        _raise_if_cancelled(runtime)
         hypothesis = state.get("hypothesis")
         if hypothesis is None:
             raise ValueError("hypothesis is required before classification")
@@ -61,6 +73,7 @@ def create_classify_hypothesis_node(
                 )
             )
         )
+        _raise_if_cancelled(runtime)
         return {
             "classification": classification,
             "messages": [_agent_message("classifier_agent", classification)],
@@ -74,9 +87,13 @@ def create_technical_plan_node(
 ) -> Node:
     """Create the node that generates the final technical plan."""
 
-    def create_technical_plan(state: ArchHypoState) -> dict[str, object]:
+    def create_technical_plan(
+        state: ArchHypoState,
+        runtime: Runtime[RunContext] | None = None,
+    ) -> dict[str, object]:
         """Create three to five mitigation actions from the catalog."""
 
+        _raise_if_cancelled(runtime)
         hypothesis = state.get("hypothesis")
         classification = state.get("classification")
         if hypothesis is None or classification is None:
@@ -95,7 +112,9 @@ def create_technical_plan_node(
         result = technical_plan_agent.invoke(
             {"messages": [HumanMessage(content=prompt)]}
         )
+        _raise_if_cancelled(runtime)
         technical_plan = TechnicalPlan.model_validate(result.get("structured_response"))
+        _raise_if_cancelled(runtime)
         final_result = ArchHypo(
             uncertainty=state["uncertainty"],
             hypothesis=hypothesis,
@@ -109,6 +128,14 @@ def create_technical_plan_node(
         }
 
     return create_technical_plan
+
+
+def _raise_if_cancelled(runtime: Runtime[RunContext] | None) -> None:
+    """Stop the graph before a cancelled node writes another checkpoint."""
+
+    control = getattr(runtime, "control", None)
+    if control is not None and control.drain_requested:
+        raise AgentCancelledError(control.drain_reason or "client_cancelled")
 
 
 def _agent_message(name: str, value: object) -> AIMessage:

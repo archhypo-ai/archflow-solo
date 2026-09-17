@@ -65,6 +65,7 @@ export async function sendChatMessage(
   threadId: string,
   message: string,
   signal?: AbortSignal,
+  runId?: string,
 ): Promise<BackendChatResponse> {
   return request<BackendChatResponse>(`${API_URL}/api/chat`, {
     method: "POST",
@@ -72,12 +73,21 @@ export async function sendChatMessage(
     body: JSON.stringify({
       thread_id: threadId,
       message,
+      run_id: runId,
       workspace_id: "default",
       project_id: null,
       user_id: null,
     }),
     signal,
   });
+}
+
+export async function cancelChatRun(runId: string): Promise<boolean> {
+  const response = await request<{ run_id: string; cancelled: boolean }>(
+    `${API_URL}/api/chat/runs/${encodeURIComponent(runId)}/cancel`,
+    { method: "POST" },
+  );
+  return response.cancelled;
 }
 
 export async function updateThread(

@@ -95,6 +95,8 @@ class AgentService:
     ) -> None:
         self._lock = RLock()
         self._active_runs: dict[str, RunControl] = {}
+        self._run_threads: dict[str, str] = {}
+        self._deleting_threads: set[str] = set()
         self._persistence: SQLitePersistence | None = None
         self._conversation_service: ConversationService | None = None
 
@@ -127,13 +129,24 @@ class AgentService:
         workspace_id: str = DEFAULT_WORKSPACE_ID,
         project_id: str | None = None,
         user_id: str | None = None,
+        run_id: str | None = None,
     ) -> AgentTurn:
-        """Run the graph with ``message`` as its single uncertainty input."""
+        """Run one cancellable graph execution for a conversation thread."""
 
         _validate_input(thread_id, message)
-        with self._lock:
-            if self._conversation_service is not None:
-                self._conversation_service.ensure(thread_id, message)
+        context = ExecutionContext(
+            thread_id=thread_id,
+            workspace_id=workspace_id,
+            project_id=project_id,
+            user_id=user_id,
+            **({"run_id": run_id} if run_id is not None else {}),
+        )
+        control = RunControl()
+        self._register_run(context, control, message)
+
+        try:
+            if control.drain_requested:
+                raise AgentCancelledError(control.drain_reason or "client_cancelled")
 
             state: dict[str, Any] = self._agent.invoke(
                 {
@@ -141,14 +154,60 @@ class AgentService:
                     "messages": [HumanMessage(content=message)],
                 },
                 {"configurable": {"thread_id": thread_id}},
+                context=context.as_graph_context(),
+                control=control,
             )
+            if control.drain_requested:
+                raise AgentCancelledError(control.drain_reason or "client_cancelled")
+
             archhypo = _archhypo_from_value(state.get("result"))
             response = _response_message(archhypo)
 
             if self._conversation_service is not None:
-                self._conversation_service.ensure(thread_id)
+                with self._lock:
+                    self._conversation_service.ensure(thread_id)
 
-        return AgentTurn(thread_id=thread_id, message=response, result=archhypo)
+            return AgentTurn(thread_id=thread_id, message=response, result=archhypo)
+        finally:
+            self._finish_run(context.run_id)
+
+    def _register_run(
+        self,
+        context: ExecutionContext,
+        control: RunControl,
+        message: str,
+    ) -> None:
+        """Register a run before work starts and persist its initial metadata."""
+
+        with self._lock:
+            if context.run_id in self._active_runs:
+                raise ValueError("run_id is already active")
+            self._active_runs[context.run_id] = control
+            self._run_threads[context.run_id] = context.thread_id
+            try:
+                if self._conversation_service is not None:
+                    self._conversation_service.ensure(context.thread_id, message)
+            except Exception:
+                self._active_runs.pop(context.run_id, None)
+                self._run_threads.pop(context.run_id, None)
+                raise
+
+    def _finish_run(self, run_id: str) -> None:
+        """Release a run registration and wake deletion waiters."""
+
+        with self._lock:
+            self._active_runs.pop(run_id, None)
+            thread_id = self._run_threads.pop(run_id, None)
+            if (
+                thread_id is not None
+                and thread_id in self._deleting_threads
+                and not any(
+                    active_thread_id == thread_id
+                    for active_thread_id in self._run_threads.values()
+                )
+            ):
+                self._delete_thread_storage(thread_id)
+                self._deleting_threads.discard(thread_id)
 
     def stream(
         self,
@@ -171,15 +230,9 @@ class AgentService:
             **({"run_id": run_id} if run_id is not None else {}),
         )
         control = RunControl()
-        with self._lock:
-            if context.run_id in self._active_runs:
-                raise ValueError("run_id is already active")
-            self._active_runs[context.run_id] = control
+        self._register_run(context, control, message)
 
         try:
-            if self._conversation_service is not None:
-                self._conversation_service.ensure(thread_id, message)
-
             yield phase_event(
                 thread_id=thread_id,
                 run_id=context.run_id,
@@ -194,6 +247,8 @@ class AgentService:
                     "messages": [HumanMessage(content=message)],
                 },
                 {"configurable": {"thread_id": thread_id}},
+                context=context.as_graph_context(),
+                control=control,
             )
             if control.drain_requested:
                 raise AgentCancelledError(control.drain_reason or "client_cancelled")
@@ -220,8 +275,7 @@ class AgentService:
                 reason=str(error),
             )
         finally:
-            with self._lock:
-                self._active_runs.pop(context.run_id, None)
+            self._finish_run(context.run_id)
 
     def cancel_run(self, run_id: str) -> bool:
         """Request cooperative cancellation for one active agent run."""
@@ -265,6 +319,7 @@ class AgentService:
                     else False,
                 )
                 for thread_id, item in latest.items()
+                if thread_id not in self._deleting_threads
             ]
             return sorted(conversations, key=lambda item: item.title.casefold())
 
@@ -275,6 +330,8 @@ class AgentService:
             raise ValueError("thread_id must not be empty")
 
         with self._lock:
+            if thread_id in self._deleting_threads:
+                return None
             state = self._agent.get_state({"configurable": {"thread_id": thread_id}})
             values = state.values if isinstance(state.values, dict) else {}
             messages = _messages_from_values(values)
@@ -315,6 +372,8 @@ class AgentService:
             return None
 
         with self._lock:
+            if thread_id in self._deleting_threads:
+                return None
             metadata = self._conversation_service.update(
                 thread_id,
                 title=title,
@@ -334,12 +393,23 @@ class AgentService:
             )
 
     def delete_conversation(self, thread_id: str) -> bool:
-        """Delete a thread checkpoint and its local conversation metadata."""
+        """Cancel active work and delete the thread when the run finishes."""
 
         if not thread_id.strip():
             raise ValueError("thread_id must not be empty")
 
         with self._lock:
+            active_controls = [
+                self._active_runs[run_id]
+                for run_id, active_thread_id in self._run_threads.items()
+                if active_thread_id == thread_id
+            ]
+            if active_controls:
+                self._deleting_threads.add(thread_id)
+                for control in active_controls:
+                    control.request_drain("conversation_deleted")
+                return True
+
             state = self._agent.get_state({"configurable": {"thread_id": thread_id}})
             has_checkpoint = bool(state.values)
             has_metadata = (
@@ -349,11 +419,16 @@ class AgentService:
             if not has_checkpoint and not has_metadata:
                 return False
 
-            if self._persistence is not None:
-                self._persistence.delete_thread(thread_id)
-            else:
-                self._agent.checkpointer.delete_thread(thread_id)
+            self._delete_thread_storage(thread_id)
             return True
+
+    def _delete_thread_storage(self, thread_id: str) -> None:
+        """Delete checkpoint and conversation metadata while holding the lock."""
+
+        if self._persistence is not None:
+            self._persistence.delete_thread(thread_id)
+        else:
+            self._agent.checkpointer.delete_thread(thread_id)
 
     @property
     def agent(self):

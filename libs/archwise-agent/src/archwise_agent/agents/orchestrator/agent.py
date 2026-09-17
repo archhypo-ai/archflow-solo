@@ -11,7 +11,7 @@ from archwise_agent.agents.classifier import build_classifier_agent
 from archwise_agent.agents.hypothesis import build_hypothesis_agent
 from archwise_agent.agents.technical_plan import build_technical_plan_agent
 from archwise_agent.config import AgentSettings
-from archwise_agent.core import ArchHypoState
+from archwise_agent.core import ArchHypoState, RunContext
 from archwise_agent.providers import create_openrouter_model
 
 from .nodes import (
@@ -34,7 +34,7 @@ def build_archwise_agent(
     classifier_agent = build_classifier_agent(chat_model)
     technical_plan_agent = build_technical_plan_agent(chat_model)
 
-    workflow = StateGraph(ArchHypoState)
+    workflow = StateGraph(ArchHypoState, context_schema=RunContext)
     workflow.add_node(
         "formulate_hypothesis",
         create_formulate_hypothesis_node(hypothesis_agent),
