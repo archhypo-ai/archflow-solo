@@ -17,7 +17,9 @@ from archwise_agent.core import (
     ArchHypo,
     Hypothesis,
     HypothesisClassification,
+    RequestRouting,
     TechnicalPlan,
+    UserResponse,
 )
 
 
@@ -29,6 +31,8 @@ class FakeWorkflowChatModel(FakeListChatModel):
     _hypothesis_index: int = PrivateAttr(default=0)
     _tool_mode: bool = PrivateAttr(default=False)
     _delay: float = PrivateAttr(default=0.0)
+    _route: str = PrivateAttr(default="archwise_workflow")
+    _direct_response: str = PrivateAttr(default="")
 
     def __init__(
         self,
@@ -36,6 +40,8 @@ class FakeWorkflowChatModel(FakeListChatModel):
         *,
         uncertainties: list[str] | None = None,
         sleep: float | None = None,
+        route: str = "archwise_workflow",
+        direct_response: str = "",
     ) -> None:
         super().__init__(
             responses=["unused"],
@@ -44,6 +50,8 @@ class FakeWorkflowChatModel(FakeListChatModel):
         self._statements = statements
         self._uncertainties = uncertainties or [""] * len(statements)
         self._delay = sleep or 0.0
+        self._route = route
+        self._direct_response = direct_response
 
     def with_structured_output(
         self,
@@ -66,6 +74,16 @@ class FakeWorkflowChatModel(FakeListChatModel):
         if self._delay:
             time.sleep(self._delay)
 
+        if schema is RequestRouting:
+            return RequestRouting(route=self._route)
+        if schema is UserResponse:
+            return UserResponse(
+                message=(
+                    self._direct_response
+                    if self._route == "direct_response"
+                    else "ArchWise response."
+                )
+            )
         if schema is Hypothesis:
             index = self._hypothesis_index
             self._hypothesis_index += 1
@@ -117,6 +135,8 @@ def fake_hypothesis_model(
     *,
     sleep: float | None = None,
     uncertainties: list[str] | None = None,
+    route: str = "archwise_workflow",
+    direct_response: str = "",
 ) -> FakeWorkflowChatModel:
     """Create a deterministic model for the complete workflow."""
 
@@ -124,6 +144,8 @@ def fake_hypothesis_model(
         responses,
         uncertainties=uncertainties,
         sleep=sleep,
+        route=route,
+        direct_response=direct_response,
     )
 
 

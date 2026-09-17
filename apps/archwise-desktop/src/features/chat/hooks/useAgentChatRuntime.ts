@@ -218,13 +218,27 @@ export function useAgentChatRuntime(
           return;
         }
 
-        setMessages((current) =>
-          current.map((item) =>
-            item.id === pendingId
-              ? assistantMessage(pendingId, result.message)
-              : item,
-          ),
-        );
+        const persistedThread = await getThread(threadId).catch(() => null);
+        if (
+          generationRef.current !== generation ||
+          controller.signal.aborted
+        ) {
+          return;
+        }
+
+        if (persistedThread) {
+          // Reload the backend's user-visible projection so old internal
+          // workflow prompts cannot remain in the local chat state.
+          setMessages(restoreMessages(persistedThread));
+        } else {
+          setMessages((current) =>
+            current.map((item) =>
+              item.id === pendingId
+                ? assistantMessage(pendingId, result.message)
+                : item,
+            ),
+          );
+        }
         onThreadUpdated?.();
       } catch (error) {
         if (

@@ -4,6 +4,8 @@ from .agents import (
     build_archwise_agent,
     build_classifier_agent,
     build_hypothesis_agent,
+    build_request_router_agent,
+    build_response_agent,
     build_technical_plan_agent,
 )
 from .config import PACKAGE_VERSION, AgentSettings, settings
@@ -13,7 +15,10 @@ from .core import (
     ArchHypoState,
     Hypothesis,
     HypothesisClassification,
+    RequestRoute,
+    RequestRouting,
     TechnicalPlan,
+    UserResponse,
 )
 from .services import AgentService, AgentStreamEvent, AgentTurn
 
@@ -31,11 +36,16 @@ __all__ = [
     "ArchHypoState",
     "Hypothesis",
     "HypothesisClassification",
+    "RequestRoute",
+    "RequestRouting",
     "TechnicalPlan",
+    "UserResponse",
     "build_agent",
     "build_archwise_agent",
     "build_classifier_agent",
     "build_hypothesis_agent",
+    "build_request_router_agent",
+    "build_response_agent",
     "build_technical_plan_agent",
     "settings",
 ]

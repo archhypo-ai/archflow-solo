@@ -43,7 +43,7 @@ class AgentTurn:
 
     thread_id: str
     message: AIMessage
-    result: ArchHypo
+    result: ArchHypo | None
 
     @property
     def text(self) -> str:
@@ -160,8 +160,14 @@ class AgentService:
             if control.drain_requested:
                 raise AgentCancelledError(control.drain_reason or "client_cancelled")
 
-            archhypo = _archhypo_from_value(state.get("result"))
-            response = _response_message(archhypo)
+            direct_response = state.get("response")
+            if isinstance(direct_response, str) and direct_response.strip():
+                result = state.get("result")
+                archhypo = _archhypo_from_value(result) if result is not None else None
+                response = AIMessage(content=direct_response)
+            else:
+                archhypo = _archhypo_from_value(state.get("result"))
+                response = _response_message(archhypo)
 
             if self._conversation_service is not None:
                 with self._lock:
@@ -253,7 +259,14 @@ class AgentService:
             if control.drain_requested:
                 raise AgentCancelledError(control.drain_reason or "client_cancelled")
 
-            archhypo = _archhypo_from_value(state.get("result"))
+            direct_response = state.get("response")
+            if isinstance(direct_response, str) and direct_response.strip():
+                response_text = direct_response
+            else:
+                response_text = _archhypo_from_value(
+                    state.get("result")
+                ).model_dump_json(indent=2)
+
             yield phase_event(
                 thread_id=thread_id,
                 run_id=context.run_id,
@@ -262,7 +275,7 @@ class AgentService:
             yield text_delta_event(
                 thread_id=thread_id,
                 run_id=context.run_id,
-                text=archhypo.model_dump_json(indent=2),
+                text=response_text,
             )
 
             if self._conversation_service is not None:
@@ -471,7 +484,7 @@ def _messages_from_checkpoint(checkpoint: Any) -> list[Any]:
 def _messages_from_values(values: dict[str, Any]) -> list[Any]:
     existing_messages = values.get("messages")
     if isinstance(existing_messages, list) and existing_messages:
-        return list(existing_messages)
+        return _user_visible_messages(existing_messages)
 
     uncertainty = values.get("uncertainty")
     if not isinstance(uncertainty, str) or not uncertainty.strip():
@@ -483,6 +496,39 @@ def _messages_from_values(values: dict[str, Any]) -> list[Any]:
     except TypeError:
         pass
     return messages
+
+
+def _user_visible_messages(messages: list[Any]) -> list[Any]:
+    """Hide internal workflow messages from the conversation API."""
+
+    has_final_response = any(
+        isinstance(message, AIMessage)
+        and getattr(message, "name", None) == "response_agent"
+        for message in messages
+    )
+    if has_final_response:
+        return [
+            message
+            for message in messages
+            if isinstance(message, HumanMessage)
+            or (
+                isinstance(message, AIMessage)
+                and getattr(message, "name", None) == "response_agent"
+            )
+        ]
+
+    return [message for message in messages if not _is_internal_message(message)]
+
+
+def _is_internal_message(message: Any) -> bool:
+    """Recognize workflow messages from checkpoints created before response."""
+
+    name = getattr(message, "name", None)
+    if name in {"hypothesis_agent", "classifier_agent", "technical_plan_agent"}:
+        return True
+
+    text = _message_text(message)
+    return "{input}" in text and "{/input}" in text
 
 
 def _archhypo_from_value(value: Any) -> ArchHypo:

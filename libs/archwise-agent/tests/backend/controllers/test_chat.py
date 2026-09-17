@@ -5,7 +5,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from archwise_agent import AgentService
 from archwise_agent.backend import create_app
-from tests.fakes import archhypo_json, fake_hypothesis_model
+from tests.fakes import fake_hypothesis_model
 
 
 def test_chat_controller_returns_agent_response() -> None:
@@ -23,7 +23,7 @@ def test_chat_controller_returns_agent_response() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "thread_id": "curl-test",
-        "message": archhypo_json("Hello", "hello from the agent"),
+        "message": "ArchWise response.",
         "status": "completed",
     }
 
@@ -57,10 +57,13 @@ def test_chat_stream_controller_emits_sse_events() -> None:
     assert payloads[0]["type"] == "phase"
     assert payloads[1]["type"] == "phase"
     assert payloads[-1]["type"] == "done"
-    assert "".join(
-        payload["text"] for payload in payloads if payload["type"] == "text_delta"
-    ) == archhypo_json("Hello", "hello world")
-    assert service.get_conversation("stream-test").message_count == 4
+    assert (
+        "".join(
+            payload["text"] for payload in payloads if payload["type"] == "text_delta"
+        )
+        == "ArchWise response."
+    )
+    assert service.get_conversation("stream-test").message_count == 2
 
 
 def test_chat_cancel_controller_is_idempotent_for_finished_run() -> None:

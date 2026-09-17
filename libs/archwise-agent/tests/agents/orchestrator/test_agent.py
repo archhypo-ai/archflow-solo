@@ -6,7 +6,29 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from archwise_agent import AgentService, Hypothesis, build_archwise_agent
 from archwise_agent.core import AgentCancelledError
-from tests.fakes import archhypo_json, fake_hypothesis_model
+from tests.fakes import fake_hypothesis_model
+
+
+def test_request_router_answers_direct_questions_without_archhypo() -> None:
+    service = AgentService(
+        model=fake_hypothesis_model(
+            ["unused"],
+            route="direct_response",
+            direct_response="Tirana.",
+        ),
+        checkpointer=InMemorySaver(),
+    )
+
+    turn = service.send(
+        thread_id="direct-thread",
+        message="What is the capital of Albania?",
+    )
+
+    assert turn.result is None
+    assert turn.text == "Tirana."
+    conversation = service.get_conversation("direct-thread")
+    assert conversation is not None
+    assert conversation.messages[-1].content == "Tirana."
 
 
 def test_agent_runs_one_uncertainty_at_a_time() -> None:
@@ -22,21 +44,18 @@ def test_agent_runs_one_uncertainty_at_a_time() -> None:
         statement="first reply",
         justification="Derived from the supplied uncertainty.",
     )
-    assert first.text == archhypo_json("hello", "first reply")
-    assert second.text == archhypo_json(
-        "follow up",
-        "second reply",
-        index=2,
-    )
+    assert first.text == "ArchWise response."
+    assert second.text == "ArchWise response."
 
     state = agent.agent.get_state({"configurable": {"thread_id": "thread-1"}})
     assert state.values["uncertainty"] == "follow up"
     assert state.values["result"].hypothesis.statement == "second reply"
-    assert len(state.values["messages"]) == 8
-    assert [message.name for message in state.values["messages"][-3:]] == [
+    assert len(state.values["messages"]) == 10
+    assert [message.name for message in state.values["messages"][-4:]] == [
         "hypothesis_agent",
         "classifier_agent",
         "technical_plan_agent",
+        "response_agent",
     ]
 
 

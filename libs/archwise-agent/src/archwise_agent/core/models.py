@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+RequestRoute = Literal["direct_response", "archwise_workflow"]
+
 NFR = Literal[
     "Performance",
     "Security",
@@ -33,6 +35,18 @@ ArchHypoPattern = Literal[
 
 class _DomainModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class RequestRouting(_DomainModel):
+    """Destination selected for the current user request."""
+
+    route: RequestRoute
+
+
+class UserResponse(_DomainModel):
+    """Human-facing response returned by the final response agent."""
+
+    message: str = Field(min_length=1)
 
 
 class Hypothesis(_DomainModel):
@@ -94,6 +108,9 @@ __all__ = [
     "ArchHypo",
     "ArchHypoPattern",
     "AssessmentLevel",
+    "RequestRoute",
+    "RequestRouting",
+    "UserResponse",
     "Hypothesis",
     "HypothesisClassification",
     "NFR",

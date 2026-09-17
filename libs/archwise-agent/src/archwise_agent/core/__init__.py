@@ -9,8 +9,11 @@ from .models import (
     AssessmentLevel,
     Hypothesis,
     HypothesisClassification,
+    RequestRoute,
+    RequestRouting,
     TechnicalPlan,
     TechnicalPlanItem,
+    UserResponse,
 )
 from .state import AgentState, ArchHypoState
 
@@ -26,7 +29,10 @@ __all__ = [
     "Hypothesis",
     "HypothesisClassification",
     "NFR",
+    "RequestRoute",
+    "RequestRouting",
     "RunContext",
+    "UserResponse",
     "TechnicalPlan",
     "TechnicalPlanItem",
 ]

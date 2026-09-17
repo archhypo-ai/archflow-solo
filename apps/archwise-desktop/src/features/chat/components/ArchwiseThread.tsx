@@ -8,12 +8,14 @@ import {
   useThread,
 } from "@assistant-ui/react";
 import { makeMarkdownText } from "@assistant-ui/react-ui";
+import remarkGfm from "remark-gfm";
 import { ArrowUp, Check, Copy, Plus, Square } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "../../../i18n";
 
 const MarkdownText = makeMarkdownText({
   className: "message-markdown",
+  remarkPlugins: [remarkGfm],
 });
 
 function Welcome() {
