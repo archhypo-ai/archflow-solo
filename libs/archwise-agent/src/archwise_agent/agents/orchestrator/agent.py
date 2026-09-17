@@ -53,9 +53,7 @@ def build_archwise_agent(
     workflow.add_edge("create_technical_plan", END)
 
     return workflow.compile(
-        checkpointer=(
-            checkpointer if checkpointer is not None else InMemorySaver()
-        )
+        checkpointer=(checkpointer if checkpointer is not None else InMemorySaver())
     )
 
 

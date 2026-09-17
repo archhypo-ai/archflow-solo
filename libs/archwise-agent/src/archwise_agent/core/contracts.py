@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+
 class AgentCancelledError(Exception):
     """Raised when a client requests cancellation of an active run."""
 

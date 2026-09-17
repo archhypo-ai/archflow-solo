@@ -3,8 +3,8 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from archwise_agent import AgentService
 from archwise_agent.backend import create_app
-from tests.fakes import fake_hypothesis_model
 from archwise_agent.config import PACKAGE_VERSION
+from tests.fakes import fake_hypothesis_model
 
 
 def test_health_controller_reports_ready_agent() -> None:

@@ -6,7 +6,7 @@ from .agents import (
     build_hypothesis_agent,
     build_technical_plan_agent,
 )
-from .config import AgentSettings, PACKAGE_VERSION, settings
+from .config import PACKAGE_VERSION, AgentSettings, settings
 from .core import (
     AgentState,
     ArchHypo,

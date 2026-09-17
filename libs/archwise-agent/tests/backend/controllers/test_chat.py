@@ -45,9 +45,7 @@ def test_chat_stream_controller_emits_sse_events() -> None:
             lines = list(response.iter_lines())
 
     events = [
-        line.removeprefix("event: ")
-        for line in lines
-        if line.startswith("event: ")
+        line.removeprefix("event: ") for line in lines if line.startswith("event: ")
     ]
     payloads = [
         json.loads(line.removeprefix("data: "))
@@ -60,11 +58,9 @@ def test_chat_stream_controller_emits_sse_events() -> None:
     assert payloads[1]["type"] == "phase"
     assert payloads[-1]["type"] == "done"
     assert "".join(
-        payload["text"]
-        for payload in payloads
-        if payload["type"] == "text_delta"
+        payload["text"] for payload in payloads if payload["type"] == "text_delta"
     ) == archhypo_json("Hello", "hello world")
-    assert service.get_conversation("stream-test").message_count == 2
+    assert service.get_conversation("stream-test").message_count == 4
 
 
 def test_chat_cancel_controller_is_idempotent_for_finished_run() -> None:

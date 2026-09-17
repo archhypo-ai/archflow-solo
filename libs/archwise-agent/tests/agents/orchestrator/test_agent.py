@@ -1,6 +1,7 @@
 import threading
 import time
 
+from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from archwise_agent import AgentService, Hypothesis, build_archwise_agent
@@ -15,6 +16,7 @@ def test_agent_runs_one_uncertainty_at_a_time() -> None:
     second = agent.send(thread_id="thread-1", message="follow up")
 
     assert first.result.hypothesis == Hypothesis(
+        uncertainty="hello",
         title="Hypothesis 1",
         statement="first reply",
         justification="Derived from the supplied uncertainty.",
@@ -26,11 +28,15 @@ def test_agent_runs_one_uncertainty_at_a_time() -> None:
         index=2,
     )
 
-    state = agent.agent.get_state(
-        {"configurable": {"thread_id": "thread-1"}}
-    )
+    state = agent.agent.get_state({"configurable": {"thread_id": "thread-1"}})
     assert state.values["uncertainty"] == "follow up"
     assert state.values["result"].hypothesis.statement == "second reply"
+    assert len(state.values["messages"]) == 8
+    assert [message.name for message in state.values["messages"][-3:]] == [
+        "hypothesis_agent",
+        "classifier_agent",
+        "technical_plan_agent",
+    ]
 
 
 def test_agent_stream_can_be_cancelled() -> None:
@@ -65,7 +71,10 @@ def test_build_agent_accepts_injected_model() -> None:
     )
 
     result = agent.invoke(
-        {"uncertainty": "hello"},
+        {
+            "uncertainty": "hello",
+            "messages": [HumanMessage(content="hello")],
+        },
         {"configurable": {"thread_id": "thread-2"}},
     )
 

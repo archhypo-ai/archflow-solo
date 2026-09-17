@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.messages import HumanMessage
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from archwise_agent.core import HypothesisClassification
 
@@ -22,6 +23,7 @@ Requirements:
 - Keep impact and uncertainty as separate assessments.
 - Justify the NFR, impact, and uncertainty independently.
 - Base every assessment only on the supplied uncertainty and hypothesis.
+- Do not classify unrelated concerns from the source material.
 - Do not propose technical plans or architectural patterns.
 - Use the same language as the input.
 """
@@ -33,14 +35,34 @@ def build_classifier_agent(model: BaseChatModel):
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", SYSTEM_PROMPT),
-            (
-                "human",
-                "Architectural uncertainty:\n{uncertainty}\n\n"
-                "Hypothesis:\n{hypothesis}",
-            ),
+            MessagesPlaceholder(variable_name="messages"),
         ]
     )
     return prompt | model.with_structured_output(HypothesisClassification)
 
 
-__all__ = ["build_classifier_agent"]
+def classifier_input(
+    uncertainty: str,
+    hypothesis: str,
+) -> dict[str, list[HumanMessage]]:
+    """Create the typed human-message input for the classifier chain."""
+
+    return {
+        "messages": [
+            HumanMessage(
+                content=(
+                    "Architectural uncertainty:\n"
+                    f"{uncertainty}\n\n"
+                    "Hypothesis:\n"
+                    f"{hypothesis}"
+                )
+            )
+        ]
+    }
+
+
+__all__ = [
+    "SYSTEM_PROMPT",
+    "build_classifier_agent",
+    "classifier_input",
+]

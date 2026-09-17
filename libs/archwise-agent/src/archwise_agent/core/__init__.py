@@ -3,12 +3,12 @@
 from .context import DEFAULT_WORKSPACE_ID, ExecutionContext, RunContext
 from .contracts import AgentCancelledError
 from .models import (
+    NFR,
     ArchHypo,
     ArchHypoPattern,
     AssessmentLevel,
     Hypothesis,
     HypothesisClassification,
-    NFR,
     TechnicalPlan,
     TechnicalPlanItem,
 )

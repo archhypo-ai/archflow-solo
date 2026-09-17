@@ -3,7 +3,12 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from archwise_agent import AgentService
 from archwise_agent.backend import create_app
-from tests.fakes import archhypo_json, fake_hypothesis_model
+from tests.fakes import (
+    classification_json,
+    fake_hypothesis_model,
+    hypothesis_json,
+    technical_plan_json,
+)
 
 
 def test_threads_controller_lists_and_loads_conversations() -> None:
@@ -30,26 +35,35 @@ def test_threads_controller_lists_and_loads_conversations() -> None:
     assert listing.json() == [
         {
             "thread_id": "thread-a",
-            "title": "Second question",
-            "message_count": 2,
+            "title": "First question",
+            "message_count": 8,
             "pinned": False,
         }
     ]
     assert detail.status_code == 200
     assert detail.json() == {
         "thread_id": "thread-a",
-        "title": "Second question",
-        "message_count": 2,
+        "title": "First question",
+        "message_count": 8,
         "messages": [
+            {"role": "user", "content": "First question"},
+            {
+                "role": "assistant",
+                "content": hypothesis_json("First question", "first reply"),
+            },
+            {"role": "assistant", "content": classification_json()},
+            {"role": "assistant", "content": technical_plan_json()},
             {"role": "user", "content": "Second question"},
             {
                 "role": "assistant",
-                "content": archhypo_json(
+                "content": hypothesis_json(
                     "Second question",
                     "second reply",
                     index=2,
                 ),
             },
+            {"role": "assistant", "content": classification_json()},
+            {"role": "assistant", "content": technical_plan_json()},
         ],
         "pinned": False,
     }

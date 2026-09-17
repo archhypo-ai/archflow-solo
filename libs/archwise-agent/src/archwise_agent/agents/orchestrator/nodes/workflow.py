@@ -8,6 +8,8 @@ from typing import Any
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable
 
+from archwise_agent.agents.classifier.agent import classifier_input
+from archwise_agent.agents.hypothesis.agent import hypothesis_input
 from archwise_agent.core import (
     ArchHypo,
     ArchHypoState,
@@ -28,9 +30,10 @@ def create_formulate_hypothesis_node(
         """Formulate exactly one testable architectural hypothesis."""
 
         hypothesis = Hypothesis.model_validate(
-            hypothesis_agent.invoke({"uncertainty": state["uncertainty"]})
+            hypothesis_agent.invoke(hypothesis_input(state["uncertainty"]))
         )
         return {
+            "uncertainty": hypothesis.uncertainty,
             "hypothesis": hypothesis,
             "messages": [_agent_message("hypothesis_agent", hypothesis)],
         }
@@ -52,10 +55,10 @@ def create_classify_hypothesis_node(
 
         classification = HypothesisClassification.model_validate(
             classifier_agent.invoke(
-                {
-                    "uncertainty": state["uncertainty"],
-                    "hypothesis": hypothesis.model_dump_json(indent=2),
-                }
+                classifier_input(
+                    state["uncertainty"],
+                    hypothesis.model_dump_json(indent=2),
+                )
             )
         )
         return {
@@ -92,9 +95,7 @@ def create_technical_plan_node(
         result = technical_plan_agent.invoke(
             {"messages": [HumanMessage(content=prompt)]}
         )
-        technical_plan = TechnicalPlan.model_validate(
-            result.get("structured_response")
-        )
+        technical_plan = TechnicalPlan.model_validate(result.get("structured_response"))
         final_result = ArchHypo(
             uncertainty=state["uncertainty"],
             hypothesis=hypothesis,
@@ -104,9 +105,7 @@ def create_technical_plan_node(
         return {
             "technical_plan": technical_plan,
             "result": final_result,
-            "messages": [
-                _agent_message("technical_plan_agent", technical_plan)
-            ],
+            "messages": [_agent_message("technical_plan_agent", technical_plan)],
         }
 
     return create_technical_plan

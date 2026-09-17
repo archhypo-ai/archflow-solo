@@ -5,7 +5,12 @@ from archwise_agent.persistence import (
     CURRENT_SCHEMA_VERSION,
     migrate_database,
 )
-from tests.fakes import archhypo_json, fake_hypothesis_model
+from tests.fakes import (
+    classification_json,
+    fake_hypothesis_model,
+    hypothesis_json,
+    technical_plan_json,
+)
 
 
 def test_migrations_are_idempotent(tmp_path) -> None:
@@ -55,7 +60,9 @@ def test_sqlite_checkpoints_survive_service_restart(tmp_path) -> None:
     assert conversation is not None
     assert [message.content for message in conversation.messages] == [
         "Remember this",
-        archhypo_json("Remember this", "persistent reply"),
+        hypothesis_json("Remember this", "persistent reply"),
+        classification_json(),
+        technical_plan_json(),
     ]
 
 

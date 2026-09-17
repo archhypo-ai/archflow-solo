@@ -7,9 +7,9 @@ from .checkpoints import (
     open_sqlite_persistence,
 )
 from .conversations import (
+    DEFAULT_CONVERSATION_TITLE,
     ConversationMetadata,
     ConversationRepository,
-    DEFAULT_CONVERSATION_TITLE,
     SQLiteConversationRepository,
 )
 from .migrations import CURRENT_SCHEMA_VERSION, migrate_connection, migrate_database

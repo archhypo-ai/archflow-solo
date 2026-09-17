@@ -36,8 +36,12 @@ class _DomainModel(BaseModel):
 
 
 class Hypothesis(_DomainModel):
-    """One testable architectural hypothesis."""
+    """One normalized uncertainty and its testable hypothesis."""
 
+    uncertainty: str = Field(
+        min_length=1,
+        description="Short normalized architectural uncertainty.",
+    )
     title: str = Field(min_length=1, description="Short hypothesis title.")
     statement: str = Field(
         min_length=1,

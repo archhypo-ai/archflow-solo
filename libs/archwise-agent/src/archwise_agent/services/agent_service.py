@@ -23,9 +23,9 @@ from langgraph.runtime import RunControl
 from archwise_agent.agents import build_archwise_agent
 from archwise_agent.config import AgentSettings
 from archwise_agent.core import (
+    DEFAULT_WORKSPACE_ID,
     AgentCancelledError,
     ArchHypo,
-    DEFAULT_WORKSPACE_ID,
     ExecutionContext,
 )
 from archwise_agent.persistence import (
@@ -186,9 +186,7 @@ class AgentService:
                 phase="thinking",
             )
             if control.drain_requested:
-                raise AgentCancelledError(
-                    control.drain_reason or "client_cancelled"
-                )
+                raise AgentCancelledError(control.drain_reason or "client_cancelled")
 
             state: dict[str, Any] = self._agent.invoke(
                 {
@@ -198,9 +196,7 @@ class AgentService:
                 {"configurable": {"thread_id": thread_id}},
             )
             if control.drain_requested:
-                raise AgentCancelledError(
-                    control.drain_reason or "client_cancelled"
-                )
+                raise AgentCancelledError(control.drain_reason or "client_cancelled")
 
             archhypo = _archhypo_from_value(state.get("result"))
             yield phase_event(
@@ -249,16 +245,11 @@ class AgentService:
                 if not thread_id:
                     continue
                 current = latest.get(thread_id)
-                if current is None or _checkpoint_key(item) > _checkpoint_key(
-                    current
-                ):
+                if current is None or _checkpoint_key(item) > _checkpoint_key(current):
                     latest[thread_id] = item
 
             metadata = (
-                {
-                    item.thread_id: item
-                    for item in self._conversation_service.list()
-                }
+                {item.thread_id: item for item in self._conversation_service.list()}
                 if self._conversation_service is not None
                 else {}
             )
@@ -284,9 +275,7 @@ class AgentService:
             raise ValueError("thread_id must not be empty")
 
         with self._lock:
-            state = self._agent.get_state(
-                {"configurable": {"thread_id": thread_id}}
-            )
+            state = self._agent.get_state({"configurable": {"thread_id": thread_id}})
             values = state.values if isinstance(state.values, dict) else {}
             messages = _messages_from_values(values)
             if not messages:
@@ -334,9 +323,7 @@ class AgentService:
             if metadata is None:
                 return None
 
-            state = self._agent.get_state(
-                {"configurable": {"thread_id": thread_id}}
-            )
+            state = self._agent.get_state({"configurable": {"thread_id": thread_id}})
             values = state.values if isinstance(state.values, dict) else {}
             messages = _messages_from_values(values)
             return _conversation_summary(
@@ -353,9 +340,7 @@ class AgentService:
             raise ValueError("thread_id must not be empty")
 
         with self._lock:
-            state = self._agent.get_state(
-                {"configurable": {"thread_id": thread_id}}
-            )
+            state = self._agent.get_state({"configurable": {"thread_id": thread_id}})
             has_checkpoint = bool(state.values)
             has_metadata = (
                 self._conversation_service is not None
