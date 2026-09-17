@@ -8,8 +8,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from archwise_agent.services import AgentService
 from archwise_agent.config import PACKAGE_VERSION
+from archwise_agent.services import AgentService
 
 from .controllers import chat_router, health_router, threads_router
 

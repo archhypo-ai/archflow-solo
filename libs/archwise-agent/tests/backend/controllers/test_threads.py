@@ -1,14 +1,19 @@
 from fastapi.testclient import TestClient
-from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langgraph.checkpoint.memory import InMemorySaver
 
 from archwise_agent import AgentService
 from archwise_agent.backend import create_app
+from tests.fakes import (
+    classification_json,
+    fake_hypothesis_model,
+    hypothesis_json,
+    technical_plan_json,
+)
 
 
 def test_threads_controller_lists_and_loads_conversations() -> None:
     service = AgentService(
-        model=FakeListChatModel(responses=["first reply", "second reply"]),
+        model=fake_hypothesis_model(["first reply", "second reply"]),
         checkpointer=InMemorySaver(),
     )
 
@@ -31,7 +36,7 @@ def test_threads_controller_lists_and_loads_conversations() -> None:
         {
             "thread_id": "thread-a",
             "title": "First question",
-            "message_count": 4,
+            "message_count": 8,
             "pinned": False,
         }
     ]
@@ -39,12 +44,26 @@ def test_threads_controller_lists_and_loads_conversations() -> None:
     assert detail.json() == {
         "thread_id": "thread-a",
         "title": "First question",
-        "message_count": 4,
+        "message_count": 8,
         "messages": [
             {"role": "user", "content": "First question"},
-            {"role": "assistant", "content": "first reply"},
+            {
+                "role": "assistant",
+                "content": hypothesis_json("First question", "first reply"),
+            },
+            {"role": "assistant", "content": classification_json()},
+            {"role": "assistant", "content": technical_plan_json()},
             {"role": "user", "content": "Second question"},
-            {"role": "assistant", "content": "second reply"},
+            {
+                "role": "assistant",
+                "content": hypothesis_json(
+                    "Second question",
+                    "second reply",
+                    index=2,
+                ),
+            },
+            {"role": "assistant", "content": classification_json()},
+            {"role": "assistant", "content": technical_plan_json()},
         ],
         "pinned": False,
     }
@@ -52,7 +71,7 @@ def test_threads_controller_lists_and_loads_conversations() -> None:
 
 def test_threads_controller_deletes_a_conversation() -> None:
     service = AgentService(
-        model=FakeListChatModel(responses=["reply"]),
+        model=fake_hypothesis_model(["reply"]),
         checkpointer=InMemorySaver(),
     )
 
@@ -73,7 +92,7 @@ def test_threads_controller_deletes_a_conversation() -> None:
 
 def test_threads_controller_updates_pinned_state(tmp_path) -> None:
     service = AgentService(
-        model=FakeListChatModel(responses=["reply"]),
+        model=fake_hypothesis_model(["reply"]),
         database_path=tmp_path / "checkpoints.sqlite",
     )
 
@@ -104,7 +123,7 @@ def test_threads_controller_updates_pinned_state(tmp_path) -> None:
 
 def test_threads_controller_rejects_empty_update() -> None:
     service = AgentService(
-        model=FakeListChatModel(responses=["unused"]),
+        model=fake_hypothesis_model(["unused"]),
         checkpointer=InMemorySaver(),
     )
 
@@ -116,7 +135,7 @@ def test_threads_controller_rejects_empty_update() -> None:
 
 def test_threads_controller_returns_not_found_for_unknown_thread() -> None:
     service = AgentService(
-        model=FakeListChatModel(responses=["unused"]),
+        model=fake_hypothesis_model(["unused"]),
         checkpointer=InMemorySaver(),
     )
 

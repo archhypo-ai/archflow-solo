@@ -1,5 +1,15 @@
-"""Nodes belonging to the ArchWise orchestrator."""
+"""Nodes for the ArchWise orchestrator."""
 
-from .chat import Node, create_respond_node
+from .workflow import (
+    Node,
+    create_classify_hypothesis_node,
+    create_formulate_hypothesis_node,
+    create_technical_plan_node,
+)
 
-__all__ = ["Node", "create_respond_node"]
+__all__ = [
+    "Node",
+    "create_classify_hypothesis_node",
+    "create_formulate_hypothesis_node",
+    "create_technical_plan_node",
+]

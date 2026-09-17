@@ -1,15 +1,15 @@
 from fastapi.testclient import TestClient
-from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langgraph.checkpoint.memory import InMemorySaver
 
 from archwise_agent import AgentService
 from archwise_agent.backend import create_app
 from archwise_agent.config import PACKAGE_VERSION
+from tests.fakes import fake_hypothesis_model
 
 
 def test_health_controller_reports_ready_agent() -> None:
     service = AgentService(
-        model=FakeListChatModel(responses=["unused"]),
+        model=fake_hypothesis_model(["unused"]),
         checkpointer=InMemorySaver(),
     )
 

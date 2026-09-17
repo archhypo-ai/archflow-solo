@@ -1,25 +1,31 @@
-"""State contracts shared by ArchWise agent implementations."""
+"""LangGraph state for the ArchHypo workflow."""
 
-from operator import add
-from typing import Annotated
+from typing import Annotated, NotRequired
 
 from langchain_core.messages import AnyMessage
 from langgraph.graph.message import add_messages
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import TypedDict
 
-from .contracts import AgentResult, WorkflowPhase
+from .models import (
+    ArchHypo,
+    Hypothesis,
+    HypothesisClassification,
+    TechnicalPlan,
+)
 
 
-class AgentState(TypedDict):
-    """Minimal conversational state for the first agent.
-
-    The reducer keeps existing messages and appends new messages on every
-    invocation of the same checkpoint thread.
-    """
+class ArchHypoState(TypedDict):
+    """State shared by the linear ArchHypo workflow."""
 
     messages: Annotated[list[AnyMessage], add_messages]
-    phase: NotRequired[WorkflowPhase]
-    agent_results: NotRequired[Annotated[list[AgentResult], add]]
+    uncertainty: str
+    hypothesis: NotRequired[Hypothesis]
+    classification: NotRequired[HypothesisClassification]
+    technical_plan: NotRequired[TechnicalPlan]
+    result: NotRequired[ArchHypo]
 
 
-__all__ = ["AgentState"]
+# Temporary compatibility alias for existing callers.
+AgentState = ArchHypoState
+
+__all__ = ["AgentState", "ArchHypoState"]

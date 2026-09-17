@@ -1,16 +1,16 @@
 import json
 
 from fastapi.testclient import TestClient
-from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langgraph.checkpoint.memory import InMemorySaver
 
 from archwise_agent import AgentService
 from archwise_agent.backend import create_app
+from tests.fakes import archhypo_json, fake_hypothesis_model
 
 
 def test_chat_controller_returns_agent_response() -> None:
     service = AgentService(
-        model=FakeListChatModel(responses=["hello from the agent"]),
+        model=fake_hypothesis_model(["hello from the agent"]),
         checkpointer=InMemorySaver(),
     )
 
@@ -23,14 +23,14 @@ def test_chat_controller_returns_agent_response() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "thread_id": "curl-test",
-        "message": "hello from the agent",
+        "message": archhypo_json("Hello", "hello from the agent"),
         "status": "completed",
     }
 
 
 def test_chat_stream_controller_emits_sse_events() -> None:
     service = AgentService(
-        model=FakeListChatModel(responses=["hello world"]),
+        model=fake_hypothesis_model(["hello world"]),
         checkpointer=InMemorySaver(),
     )
 
@@ -45,9 +45,7 @@ def test_chat_stream_controller_emits_sse_events() -> None:
             lines = list(response.iter_lines())
 
     events = [
-        line.removeprefix("event: ")
-        for line in lines
-        if line.startswith("event: ")
+        line.removeprefix("event: ") for line in lines if line.startswith("event: ")
     ]
     payloads = [
         json.loads(line.removeprefix("data: "))
@@ -60,16 +58,14 @@ def test_chat_stream_controller_emits_sse_events() -> None:
     assert payloads[1]["type"] == "phase"
     assert payloads[-1]["type"] == "done"
     assert "".join(
-        payload["text"]
-        for payload in payloads
-        if payload["type"] == "text_delta"
-    ) == "hello world"
-    assert service.get_conversation("stream-test").message_count == 2
+        payload["text"] for payload in payloads if payload["type"] == "text_delta"
+    ) == archhypo_json("Hello", "hello world")
+    assert service.get_conversation("stream-test").message_count == 4
 
 
 def test_chat_cancel_controller_is_idempotent_for_finished_run() -> None:
     service = AgentService(
-        model=FakeListChatModel(responses=["unused"]),
+        model=fake_hypothesis_model(["unused"]),
         checkpointer=InMemorySaver(),
     )
 
@@ -85,7 +81,7 @@ def test_chat_cancel_controller_is_idempotent_for_finished_run() -> None:
 
 def test_chat_controller_rejects_blank_message() -> None:
     service = AgentService(
-        model=FakeListChatModel(responses=["unused"]),
+        model=fake_hypothesis_model(["unused"]),
         checkpointer=InMemorySaver(),
     )
 

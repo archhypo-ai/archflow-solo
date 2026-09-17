@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import NotRequired
 from uuid import uuid4
 
-from typing_extensions import NotRequired, TypedDict
+from typing_extensions import TypedDict
 
 DEFAULT_WORKSPACE_ID = "default"
 
