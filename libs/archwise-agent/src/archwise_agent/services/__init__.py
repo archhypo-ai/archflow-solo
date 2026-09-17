@@ -1,7 +1,7 @@
 """Application services for ArchWise."""
 
-from .agent_service import (
-    AgentService,
+from .agent_service import AgentService
+from .contracts import (
     AgentStreamEvent,
     AgentTurn,
     Conversation,

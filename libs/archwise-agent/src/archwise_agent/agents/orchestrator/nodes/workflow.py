@@ -4,8 +4,9 @@ New code should import nodes from their focused modules or from the package
 itself. This module remains for callers that used the original import path.
 """
 
+from archwise_agent.graph import GraphNode, agent_message, raise_if_cancelled
+
 from .classification import create_classify_hypothesis_node
-from .common import Node, agent_message, raise_if_cancelled
 from .hypothesis import create_formulate_hypothesis_node
 from .response import (
     create_response_node,
@@ -15,7 +16,10 @@ from .response import (
 from .routing import create_request_router_node, route_request
 from .technical_plan import create_technical_plan_node
 
+Node = GraphNode
+
 __all__ = [
+    "GraphNode",
     "Node",
     "agent_message",
     "create_classify_hypothesis_node",

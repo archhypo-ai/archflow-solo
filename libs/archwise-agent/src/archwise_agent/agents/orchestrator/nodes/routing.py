@@ -8,13 +8,12 @@ from langchain_core.runnables import Runnable
 from langgraph.runtime import Runtime
 
 from archwise_agent.core import ArchHypoState, RequestRouting, RunContext
-
-from .common import Node, raise_if_cancelled
+from archwise_agent.graph import GraphNode, raise_if_cancelled
 
 
 def create_request_router_node(
     request_router_agent: Runnable[Any, Any],
-) -> Node:
+) -> GraphNode[ArchHypoState, RunContext]:
     """Create the node that chooses direct response or ArchWise workflow."""
 
     def request_router(

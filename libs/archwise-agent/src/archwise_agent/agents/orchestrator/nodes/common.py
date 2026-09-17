@@ -1,35 +1,11 @@
-"""Shared helpers for ArchWise workflow nodes."""
+"""Backward-compatible imports for shared graph helpers.
 
-from __future__ import annotations
+The implementation lives in :mod:`archwise_agent.graph` so it can be reused
+by other orchestrators and subgraphs.
+"""
 
-from collections.abc import Callable
+from archwise_agent.graph import GraphNode, agent_message, raise_if_cancelled
 
-from langchain_core.messages import AIMessage
-from langgraph.runtime import Runtime
+Node = GraphNode
 
-from archwise_agent.core import AgentCancelledError, ArchHypoState, RunContext
-
-Node = Callable[
-    [ArchHypoState, Runtime[RunContext] | None],
-    dict[str, object],
-]
-
-
-def raise_if_cancelled(runtime: Runtime[RunContext] | None) -> None:
-    """Stop the graph before a cancelled node writes another checkpoint."""
-
-    control = getattr(runtime, "control", None)
-    if control is not None and control.drain_requested:
-        raise AgentCancelledError(control.drain_reason or "client_cancelled")
-
-
-def agent_message(name: str, value: object) -> AIMessage:
-    """Append one structured agent result to the internal graph history."""
-
-    model_dump_json = getattr(value, "model_dump_json", None)
-    if not callable(model_dump_json):
-        raise TypeError(f"{name} did not return a Pydantic model")
-    return AIMessage(name=name, content=model_dump_json(indent=2))
-
-
-__all__ = ["Node", "agent_message", "raise_if_cancelled"]
+__all__ = ["GraphNode", "Node", "agent_message", "raise_if_cancelled"]

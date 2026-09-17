@@ -9,13 +9,12 @@ from langchain_core.runnables import Runnable
 from langgraph.runtime import Runtime
 
 from archwise_agent.core import ArchHypo, ArchHypoState, RunContext, TechnicalPlan
-
-from .common import Node, agent_message, raise_if_cancelled
+from archwise_agent.graph import GraphNode, agent_message, raise_if_cancelled
 
 
 def create_technical_plan_node(
     technical_plan_agent: Runnable[Any, Any],
-) -> Node:
+) -> GraphNode[ArchHypoState, RunContext]:
     """Create the node that generates the technical plan."""
 
     def create_technical_plan(

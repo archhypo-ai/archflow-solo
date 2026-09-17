@@ -13,13 +13,12 @@ from archwise_agent.core import (
     HypothesisClassification,
     RunContext,
 )
-
-from .common import Node, agent_message, raise_if_cancelled
+from archwise_agent.graph import GraphNode, agent_message, raise_if_cancelled
 
 
 def create_classify_hypothesis_node(
     classifier_agent: Runnable[Any, Any],
-) -> Node:
+) -> GraphNode[ArchHypoState, RunContext]:
     """Create the node that classifies NFR, impact, and uncertainty."""
 
     def classify_hypothesis(

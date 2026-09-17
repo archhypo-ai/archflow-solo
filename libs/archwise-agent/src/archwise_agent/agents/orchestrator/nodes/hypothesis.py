@@ -9,13 +9,12 @@ from langgraph.runtime import Runtime
 
 from archwise_agent.agents.hypothesis.agent import hypothesis_input
 from archwise_agent.core import ArchHypoState, Hypothesis, RunContext
-
-from .common import Node, agent_message, raise_if_cancelled
+from archwise_agent.graph import GraphNode, agent_message, raise_if_cancelled
 
 
 def create_formulate_hypothesis_node(
     hypothesis_agent: Runnable[Any, Any],
-) -> Node:
+) -> GraphNode[ArchHypoState, RunContext]:
     """Create the node that formulates one testable hypothesis."""
 
     def formulate_hypothesis(

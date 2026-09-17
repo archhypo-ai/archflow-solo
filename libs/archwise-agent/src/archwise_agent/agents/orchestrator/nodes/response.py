@@ -9,11 +9,12 @@ from langchain_core.runnables import Runnable
 from langgraph.runtime import Runtime
 
 from archwise_agent.core import ArchHypoState, RunContext, UserResponse
+from archwise_agent.graph import GraphNode, raise_if_cancelled
 
-from .common import Node, raise_if_cancelled
 
-
-def create_response_node(response_agent: Runnable[Any, Any]) -> Node:
+def create_response_node(
+    response_agent: Runnable[Any, Any],
+) -> GraphNode[ArchHypoState, RunContext]:
     """Create the final node that renders a human-facing response."""
 
     def respond(

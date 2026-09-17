@@ -3,20 +3,17 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from dataclasses import dataclass
 from pathlib import Path
 from threading import RLock
-from typing import Any, Literal, TypeAlias
+from typing import Any
 
 from agent_stream_py import (
-    AgentEvent,
     cancelled_event,
     done_event,
     phase_event,
     text_delta_event,
 )
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.runtime import RunControl
 
@@ -24,7 +21,6 @@ from archwise_agent.config import AgentSettings, settings
 from archwise_agent.core import (
     DEFAULT_WORKSPACE_ID,
     AgentCancelledError,
-    ArchHypo,
     ExecutionContext,
 )
 from archwise_agent.observability import build_observability
@@ -34,64 +30,25 @@ from archwise_agent.persistence import (
     open_sqlite_persistence,
 )
 
+from .contracts import (
+    AgentStreamEvent,
+    AgentTurn,
+    Conversation,
+    ConversationMessage,
+    ConversationSummary,
+)
 from .conversation_projection import (
-    archhypo_from_value,
     checkpoint_key,
     checkpoint_thread_id,
     message_role,
     message_text,
     messages_from_checkpoint,
     messages_from_values,
-    response_message,
 )
 from .conversation_service import ConversationService
 from .graph_runner import GraphRunner
 from .run_registry import RunRegistry
-
-
-@dataclass(frozen=True, slots=True)
-class AgentTurn:
-    """Assistant response and typed ArchHypo result for one turn."""
-
-    thread_id: str
-    message: AIMessage
-    result: ArchHypo | None
-
-    @property
-    def text(self) -> str:
-        return message_text(self.message)
-
-
-AgentStreamEvent: TypeAlias = AgentEvent
-
-
-@dataclass(frozen=True, slots=True)
-class ConversationMessage:
-    """User-visible message from a checkpointed conversation."""
-
-    role: Literal["user", "assistant"]
-    content: str
-
-
-@dataclass(frozen=True, slots=True)
-class ConversationSummary:
-    """Metadata used to list available conversations."""
-
-    thread_id: str
-    title: str
-    message_count: int
-    pinned: bool = False
-
-
-@dataclass(frozen=True, slots=True)
-class Conversation:
-    """Conversation metadata and its user-visible messages."""
-
-    thread_id: str
-    title: str
-    message_count: int
-    messages: list[ConversationMessage]
-    pinned: bool = False
+from .turn_presenter import present_turn
 
 
 class AgentService:
@@ -161,7 +118,9 @@ class AgentService:
 
         try:
             state = self._run_graph(context, control, message)
-            return self._turn_from_state(thread_id, state)
+            turn = present_turn(thread_id, state)
+            self._ensure_conversation(thread_id)
+            return turn
         finally:
             self._finish_run(context.run_id)
 
@@ -195,7 +154,9 @@ class AgentService:
                 phase="thinking",
             )
             state = self._run_graph(context, control, message)
-            response_text = self._turn_from_state(thread_id, state).text
+            turn = present_turn(thread_id, state)
+            self._ensure_conversation(thread_id)
+            response_text = turn.text
 
             yield phase_event(
                 thread_id=thread_id,
@@ -387,22 +348,6 @@ class AgentService:
         if control.drain_requested:
             raise AgentCancelledError(control.drain_reason or "client_cancelled")
         return state
-
-    def _turn_from_state(
-        self,
-        thread_id: str,
-        state: dict[str, Any],
-    ) -> AgentTurn:
-        direct_response = state.get("response")
-        if isinstance(direct_response, str) and direct_response.strip():
-            result = state.get("result")
-            archhypo = archhypo_from_value(result) if result is not None else None
-            response = AIMessage(content=direct_response)
-        else:
-            archhypo = archhypo_from_value(state.get("result"))
-            response = response_message(archhypo)
-        self._ensure_conversation(thread_id)
-        return AgentTurn(thread_id=thread_id, message=response, result=archhypo)
 
     def _register_run(
         self,
