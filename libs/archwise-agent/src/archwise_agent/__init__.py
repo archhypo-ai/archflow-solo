@@ -20,6 +20,7 @@ from .core import (
     TechnicalPlan,
     UserResponse,
 )
+from .observability import Observability, build_observability
 from .services import AgentService, AgentStreamEvent, AgentTurn
 
 # Short public entrypoint for the current orchestrator.
@@ -33,6 +34,7 @@ __all__ = [
     "AgentState",
     "AgentTurn",
     "ArchHypo",
+    "Observability",
     "ArchHypoState",
     "Hypothesis",
     "HypothesisClassification",
@@ -44,6 +46,7 @@ __all__ = [
     "build_archwise_agent",
     "build_classifier_agent",
     "build_hypothesis_agent",
+    "build_observability",
     "build_request_router_agent",
     "build_response_agent",
     "build_technical_plan_agent",

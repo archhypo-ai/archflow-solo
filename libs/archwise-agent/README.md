@@ -22,7 +22,8 @@ src/archwise_agent/
 │   ├── response/
 │   ├── request_router/
 │   └── technical_plan/
-├── cli/                # Package command-line utilities
+├── cli/             # Package command-line utilities
+├── observability/   # Optional LangSmith/Langfuse tracing
 ├── services/        # Application API for future interfaces
 └── backend/         # Minimal HTTP adapter for local clients
 ```
@@ -53,6 +54,34 @@ configuration and removed only before the request is sent to OpenRouter.
 The technical plan agent uses the `archhypo-catalog` skill through
 `SkillsMiddleware` and read-only `FilesystemMiddleware`. It loads the skill
 metadata first and reads the relevant pattern references only when needed.
+
+## Optional observability
+
+Tracing is disabled by default. LangSmith can be enabled with its standard
+variables, while Langfuse requires the optional dependency group:
+
+```bash
+cd libs/archwise-agent
+uv sync --dev --extra observability
+```
+
+```bash
+LANGSMITH_TRACING=true
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+LANGSMITH_API_KEY=...
+LANGSMITH_PROJECT=archwise
+
+LANGFUSE_ENABLED=true
+LANGFUSE_SECRET_KEY=...
+LANGFUSE_PUBLIC_KEY=...
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+```
+
+The `AgentService` propagates tracing callbacks and metadata for each
+LangGraph execution, including `thread_id`, `workspace_id`, `project_id`,
+`user_id`, and `run_id`. Provider failures do not stop the agent execution.
+Review data retention and masking before enabling tracing with sensitive
+conversation content.
 
 ## Development
 

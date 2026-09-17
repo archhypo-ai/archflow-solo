@@ -45,6 +45,38 @@ class AgentSettings(BaseSettings):
         default=None,
         validation_alias="ARCHWISE_STORAGE_ROOT",
     )
+    langsmith_tracing: bool = Field(
+        default=False,
+        validation_alias="LANGSMITH_TRACING",
+    )
+    langsmith_endpoint: str | None = Field(
+        default=None,
+        validation_alias="LANGSMITH_ENDPOINT",
+    )
+    langsmith_api_key: str | None = Field(
+        default=None,
+        validation_alias="LANGSMITH_API_KEY",
+    )
+    langsmith_project: str | None = Field(
+        default=None,
+        validation_alias="LANGSMITH_PROJECT",
+    )
+    langfuse_enabled: bool = Field(
+        default=False,
+        validation_alias="LANGFUSE_ENABLED",
+    )
+    langfuse_secret_key: str | None = Field(
+        default=None,
+        validation_alias="LANGFUSE_SECRET_KEY",
+    )
+    langfuse_public_key: str | None = Field(
+        default=None,
+        validation_alias="LANGFUSE_PUBLIC_KEY",
+    )
+    langfuse_base_url: str | None = Field(
+        default=None,
+        validation_alias="LANGFUSE_BASE_URL",
+    )
 
     def require_openrouter_api_key(self) -> str:
         if not self.openrouter_api_key:

@@ -21,13 +21,14 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.runtime import RunControl
 
 from archwise_agent.agents import build_archwise_agent
-from archwise_agent.config import AgentSettings
+from archwise_agent.config import AgentSettings, settings
 from archwise_agent.core import (
     DEFAULT_WORKSPACE_ID,
     AgentCancelledError,
     ArchHypo,
     ExecutionContext,
 )
+from archwise_agent.observability import build_observability
 from archwise_agent.persistence import (
     CHECKPOINT_DB_PATH,
     SQLitePersistence,
@@ -94,6 +95,10 @@ class AgentService:
         database_path: Path | None = None,
     ) -> None:
         self._lock = RLock()
+        self._configuration = configuration or (
+            settings if model is None else AgentSettings(_env_file=None)
+        )
+        self._observability = build_observability(self._configuration)
         self._active_runs: dict[str, RunControl] = {}
         self._run_threads: dict[str, str] = {}
         self._deleting_threads: set[str] = set()
@@ -114,7 +119,7 @@ class AgentService:
         try:
             self._agent = build_archwise_agent(
                 model=model,
-                configuration=configuration,
+                configuration=self._configuration,
                 checkpointer=active_checkpointer,
             )
         except Exception:
@@ -148,12 +153,14 @@ class AgentService:
             if control.drain_requested:
                 raise AgentCancelledError(control.drain_reason or "client_cancelled")
 
+            graph_config = self._observability.graph_config(context)
+            graph_config["configurable"] = {"thread_id": thread_id}
             state: dict[str, Any] = self._agent.invoke(
                 {
                     "uncertainty": message,
                     "messages": [HumanMessage(content=message)],
                 },
-                {"configurable": {"thread_id": thread_id}},
+                graph_config,
                 context=context.as_graph_context(),
                 control=control,
             )
@@ -247,12 +254,14 @@ class AgentService:
             if control.drain_requested:
                 raise AgentCancelledError(control.drain_reason or "client_cancelled")
 
+            graph_config = self._observability.graph_config(context)
+            graph_config["configurable"] = {"thread_id": thread_id}
             state: dict[str, Any] = self._agent.invoke(
                 {
                     "uncertainty": message,
                     "messages": [HumanMessage(content=message)],
                 },
-                {"configurable": {"thread_id": thread_id}},
+                graph_config,
                 context=context.as_graph_context(),
                 control=control,
             )
@@ -453,6 +462,7 @@ class AgentService:
         """Close resources owned by the default SQLite checkpointer."""
 
         with self._lock:
+            self._observability.close()
             if self._persistence is not None:
                 self._persistence.close()
                 self._persistence = None

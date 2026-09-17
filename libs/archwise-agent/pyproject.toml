@@ -24,6 +24,12 @@ dependencies = [
 [project.scripts]
 archwise-workflow-diagram = "archwise_agent.cli.workflow_diagram:main"
 
+[project.optional-dependencies]
+observability = [
+  "langfuse>=4.15.1",
+  "langsmith>=0.2,<1.0",
+]
+
 [dependency-groups]
 dev = [
   "pytest>=8.0,<9.0",
