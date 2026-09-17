@@ -1,5 +1,8 @@
 export {
+  attachFolderContext,
+  attachFolderPath,
   cancelChatRun,
+  deleteFolderContext,
   deleteThread,
   getThread,
   listThreads,

@@ -1,0 +1,90 @@
+.toast-region {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 200;
+  display: flex;
+  width: min(360px, calc(100vw - 32px));
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  --toast-color: var(--color-accent-strong);
+  --toast-surface: var(--color-surface-raised);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--toast-color);
+  border-radius: 9px;
+  background: var(--toast-surface);
+  color: var(--color-foreground);
+  padding: 10px 10px 10px 12px;
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--color-background) 35%, transparent);
+  font-size: 12px;
+  line-height: 1.4;
+  pointer-events: auto;
+}
+
+.toast[data-tone="success"] {
+  --toast-color: var(--color-success);
+  --toast-surface: var(--color-success-surface);
+}
+
+.toast[data-tone="error"] {
+  --toast-color: var(--color-error);
+  --toast-surface: var(--color-error-surface);
+}
+
+.toast[data-tone="warning"] {
+  --toast-color: var(--color-warning);
+  --toast-surface: var(--color-warning-surface);
+}
+
+.toast[data-tone="info"] {
+  --toast-color: var(--color-info);
+  --toast-surface: var(--color-info-surface);
+}
+
+.toast-icon {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  color: var(--toast-color);
+}
+
+.toast-message {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.toast-dismiss {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--color-muted);
+}
+
+.toast-dismiss:hover {
+  background: var(--color-surface);
+  color: var(--color-foreground);
+}
+
+.toast-dismiss svg {
+  width: 14px;
+  height: 14px;
+}
+
+@media (max-width: 680px) {
+  .toast-region {
+    top: 12px;
+    right: 12px;
+    width: calc(100vw - 24px);
+  }
+}

@@ -29,7 +29,13 @@
     "welcomeDescription": "Explore hipóteses, riscos e decisões técnicas com seus agentes.",
     "inputPlaceholder": "Pergunte qualquer coisa ao ArchWISE...", 
     "message": "Mensagem",
-    "addAttachment": "Adicionar anexo",
+    "addAttachment": "Adicionar contexto",
+    "addFolder": "Adicionar pasta",
+    "attachingFolder": "Adicionando pasta...",
+    "folderAttachError": "Não foi possível anexar a pasta.",
+    "folderAttached": "Pasta anexada.",
+    "folderRemoveError": "Não foi possível remover a pasta.",
+    "removeFolder": "Remover pasta",
     "copyMessage": "Copiar mensagem",
     "send": "Enviar mensagem",
     "stop": "Parar execução",
@@ -38,6 +44,10 @@
     "communicationError": "Não foi possível comunicar com o ArchWISE.",
     "executionError": "Não foi possível executar o agente.",
     "validationDisclaimer": "O ArchWISE é um protótipo de pesquisa. Valide as decisões geradas."
+  },
+  "toast": {
+    "close": "Fechar notificação",
+    "regionLabel": "Notificações"
   },
   "settings": {
     "sections": "Seções de configurações",

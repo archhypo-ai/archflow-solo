@@ -122,6 +122,7 @@
   margin: 0 auto;
 }
 
+
 .message {
   width: 100%;
   line-height: 1.65;
@@ -329,10 +330,10 @@
 
 .message-error {
   margin-top: 12px;
-  border: 1px solid var(--color-danger);
+  border: 1px solid var(--color-border-strong);
   border-radius: 6px;
-  background: var(--color-danger-surface);
-  color: var(--color-danger);
+  background: var(--color-surface-muted);
+  color: var(--color-foreground);
   padding: 8px 10px;
   font-size: 13px;
 }
@@ -444,6 +445,13 @@
   justify-content: space-between;
 }
 
+.composer-tools {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+}
+
 .composer-tool-button,
 .composer-button {
   display: grid;
@@ -457,6 +465,59 @@
 .composer-tool-button {
   width: 28px;
   height: 28px;
+}
+
+.chat-folder-input {
+  display: none;
+}
+
+.composer-folder-context {
+  display: flex;
+  min-width: 0;
+  max-width: 240px;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-surface-raised);
+  color: var(--color-muted);
+  padding: 5px 7px;
+  font-size: 10px;
+}
+
+.composer-folder-context:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-foreground);
+}
+
+.composer-folder-context:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.composer-folder-context span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-folder-context svg {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+}
+
+.composer-attachment-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 5;
+  min-width: 170px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-surface-raised);
+  padding: 4px;
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--color-background) 35%, transparent);
 }
 
 .composer-tool-button:hover {

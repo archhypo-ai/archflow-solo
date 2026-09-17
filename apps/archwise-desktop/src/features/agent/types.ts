@@ -10,8 +10,17 @@ export type BackendThreadMessage = {
   content: string;
 };
 
+export type BackendFolderContext = {
+  context_id: string;
+  thread_id: string;
+  folder_name: string;
+  file_count: number;
+  total_bytes: number;
+};
+
 export type BackendThread = BackendThreadSummary & {
   messages: BackendThreadMessage[];
+  folder_context: BackendFolderContext | null;
 };
 
 export type BackendChatResponse = {

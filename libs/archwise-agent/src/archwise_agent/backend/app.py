@@ -11,7 +11,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from archwise_agent.config import PACKAGE_VERSION
 from archwise_agent.services import AgentService
 
-from .controllers import chat_router, health_router, threads_router
+from .controllers import (
+    chat_router,
+    folder_contexts_router,
+    health_router,
+    threads_router,
+)
 
 
 def _create_lifespan(
@@ -55,6 +60,7 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
     application.include_router(health_router)
     application.include_router(chat_router)
     application.include_router(threads_router)
+    application.include_router(folder_contexts_router)
     return application
 
 

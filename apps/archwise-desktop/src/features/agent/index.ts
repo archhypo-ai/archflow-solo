@@ -1,5 +1,8 @@
 export {
+  attachFolderContext,
+  attachFolderPath,
   cancelChatRun,
+  deleteFolderContext,
   deleteThread,
   getThread,
   listThreads,
@@ -8,6 +11,7 @@ export {
 } from "./api";
 export type {
   BackendChatResponse,
+  BackendFolderContext,
   BackendThread,
   BackendThreadMessage,
   BackendThreadSummary,

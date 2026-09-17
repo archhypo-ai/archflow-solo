@@ -88,6 +88,22 @@ class ThreadMessageResponse(BaseModel):
     content: str
 
 
+class FolderPathRequest(BaseModel):
+    """Local folder selected by the native desktop picker."""
+
+    folder_path: Annotated[str, Field(min_length=1)]
+
+
+class FolderContextResponse(BaseModel):
+    """Persisted folder context shown in a conversation."""
+
+    context_id: str
+    thread_id: str
+    folder_name: str
+    file_count: int
+    total_bytes: int
+
+
 class ThreadResponse(BaseModel):
     """Conversation metadata and transcript."""
 
@@ -96,6 +112,7 @@ class ThreadResponse(BaseModel):
     message_count: int
     messages: list[ThreadMessageResponse]
     pinned: bool
+    folder_context: FolderContextResponse | None = None
 
 
 __all__ = [
@@ -103,6 +120,8 @@ __all__ = [
     "ChatRequest",
     "ChatResponse",
     "BACKEND_API_VERSION",
+    "FolderContextResponse",
+    "FolderPathRequest",
     "HealthResponse",
     "ThreadMessageResponse",
     "ThreadResponse",

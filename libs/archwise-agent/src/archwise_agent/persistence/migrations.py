@@ -46,6 +46,21 @@ def _migration_1_create_conversation_catalog(
           ON conversations (updated_at DESC)
         """
     )
+    connection.execute(
+        """
+        CREATE TABLE IF NOT EXISTS folder_contexts (
+            context_id TEXT PRIMARY KEY,
+            thread_id TEXT NOT NULL UNIQUE,
+            folder_name TEXT NOT NULL,
+            file_count INTEGER NOT NULL CHECK (file_count > 0),
+            total_bytes INTEGER NOT NULL CHECK (total_bytes >= 0),
+            storage_path TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (thread_id) REFERENCES conversations(thread_id)
+                ON DELETE CASCADE
+        )
+        """
+    )
 
 
 MIGRATIONS: tuple[Migration, ...] = (

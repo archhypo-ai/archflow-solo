@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #07101db8;
+  background: color-mix(in srgb, var(--color-background) 72%, transparent);
   padding: 24px;
 }
 
@@ -19,7 +19,7 @@
   border-radius: 14px;
   background: var(--color-surface);
   color: var(--color-foreground);
-  box-shadow: 0 24px 80px #0006;
+  box-shadow: 0 24px 80px color-mix(in srgb, var(--color-background) 65%, transparent);
 }
 
 .settings-sidebar {

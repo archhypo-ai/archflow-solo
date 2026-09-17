@@ -7,8 +7,10 @@ from .contracts import (
     Conversation,
     ConversationMessage,
     ConversationSummary,
+    FolderContext,
 )
 from .conversation_service import ConversationService
+from .folder_context_service import FolderContextService
 
 __all__ = [
     "AgentService",
@@ -18,4 +20,6 @@ __all__ = [
     "ConversationMessage",
     "ConversationSummary",
     "ConversationService",
+    "FolderContext",
+    "FolderContextService",
 ]

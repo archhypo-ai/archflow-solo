@@ -261,16 +261,16 @@
   border-radius: 8px;
   background: var(--color-surface-raised);
   padding: 4px;
-  box-shadow: 0 12px 28px #0004;
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--color-background) 35%, transparent);
 }
 
 .menu-item-danger {
-  color: #f87171;
+  color: var(--color-muted);
 }
 
 .menu-item-danger:hover {
-  background: color-mix(in srgb, #ef4444 15%, transparent);
-  color: #fca5a5;
+  background: var(--color-surface-muted);
+  color: var(--color-foreground);
 }
 
 .sidebar-empty {
@@ -340,7 +340,7 @@
   border-radius: 9px;
   background: var(--color-surface-raised);
   padding: 4px;
-  box-shadow: 0 14px 30px #0004;
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--color-background) 35%, transparent);
 }
 
 .sidebar.is-collapsed .sidebar-user-trigger {
