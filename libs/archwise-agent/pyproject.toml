@@ -21,6 +21,9 @@ dependencies = [
   "python-dotenv>=1.0,<2.0",
 ]
 
+[project.scripts]
+archwise-workflow-diagram = "archwise_agent.cli.workflow_diagram:main"
+
 [dependency-groups]
 dev = [
   "pytest>=8.0,<9.0",

@@ -19,7 +19,10 @@ src/archwise_agent/
 │   ├── hypothesis/
 │   ├── orchestrator/
 │   │   └── nodes/
+│   ├── response/
+│   ├── request_router/
 │   └── technical_plan/
+├── cli/                # Package command-line utilities
 ├── services/        # Application API for future interfaces
 └── backend/         # Minimal HTTP adapter for local clients
 ```
@@ -58,6 +61,31 @@ cd libs/archwise-agent
 uv sync --dev
 uv run pytest
 ```
+
+### Generate the workflow diagram
+
+From the repository root, generate the current LangGraph workflow as Mermaid
+source and PNG:
+
+```bash
+uv run --project libs/archwise-agent archwise-workflow-diagram
+```
+
+The files are written to:
+
+```text
+docs/architecture/archwise-workflow.mmd
+docs/architecture/archwise-workflow.png
+```
+
+Use `--output-directory` to write them elsewhere:
+
+```bash
+uv run --project libs/archwise-agent archwise-workflow-diagram \
+  --output-directory /tmp/archwise-diagram
+```
+
+The diagram is generated from the compiled graph without making an LLM request.
 
 The backend uses a SQLite checkpointer at
 `.archhypo/runtime/checkpoints.sqlite` in the monorepo root. The directory is

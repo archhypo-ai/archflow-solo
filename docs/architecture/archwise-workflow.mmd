@@ -1,0 +1,23 @@
+---
+config:
+  flowchart:
+    curve: linear
+---
+graph TD;
+	__start__([<p>__start__</p>]):::first
+	request_router(request_router)
+	respond(respond)
+	formulate_hypothesis(formulate_hypothesis)
+	classify_hypothesis(classify_hypothesis)
+	create_technical_plan(create_technical_plan)
+	__end__([<p>__end__</p>]):::last
+	__start__ --> request_router;
+	classify_hypothesis --> create_technical_plan;
+	create_technical_plan --> respond;
+	formulate_hypothesis --> classify_hypothesis;
+	request_router -.-> formulate_hypothesis;
+	request_router -. &nbsp;respond_directly&nbsp; .-> respond;
+	respond --> __end__;
+	classDef default fill:#f2f0ff,line-height:1.2
+	classDef first fill-opacity:0
+	classDef last fill:#bfb6fc
