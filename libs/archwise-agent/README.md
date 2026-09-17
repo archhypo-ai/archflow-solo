@@ -1,21 +1,27 @@
 # archwise-agent
 
-The first ArchWise agent core. This version contains only a generic
-conversational agent built with LangGraph and OpenRouter.
+The ArchWise workflow transforms one architectural uncertainty into a
+structured hypothesis, classification, and technical plan using LangGraph and
+OpenRouter.
 
 ## Package structure
 
 ```text
+skills/             # Progressive-disclosure domain skills
+└── archhypo-catalog/
 src/archwise_agent/
-├── config/       # Pydantic environment-backed settings
-├── core/         # State, execution context, and agent contracts
-├── persistence/  # SQLite checkpoints, repositories, migrations, and paths
-├── providers/    # Model provider integrations
-├── agents/       # Orchestrator and concrete agents
+├── config/          # Pydantic environment-backed settings
+├── core/            # State, Pydantic domain models, and execution context
+├── persistence/     # SQLite checkpoints, repositories, migrations, and paths
+├── providers/       # Model provider integrations
+├── agents/          # Orchestrator and concrete workflow agents
+│   ├── classifier/
+│   ├── hypothesis/
 │   ├── orchestrator/
-│   └── subagents/ # Added as workflows are introduced
-├── services/     # Application API for future interfaces
-└── backend/      # Minimal HTTP adapter for local clients
+│   │   └── nodes/
+│   └── technical_plan/
+├── services/        # Application API for future interfaces
+└── backend/         # Minimal HTTP adapter for local clients
 ```
 
 Each package exposes its public API through `__init__.py`. Applications should
@@ -25,6 +31,7 @@ Tests mirror the source layout:
 
 ```text
 tests/
+├── agents/hypothesis/
 ├── agents/orchestrator/
 └── backend/controllers/
 ```
@@ -39,6 +46,10 @@ export OPENROUTER_MODEL="openrouter:deepseek/deepseek-v4.1-flash"
 The default model is already
 `openrouter:deepseek/deepseek-v4.1-flash`. The prefix is accepted in the
 configuration and removed only before the request is sent to OpenRouter.
+
+The technical plan agent uses the `archhypo-catalog` skill through
+`SkillsMiddleware` and read-only `FilesystemMiddleware`. It loads the skill
+metadata first and reads the relevant pattern references only when needed.
 
 ## Development
 

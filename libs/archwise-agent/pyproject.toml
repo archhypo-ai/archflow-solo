@@ -7,8 +7,9 @@ name = "archwise-agent"
 version = "0.1.0"
 description = "Initial agent runtime for ArchWise"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
+  "deepagents>=0.7,<0.8",
   "langchain>=1.0,<2.0",
   "langchain-core>=1.0,<2.0",
   "langchain-openrouter>=0.2.8,<0.3.0",
@@ -35,6 +36,6 @@ packages = ["src/archwise_agent"]
 entrypoint = "archwise_agent.backend.app:app"
 
 [tool.pytest.ini_options]
-addopts = "-ra"
-pythonpath = ["src"]
+addopts = "-ra --import-mode=importlib"
+pythonpath = ["src", "."]
 testpaths = ["tests"]

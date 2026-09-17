@@ -16,6 +16,7 @@ def create_openrouter_model(
     kwargs: dict[str, object] = {
         "api_key": resolved.require_openrouter_api_key(),
         "model": _api_model_name(resolved.openrouter_model),
+        "temperature": 0,
     }
     if resolved.openrouter_http_referer:
         kwargs["app_url"] = resolved.openrouter_http_referer

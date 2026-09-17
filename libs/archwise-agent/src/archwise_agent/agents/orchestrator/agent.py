@@ -1,4 +1,4 @@
-"""Main ArchWise orchestrator."""
+"""Linear ArchWise workflow orchestrator."""
 
 from __future__ import annotations
 
@@ -7,11 +7,18 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
+from archwise_agent.agents.classifier import build_classifier_agent
+from archwise_agent.agents.hypothesis import build_hypothesis_agent
+from archwise_agent.agents.technical_plan import build_technical_plan_agent
 from archwise_agent.config import AgentSettings
-from archwise_agent.core import AgentState, RunContext
+from archwise_agent.core import ArchHypoState
 from archwise_agent.providers import create_openrouter_model
 
-from .nodes import create_respond_node
+from .nodes import (
+    create_classify_hypothesis_node,
+    create_formulate_hypothesis_node,
+    create_technical_plan_node,
+)
 
 
 def build_archwise_agent(
@@ -20,25 +27,30 @@ def build_archwise_agent(
     configuration: AgentSettings | None = None,
     checkpointer: BaseCheckpointSaver | None = None,
 ):
-    """Build and compile the initial ArchWise orchestrator.
+    """Build the linear ArchHypo workflow."""
 
-    The orchestrator currently has one conversational node. Future nodes will
-    delegate to independent subagents without changing the public builder or
-    the checkpoint boundary. The low-level builder uses ``InMemorySaver`` when
-    no checkpointer is supplied; application runtimes should inject their
-    owned persistent checkpointer.
-    """
+    chat_model = model or create_openrouter_model(configuration)
+    hypothesis_agent = build_hypothesis_agent(chat_model)
+    classifier_agent = build_classifier_agent(chat_model)
+    technical_plan_agent = build_technical_plan_agent(chat_model)
 
-    chat_model = (
-        model
-        if model is not None
-        else create_openrouter_model(configuration)
+    workflow = StateGraph(ArchHypoState)
+    workflow.add_node(
+        "formulate_hypothesis",
+        create_formulate_hypothesis_node(hypothesis_agent),
     )
-
-    workflow = StateGraph(AgentState, context_schema=RunContext)
-    workflow.add_node("respond", create_respond_node(chat_model))
-    workflow.add_edge(START, "respond")
-    workflow.add_edge("respond", END)
+    workflow.add_node(
+        "classify_hypothesis",
+        create_classify_hypothesis_node(classifier_agent),
+    )
+    workflow.add_node(
+        "create_technical_plan",
+        create_technical_plan_node(technical_plan_agent),
+    )
+    workflow.add_edge(START, "formulate_hypothesis")
+    workflow.add_edge("formulate_hypothesis", "classify_hypothesis")
+    workflow.add_edge("classify_hypothesis", "create_technical_plan")
+    workflow.add_edge("create_technical_plan", END)
 
     return workflow.compile(
         checkpointer=(

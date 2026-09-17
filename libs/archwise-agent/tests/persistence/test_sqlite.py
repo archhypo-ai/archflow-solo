@@ -1,12 +1,11 @@
 import sqlite3
 
-from langchain_core.language_models.fake_chat_models import FakeListChatModel
-
 from archwise_agent import AgentService
 from archwise_agent.persistence import (
     CURRENT_SCHEMA_VERSION,
     migrate_database,
 )
+from tests.fakes import archhypo_json, fake_hypothesis_model
 
 
 def test_migrations_are_idempotent(tmp_path) -> None:
@@ -35,14 +34,14 @@ def test_sqlite_checkpoints_survive_service_restart(tmp_path) -> None:
     database_path = tmp_path / "runtime" / "checkpoints.sqlite"
 
     first_service = AgentService(
-        model=FakeListChatModel(responses=["persistent reply"]),
+        model=fake_hypothesis_model(["persistent reply"]),
         database_path=database_path,
     )
     first_service.send(thread_id="persistent-thread", message="Remember this")
     first_service.close()
 
     second_service = AgentService(
-        model=FakeListChatModel(responses=["unused"]),
+        model=fake_hypothesis_model(["unused"]),
         database_path=database_path,
     )
     try:
@@ -56,14 +55,14 @@ def test_sqlite_checkpoints_survive_service_restart(tmp_path) -> None:
     assert conversation is not None
     assert [message.content for message in conversation.messages] == [
         "Remember this",
-        "persistent reply",
+        archhypo_json("Remember this", "persistent reply"),
     ]
 
 
 def test_sqlite_delete_removes_checkpoint_and_catalog_entry(tmp_path) -> None:
     database_path = tmp_path / "runtime" / "checkpoints.sqlite"
     service = AgentService(
-        model=FakeListChatModel(responses=["reply"]),
+        model=fake_hypothesis_model(["reply"]),
         database_path=database_path,
     )
 

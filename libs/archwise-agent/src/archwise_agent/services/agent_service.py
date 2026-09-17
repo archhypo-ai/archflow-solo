@@ -24,6 +24,7 @@ from archwise_agent.agents import build_archwise_agent
 from archwise_agent.config import AgentSettings
 from archwise_agent.core import (
     AgentCancelledError,
+    ArchHypo,
     DEFAULT_WORKSPACE_ID,
     ExecutionContext,
 )
@@ -38,10 +39,11 @@ from .conversation_service import ConversationService
 
 @dataclass(frozen=True, slots=True)
 class AgentTurn:
-    """Assistant response returned by one agent turn."""
+    """Assistant response and typed ArchHypo result for one turn."""
 
     thread_id: str
     message: AIMessage
+    result: ArchHypo
 
     @property
     def text(self) -> str:
@@ -126,36 +128,27 @@ class AgentService:
         project_id: str | None = None,
         user_id: str | None = None,
     ) -> AgentTurn:
-        """Send a message while preserving thread and execution context."""
+        """Run the graph with ``message`` as its single uncertainty input."""
 
-        if not thread_id.strip():
-            raise ValueError("thread_id must not be empty")
-        if not message.strip():
-            raise ValueError("message must not be empty")
-        context = ExecutionContext(
-            thread_id=thread_id,
-            workspace_id=workspace_id,
-            project_id=project_id,
-            user_id=user_id,
-        )
-
+        _validate_input(thread_id, message)
         with self._lock:
             if self._conversation_service is not None:
                 self._conversation_service.ensure(thread_id, message)
 
-            result: dict[str, Any] = self._agent.invoke(
-                {"messages": [HumanMessage(content=message)]},
+            state: dict[str, Any] = self._agent.invoke(
+                {
+                    "uncertainty": message,
+                    "messages": [HumanMessage(content=message)],
+                },
                 {"configurable": {"thread_id": thread_id}},
-                context=context.as_graph_context(),
             )
-            response = result["messages"][-1]
-            if not isinstance(response, AIMessage):
-                raise TypeError("agent did not return an AI message")
+            archhypo = _archhypo_from_value(state.get("result"))
+            response = _response_message(archhypo)
 
             if self._conversation_service is not None:
                 self._conversation_service.ensure(thread_id)
 
-        return AgentTurn(thread_id=thread_id, message=response)
+        return AgentTurn(thread_id=thread_id, message=response, result=archhypo)
 
     def stream(
         self,
@@ -167,12 +160,9 @@ class AgentService:
         user_id: str | None = None,
         run_id: str | None = None,
     ) -> Iterator[AgentStreamEvent]:
-        """Stream one agent turn using the shared agent stream protocol."""
+        """Run the simple graph and emit its final structured result."""
 
-        if not thread_id.strip():
-            raise ValueError("thread_id must not be empty")
-        if not message.strip():
-            raise ValueError("message must not be empty")
+        _validate_input(thread_id, message)
         context = ExecutionContext(
             thread_id=thread_id,
             workspace_id=workspace_id,
@@ -195,65 +185,38 @@ class AgentService:
                 run_id=context.run_id,
                 phase="thinking",
             )
-
-            streamed_text = False
-            for item in self._agent.stream(
-                {"messages": [HumanMessage(content=message)]},
-                {"configurable": {"thread_id": thread_id}},
-                context=context.as_graph_context(),
-                control=control,
-                stream_mode="messages",
-            ):
-                if control.drain_requested:
-                    raise AgentCancelledError(
-                        control.drain_reason or "client_cancelled"
-                    )
-
-                chunk = item[0] if isinstance(item, tuple) else item
-                text = _message_chunk_text(chunk)
-                if not text:
-                    continue
-
-                if not streamed_text:
-                    yield phase_event(
-                        thread_id=thread_id,
-                        run_id=context.run_id,
-                        phase="answering",
-                    )
-                    streamed_text = True
-                yield text_delta_event(
-                    thread_id=thread_id,
-                    run_id=context.run_id,
-                    text=text,
-                )
-
             if control.drain_requested:
                 raise AgentCancelledError(
                     control.drain_reason or "client_cancelled"
                 )
 
-            if not streamed_text:
-                state = self._agent.get_state(
-                    {"configurable": {"thread_id": thread_id}}
+            state: dict[str, Any] = self._agent.invoke(
+                {
+                    "uncertainty": message,
+                    "messages": [HumanMessage(content=message)],
+                },
+                {"configurable": {"thread_id": thread_id}},
+            )
+            if control.drain_requested:
+                raise AgentCancelledError(
+                    control.drain_reason or "client_cancelled"
                 )
-                values = state.values if isinstance(state.values, dict) else {}
-                messages = values.get("messages", [])
-                if messages:
-                    text = _message_text(messages[-1])
-                    if text:
-                        yield text_delta_event(
-                            thread_id=thread_id,
-                            run_id=context.run_id,
-                            text=text,
-                        )
+
+            archhypo = _archhypo_from_value(state.get("result"))
+            yield phase_event(
+                thread_id=thread_id,
+                run_id=context.run_id,
+                phase="answering",
+            )
+            yield text_delta_event(
+                thread_id=thread_id,
+                run_id=context.run_id,
+                text=archhypo.model_dump_json(indent=2),
+            )
 
             if self._conversation_service is not None:
                 self._conversation_service.ensure(thread_id)
-
-            yield done_event(
-                thread_id=thread_id,
-                run_id=context.run_id,
-            )
+            yield done_event(thread_id=thread_id, run_id=context.run_id)
         except AgentCancelledError as error:
             yield cancelled_event(
                 thread_id=thread_id,
@@ -325,7 +288,7 @@ class AgentService:
                 {"configurable": {"thread_id": thread_id}}
             )
             values = state.values if isinstance(state.values, dict) else {}
-            messages = values.get("messages", [])
+            messages = _messages_from_values(values)
             if not messages:
                 return None
 
@@ -375,10 +338,10 @@ class AgentService:
                 {"configurable": {"thread_id": thread_id}}
             )
             values = state.values if isinstance(state.values, dict) else {}
-            messages = values.get("messages", [])
+            messages = _messages_from_values(values)
             return _conversation_summary(
                 thread_id,
-                list(messages),
+                messages,
                 title=metadata.title,
                 pinned=metadata.pinned,
             )
@@ -438,14 +401,47 @@ def _checkpoint_key(checkpoint: Any) -> str:
 
 
 def _messages_from_checkpoint(checkpoint: Any) -> list[Any]:
-    values = getattr(checkpoint, "checkpoint", {})
-    if not isinstance(values, dict):
+    checkpoint_values = getattr(checkpoint, "checkpoint", {})
+    if not isinstance(checkpoint_values, dict):
         return []
-    channels = values.get("channel_values", {})
-    if not isinstance(channels, dict):
+    channels = checkpoint_values.get("channel_values", {})
+    return _messages_from_values(channels)
+
+
+def _messages_from_values(values: dict[str, Any]) -> list[Any]:
+    existing_messages = values.get("messages")
+    if isinstance(existing_messages, list) and existing_messages:
+        return list(existing_messages)
+
+    uncertainty = values.get("uncertainty")
+    if not isinstance(uncertainty, str) or not uncertainty.strip():
         return []
-    messages = channels.get("messages", [])
-    return list(messages) if isinstance(messages, list) else []
+
+    messages: list[Any] = [HumanMessage(content=uncertainty)]
+    try:
+        messages.append(_response_message(_archhypo_from_value(values.get("result"))))
+    except TypeError:
+        pass
+    return messages
+
+
+def _archhypo_from_value(value: Any) -> ArchHypo:
+    if isinstance(value, ArchHypo):
+        return value
+    if isinstance(value, dict):
+        return ArchHypo.model_validate(value)
+    raise TypeError("graph did not return an ArchHypo result")
+
+
+def _response_message(archhypo: ArchHypo) -> AIMessage:
+    return AIMessage(content=archhypo.model_dump_json(indent=2))
+
+
+def _validate_input(thread_id: str, message: str) -> None:
+    if not thread_id.strip():
+        raise ValueError("thread_id must not be empty")
+    if not message.strip():
+        raise ValueError("message must not be empty")
 
 
 def _conversation_summary(

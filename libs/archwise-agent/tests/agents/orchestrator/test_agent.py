@@ -1,31 +1,41 @@
 import threading
 import time
 
-from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langgraph.checkpoint.memory import InMemorySaver
 
-from archwise_agent import AgentService, build_archwise_agent
+from archwise_agent import AgentService, Hypothesis, build_archwise_agent
+from tests.fakes import archhypo_json, fake_hypothesis_model
 
 
-def test_agent_responds_and_preserves_thread_history() -> None:
-    model = FakeListChatModel(responses=["first reply", "second reply"])
+def test_agent_runs_one_uncertainty_at_a_time() -> None:
+    model = fake_hypothesis_model(["first reply", "second reply"])
     agent = AgentService(model=model, checkpointer=InMemorySaver())
 
     first = agent.send(thread_id="thread-1", message="hello")
     second = agent.send(thread_id="thread-1", message="follow up")
 
-    assert first.text == "first reply"
-    assert second.text == "second reply"
+    assert first.result.hypothesis == Hypothesis(
+        title="Hypothesis 1",
+        statement="first reply",
+        justification="Derived from the supplied uncertainty.",
+    )
+    assert first.text == archhypo_json("hello", "first reply")
+    assert second.text == archhypo_json(
+        "follow up",
+        "second reply",
+        index=2,
+    )
 
     state = agent.agent.get_state(
         {"configurable": {"thread_id": "thread-1"}}
     )
-    assert len(state.values["messages"]) == 4
+    assert state.values["uncertainty"] == "follow up"
+    assert state.values["result"].hypothesis.statement == "second reply"
 
 
 def test_agent_stream_can_be_cancelled() -> None:
     service = AgentService(
-        model=FakeListChatModel(responses=["a" * 40], sleep=0.02),
+        model=fake_hypothesis_model(["a" * 40], sleep=0.2),
         checkpointer=InMemorySaver(),
     )
     stream = service.stream(
@@ -50,13 +60,14 @@ def test_agent_stream_can_be_cancelled() -> None:
 
 def test_build_agent_accepts_injected_model() -> None:
     agent = build_archwise_agent(
-        model=FakeListChatModel(responses=["ok"]),
+        model=fake_hypothesis_model(["ok"]),
         checkpointer=InMemorySaver(),
     )
 
     result = agent.invoke(
-        {"messages": [{"role": "user", "content": "hello"}]},
+        {"uncertainty": "hello"},
         {"configurable": {"thread_id": "thread-2"}},
     )
 
-    assert result["messages"][-1].content == "ok"
+    assert result["result"].hypothesis.statement == "ok"
+    assert result["result"].uncertainty == "hello"
