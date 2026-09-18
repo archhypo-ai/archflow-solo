@@ -41,6 +41,10 @@ class AgentSettings(BaseSettings):
         default=None,
         validation_alias="OPENROUTER_APP_NAME",
     )
+    tavily_api_key: str = Field(
+        default="",
+        validation_alias="TAVILY_API_KEY",
+    )
     archwise_storage_root: Path | None = Field(
         default=None,
         validation_alias="ARCHWISE_STORAGE_ROOT",

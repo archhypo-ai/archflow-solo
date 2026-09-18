@@ -25,6 +25,9 @@ dependencies = [
 archwise-workflow-diagram = "archwise_agent.cli.workflow_diagram:main"
 
 [project.optional-dependencies]
+research = [
+  "tavily-python>=0.8,<1.0",
+]
 observability = [
   "langfuse>=4.15.1",
   "langsmith>=0.2,<1.0",

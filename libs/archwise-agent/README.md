@@ -55,6 +55,18 @@ The technical plan agent uses the `archhypo-catalog` skill through
 `SkillsMiddleware` and read-only `FilesystemMiddleware`. It loads the skill
 metadata first and reads the relevant pattern references only when needed.
 
+The optional `tavily_search` tool is available for future research-oriented
+agents. It is not attached to the current workflow yet. Install it with:
+
+```bash
+uv sync --extra research
+```
+
+Set `TAVILY_API_KEY` to enable it. The tool performs bounded public-web
+searches, omits raw page content, rejects obvious private data and local paths,
+and returns source URLs for citation. Its usage policy is exported as
+`TAVILY_RESEARCH_PROMPT_SNIPPET` for the future Codebase Investigator.
+
 ## Optional observability
 
 Tracing is disabled by default. LangSmith can be enabled with its standard
