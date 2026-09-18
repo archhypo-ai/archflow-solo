@@ -1,6 +1,6 @@
 ---
 name: archhypo-catalog
-description: Catalog of the 12 ArchHypo architecture decision and validation patterns. Load this skill during the technical plan step to select the most suitable pattern for reducing an architectural uncertainty. For each pattern there is a detailed reference file; read the relevant one before proposing a pattern.
+description: Catalog of the 12 ArchHypo architecture decision and validation patterns. Load this skill during the technical plan step to select relevant candidates and use the governed catalog reader to consult references before proposing a pattern.
 ---
 
 # ArchHypo Catalog
@@ -11,7 +11,26 @@ The official ArchHypo pattern catalog. It contains exactly 12 patterns used to r
 
 ## How to use this skill
 
-This skill uses progressive disclosure: SKILL.md lists each pattern and when to use it, while the full pattern descriptions live in `references/`. Once you pick a pattern for a technical plan item, read its reference file to ground your suggestion (problem, forces, solution, consequences, related patterns, concrete examples), do not rely on memory.
+This skill uses progressive disclosure: the index below is used to select
+candidates, while full descriptions remain in `references/`. Access full
+references only through the `read_archhypo_catalog` tool. Do not enumerate the
+reference directory or construct paths yourself.
+
+Follow this protocol:
+
+1. Screen all patterns using the `Use when` column.
+2. Request the most relevant primary patterns through `read_archhypo_catalog`.
+   The final answer must contain three to five items, but exploration may read
+   more patterns when the uncertainty is broad.
+3. Treat `Related Patterns` as one-hop suggestions. Request a related pattern
+   only if it belongs to this catalog and could change the plan.
+4. Stop when the evidence is sufficient or the reader reports its context
+   budget. The reader automatically skips patterns already loaded during the
+   current graph execution.
+5. Ground the final three-to-five plan items in the returned references.
+
+If the uncertainty is broad, set `read_all=true`. The reader may load the whole
+catalog once; the final answer is still limited to three to five items.
 
 ## The 12 patterns
 
@@ -32,4 +51,7 @@ This skill uses progressive disclosure: SKILL.md lists each pattern and when to 
 
 ## Reading the references
 
-Each reference documents one pattern in full (AKA, problem, forces, solution, consequences, related patterns, examples). Some files are long (e.g., `Continuous_Inspection.md` is ~20KB), scan the section headers first and jump to the part that matters for the current plan item instead of reading linearly.
+`read_archhypo_catalog` resolves the exact path from this index and returns the
+reference content without exposing filesystem traversal. It deduplicates reads
+per graph execution and enforces a context-size budget. Related-pattern sections
+are evidence for candidate selection, not recursive navigation instructions.

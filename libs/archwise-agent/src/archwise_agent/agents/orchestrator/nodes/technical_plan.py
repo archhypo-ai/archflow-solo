@@ -37,8 +37,18 @@ def create_technical_plan_node(
             "Classification:\n"
             f"{classification.model_dump_json(indent=2)}"
         )
+        child_config = None
+        if runtime is not None and isinstance(runtime.context, dict):
+            child_config = {
+                "configurable": {
+                    "run_id": runtime.context.get("run_id"),
+                    "thread_id": runtime.context.get("thread_id"),
+                }
+            }
         result = technical_plan_agent.invoke(
-            {"messages": [HumanMessage(content=prompt)]}
+            {"messages": [HumanMessage(content=prompt)]},
+            child_config,
+            context=(runtime.context if runtime is not None else None),
         )
         raise_if_cancelled(runtime)
         technical_plan = TechnicalPlan.model_validate(result.get("structured_response"))
