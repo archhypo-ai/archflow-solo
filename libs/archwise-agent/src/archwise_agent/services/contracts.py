@@ -30,6 +30,15 @@ AgentStreamEvent: TypeAlias = AgentEvent
 
 
 @dataclass(frozen=True, slots=True)
+class ActiveRun:
+    """A run currently executing for a conversation."""
+
+    thread_id: str
+    run_id: str
+    status: Literal["running"] = "running"
+
+
+@dataclass(frozen=True, slots=True)
 class FolderContext:
     """Persisted read-only folder context attached to a conversation."""
 
@@ -71,6 +80,7 @@ class Conversation:
 
 
 __all__ = [
+    "ActiveRun",
     "AgentStreamEvent",
     "AgentTurn",
     "Conversation",

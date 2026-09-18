@@ -23,6 +23,12 @@ export type BackendThread = BackendThreadSummary & {
   folder_context: BackendFolderContext | null;
 };
 
+export type BackendActiveRun = {
+  thread_id: string;
+  run_id: string;
+  status: "running";
+};
+
 export type BackendChatResponse = {
   thread_id: string;
   message: string;

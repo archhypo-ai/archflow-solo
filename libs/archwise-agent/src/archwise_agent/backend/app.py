@@ -15,6 +15,7 @@ from .controllers import (
     chat_router,
     folder_contexts_router,
     health_router,
+    runs_router,
     threads_router,
 )
 
@@ -61,6 +62,7 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
     application.include_router(chat_router)
     application.include_router(threads_router)
     application.include_router(folder_contexts_router)
+    application.include_router(runs_router)
     return application
 
 

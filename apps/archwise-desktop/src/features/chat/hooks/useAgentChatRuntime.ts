@@ -9,10 +9,15 @@ import {
   attachFolderPath,
   cancelChatRun,
   deleteFolderContext,
+  getActiveRun,
   getThread,
   sendChatMessage,
 } from "../../agent";
-import type { BackendFolderContext, BackendThread } from "../../agent";
+import type {
+  BackendActiveRun,
+  BackendFolderContext,
+  BackendThread,
+} from "../../agent";
 import { useI18n } from "../../../i18n";
 
 type UserThreadMessage = Extract<ThreadMessage, { role: "user" }>;
@@ -80,6 +85,13 @@ function assistantMessage(
   };
 }
 
+function pendingAssistantMessage(id: string): AssistantThreadMessage {
+  return {
+    ...assistantMessage(id, "", { type: "running" }),
+    content: [],
+  };
+}
+
 function restoreMessages(thread: BackendThread): ThreadMessage[] {
   return thread.messages.map((message, index) => {
     const id = `${thread.thread_id}-${message.role}-${index}`;
@@ -111,6 +123,7 @@ export function useAgentChatRuntime(
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeRun, setActiveRun] = useState<BackendActiveRun | null>(null);
   const [folderContext, setFolderContext] =
     useState<BackendFolderContext | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -121,6 +134,7 @@ export function useAgentChatRuntime(
 
   const cancelActiveRun = useCallback(async () => {
     setIsRunning(false);
+    setActiveRun(null);
     if (cancelPromiseRef.current) {
       await cancelPromiseRef.current;
       return;
@@ -152,22 +166,38 @@ export function useAgentChatRuntime(
 
   useEffect(() => {
     const generation = ++generationRef.current;
-    abortRef.current?.abort();
+    // Keep an in-flight request alive while the conversation is out of view.
+    runIdRef.current = null;
+    pendingMessageIdRef.current = null;
     setIsLoading(true);
     setIsRunning(false);
+    setActiveRun(null);
     setMessages([]);
     setFolderContext(null);
 
-    if (!persisted) {
-      setIsLoading(false);
-      return;
-    }
+    const threadRequest = persisted
+      ? getThread(threadId)
+      : Promise.resolve<BackendThread | null>(null);
+    const runRequest = getActiveRun(threadId).catch(() => null);
 
-    void getThread(threadId)
-      .then((thread) => {
+    void Promise.all([threadRequest, runRequest])
+      .then(([thread, run]) => {
         if (generationRef.current !== generation) return;
-        setMessages(thread ? restoreMessages(thread) : []);
+        const restoredMessages = thread ? restoreMessages(thread) : [];
         setFolderContext(thread?.folder_context ?? null);
+        if (run) {
+          const pendingId = newId("assistant-pending");
+          runIdRef.current = run.run_id;
+          pendingMessageIdRef.current = pendingId;
+          setMessages([
+            ...restoredMessages,
+            pendingAssistantMessage(pendingId),
+          ]);
+          setActiveRun(run);
+          setIsRunning(true);
+        } else {
+          setMessages(restoredMessages);
+        }
       })
       .catch(() => {
         // A new thread has no checkpoint until its first message is sent.
@@ -177,9 +207,39 @@ export function useAgentChatRuntime(
       });
 
     return () => {
-      void cancelActiveRun();
+      // Leaving the view must not cancel the backend run or its request.
+      // The next conversation mount will query its status and poll for its
+      // persisted result.
     };
-  }, [cancelActiveRun, threadId]);
+  }, [persisted, threadId]);
+
+  useEffect(() => {
+    if (!activeRun) return;
+    let stopped = false;
+
+    const refreshActiveRun = async () => {
+      const run = await getActiveRun(threadId).catch(() => undefined);
+      if (stopped || run === undefined) return;
+      if (run) return;
+
+      const thread = await getThread(threadId).catch(() => null);
+      if (stopped) return;
+      if (thread) setMessages(restoreMessages(thread));
+      setActiveRun(null);
+      setIsRunning(false);
+      runIdRef.current = null;
+      pendingMessageIdRef.current = null;
+      onThreadUpdated?.();
+    };
+
+    const interval = window.setInterval(() => {
+      void refreshActiveRun();
+    }, 1000);
+    return () => {
+      stopped = true;
+      window.clearInterval(interval);
+    };
+  }, [activeRun, onThreadUpdated, threadId]);
 
   useEffect(() => {
     return onRegisterCancellation?.(threadId, cancelActiveRun);
@@ -223,12 +283,9 @@ export function useAgentChatRuntime(
       abortRef.current = controller;
       const userMessage = userMessageFromAppend(message);
       const pendingId = newId("assistant-pending");
-      const pendingMessage: AssistantThreadMessage = {
-        ...assistantMessage(pendingId, ""),
-        content: [],
-        status: { type: "running" },
-      };
+      const pendingMessage = pendingAssistantMessage(pendingId);
       pendingMessageIdRef.current = pendingId;
+      setActiveRun(null);
 
       onConversationStarted?.(threadId, text);
       setMessages((current) => [...current, userMessage, pendingMessage]);
@@ -299,6 +356,7 @@ export function useAgentChatRuntime(
             pendingMessageIdRef.current = null;
           }
           if (cancelPromiseRef.current) cancelPromiseRef.current = null;
+          setActiveRun(null);
           setIsRunning(false);
         }
       }

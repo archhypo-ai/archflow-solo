@@ -53,6 +53,15 @@ class RunRegistry:
             self._deleting_threads.discard(thread_id)
             return thread_id
 
+    def active_run_id(self, thread_id: str) -> str | None:
+        """Return the active run for a thread, if one exists."""
+
+        with self._lock:
+            for run_id, active_thread_id in reversed(self._run_threads.items()):
+                if active_thread_id == thread_id:
+                    return run_id
+        return None
+
     def cancel(self, run_id: str) -> bool:
         """Request cooperative cancellation for one run."""
 

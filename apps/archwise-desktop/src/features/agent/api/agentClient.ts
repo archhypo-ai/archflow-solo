@@ -1,5 +1,6 @@
 import i18n from "../../../i18n/config";
 import type {
+  BackendActiveRun,
   BackendChatResponse,
   BackendFolderContext,
   BackendThread,
@@ -39,6 +40,16 @@ async function request<T>(
   if (!response.ok) throw await requestError(response);
   if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
+}
+
+export async function getActiveRun(
+  threadId: string,
+  signal?: AbortSignal,
+): Promise<BackendActiveRun | null> {
+  return request<BackendActiveRun | null>(
+    `${API_URL}/api/threads/${encodeURIComponent(threadId)}/runs/active`,
+    { signal },
+  );
 }
 
 export async function listThreads(): Promise<BackendThreadSummary[]> {

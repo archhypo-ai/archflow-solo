@@ -47,6 +47,14 @@ class ChatCancelResponse(BaseModel):
     cancelled: bool
 
 
+class ActiveRunResponse(BaseModel):
+    """Current execution associated with a conversation."""
+
+    thread_id: str
+    run_id: str
+    status: Literal["running"] = "running"
+
+
 BACKEND_API_VERSION = PACKAGE_VERSION
 
 
@@ -120,6 +128,7 @@ __all__ = [
     "ChatRequest",
     "ChatResponse",
     "BACKEND_API_VERSION",
+    "ActiveRunResponse",
     "FolderContextResponse",
     "FolderPathRequest",
     "HealthResponse",

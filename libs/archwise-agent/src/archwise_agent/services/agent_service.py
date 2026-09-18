@@ -31,6 +31,7 @@ from archwise_agent.persistence import (
 )
 
 from .contracts import (
+    ActiveRun,
     AgentStreamEvent,
     AgentTurn,
     Conversation,
@@ -183,6 +184,17 @@ class AgentService:
             )
         finally:
             self._finish_run(context.run_id)
+
+    def get_active_run(self, thread_id: str) -> ActiveRun | None:
+        """Return the currently executing run for a conversation."""
+
+        if not thread_id.strip():
+            raise ValueError("thread_id must not be empty")
+        with self._lock:
+            run_id = self._runs.active_run_id(thread_id)
+        if run_id is None:
+            return None
+        return ActiveRun(thread_id=thread_id, run_id=run_id)
 
     def cancel_run(self, run_id: str) -> bool:
         """Request cooperative cancellation for one active agent run."""
@@ -516,6 +528,7 @@ def _truncate(value: str, limit: int = 60) -> str:
 
 
 __all__ = [
+    "ActiveRun",
     "AgentService",
     "AgentStreamEvent",
     "AgentTurn",

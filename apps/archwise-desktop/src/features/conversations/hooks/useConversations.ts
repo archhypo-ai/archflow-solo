@@ -49,12 +49,10 @@ export function useConversations() {
     if (generation !== refreshGeneration.current) return;
     const nextConversations = threads.map(toConversation);
 
+    // Refreshing metadata must never change the selected conversation. In
+    // particular, a background run finishing in another thread must not
+    // steal focus from a new/draft conversation.
     setConversations(nextConversations);
-    setActiveConversationId((current) =>
-      current && nextConversations.some((item) => item.id === current)
-        ? current
-        : nextConversations[0]?.id ?? current,
-    );
   }, []);
 
   useEffect(() => {

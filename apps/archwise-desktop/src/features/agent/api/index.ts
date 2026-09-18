@@ -4,6 +4,7 @@ export {
   cancelChatRun,
   deleteFolderContext,
   deleteThread,
+  getActiveRun,
   getThread,
   listThreads,
   sendChatMessage,
