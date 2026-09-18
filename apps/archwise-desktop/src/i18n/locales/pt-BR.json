@@ -33,7 +33,6 @@
     "addFolder": "Adicionar pasta",
     "attachingFolder": "Adicionando pasta...",
     "folderAttachError": "Não foi possível anexar a pasta.",
-    "folderAttached": "Pasta anexada.",
     "folderRemoveError": "Não foi possível remover a pasta.",
     "removeFolder": "Remover pasta",
     "copyMessage": "Copiar mensagem",

@@ -1,7 +1,7 @@
 .toast-region {
   position: fixed;
-  top: 20px;
   right: 20px;
+  bottom: 20px;
   z-index: 200;
   display: flex;
   width: min(360px, calc(100vw - 32px));
@@ -83,8 +83,8 @@
 
 @media (max-width: 680px) {
   .toast-region {
-    top: 12px;
     right: 12px;
+    bottom: 12px;
     width: calc(100vw - 24px);
   }
 }

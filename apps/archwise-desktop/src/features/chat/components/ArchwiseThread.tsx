@@ -213,10 +213,7 @@ function Composer({
     try {
       if (isTauriDesktop()) {
         const folderPath = await pickNativeFolder();
-        if (folderPath) {
-          await onFolderPathSelected(folderPath);
-          toast.success(t("chat.folderAttached"));
-        }
+        if (folderPath) await onFolderPathSelected(folderPath);
       } else {
         folderInputRef.current?.click();
       }
@@ -238,7 +235,6 @@ function Composer({
     setIsAttaching(true);
     try {
       await onFolderSelected(folderName, files);
-      toast.success(t("chat.folderAttached"));
     } catch {
       toast.error(t("chat.folderAttachError"));
     } finally {

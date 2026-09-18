@@ -33,7 +33,6 @@
     "addFolder": "Add folder",
     "attachingFolder": "Adding folder...",
     "folderAttachError": "Could not attach the folder.",
-    "folderAttached": "Folder attached.",
     "folderRemoveError": "Could not remove the folder.",
     "removeFolder": "Remove folder",
     "copyMessage": "Copy message",
