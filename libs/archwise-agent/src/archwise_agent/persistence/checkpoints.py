@@ -8,6 +8,7 @@ from pathlib import Path
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 
+from .contexts import SQLiteFolderContextRepository
 from .conversations import SQLiteConversationRepository
 from .migrations import migrate_connection
 from .paths import CHECKPOINT_DB_PATH
@@ -37,6 +38,7 @@ class SQLitePersistence:
     checkpointer: TransactionalSqliteSaver
     connection: sqlite3.Connection
     conversations: SQLiteConversationRepository
+    folder_contexts: SQLiteFolderContextRepository
 
     def delete_thread(self, thread_id: str) -> None:
         """Delete graph state and metadata in one SQLite transaction."""
@@ -67,6 +69,7 @@ def open_sqlite_persistence(
         checkpointer = TransactionalSqliteSaver(connection)
         checkpointer.setup()
         conversations = SQLiteConversationRepository(connection)
+        folder_contexts = SQLiteFolderContextRepository(connection)
     except Exception:
         connection.close()
         raise
@@ -75,6 +78,7 @@ def open_sqlite_persistence(
         checkpointer=checkpointer,
         connection=connection,
         conversations=conversations,
+        folder_contexts=folder_contexts,
     )
 
 

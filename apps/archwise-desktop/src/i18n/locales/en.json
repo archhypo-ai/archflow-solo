@@ -29,7 +29,13 @@
     "welcomeDescription": "Explore hypotheses, risks, and technical decisions with your agents.",
     "inputPlaceholder": "Ask ArchWISE anything...", 
     "message": "Message",
-    "addAttachment": "Add attachment",
+    "addAttachment": "Add context",
+    "addFolder": "Add folder",
+    "attachingFolder": "Adding folder...",
+    "folderAttachError": "Could not attach the folder.",
+    "folderAttached": "Folder attached.",
+    "folderRemoveError": "Could not remove the folder.",
+    "removeFolder": "Remove folder",
     "copyMessage": "Copy message",
     "send": "Send message",
     "stop": "Stop execution",
@@ -38,6 +44,10 @@
     "communicationError": "Could not communicate with ArchWISE.",
     "executionError": "The agent could not be executed.",
     "validationDisclaimer": "ArchWISE is a research prototype. Validate generated decisions."
+  },
+  "toast": {
+    "close": "Dismiss notification",
+    "regionLabel": "Notifications"
   },
   "settings": {
     "sections": "Settings sections",

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from threading import RLock
-from typing import Any
+from typing import Any, BinaryIO
 
 from agent_stream_py import (
     cancelled_event,
@@ -36,6 +36,7 @@ from .contracts import (
     Conversation,
     ConversationMessage,
     ConversationSummary,
+    FolderContext,
 )
 from .conversation_projection import (
     checkpoint_key,
@@ -46,6 +47,7 @@ from .conversation_projection import (
     messages_from_values,
 )
 from .conversation_service import ConversationService
+from .folder_context_service import FolderContextService
 from .graph_runner import GraphRunner
 from .run_registry import RunRegistry
 from .turn_presenter import present_turn
@@ -70,6 +72,7 @@ class AgentService:
         self._runs = RunRegistry(self._lock)
         self._persistence: SQLitePersistence | None = None
         self._conversation_service: ConversationService | None = None
+        self._folder_context_service: FolderContextService | None = None
 
         if checkpointer is None:
             self._persistence = open_sqlite_persistence(
@@ -77,6 +80,9 @@ class AgentService:
             )
             self._conversation_service = ConversationService(
                 self._persistence.conversations
+            )
+            self._folder_context_service = FolderContextService(
+                self._persistence.folder_contexts
             )
             active_checkpointer = self._persistence.checkpointer
         else:
@@ -199,10 +205,13 @@ class AgentService:
                     latest[thread_id] = item
 
             metadata = self._conversation_metadata()
+            thread_ids = set(latest) | set(metadata)
             conversations = [
                 _conversation_summary(
                     thread_id,
-                    messages_from_checkpoint(item),
+                    messages_from_checkpoint(latest[thread_id])
+                    if thread_id in latest
+                    else [],
                     title=(
                         metadata[thread_id].title if thread_id in metadata else None
                     ),
@@ -210,7 +219,7 @@ class AgentService:
                         metadata[thread_id].pinned if thread_id in metadata else False
                     ),
                 )
-                for thread_id, item in latest.items()
+                for thread_id in thread_ids
                 if not self._runs.is_deleting(thread_id)
             ]
             return sorted(conversations, key=lambda item: item.title.casefold())
@@ -226,10 +235,11 @@ class AgentService:
             state = self._runner.get_state(thread_id)
             values = state.values if isinstance(state.values, dict) else {}
             messages = messages_from_values(values)
-            if not messages:
+            metadata = self._metadata_for(thread_id)
+            folder_context = self._folder_context_for(thread_id)
+            if not messages and folder_context is None and metadata is None:
                 return None
 
-            metadata = self._metadata_for(thread_id)
             summary = _conversation_summary(
                 thread_id,
                 messages,
@@ -242,7 +252,70 @@ class AgentService:
                 message_count=summary.message_count,
                 messages=_conversation_messages(messages),
                 pinned=summary.pinned,
+                folder_context=folder_context,
             )
+
+    def attach_folder_context(
+        self,
+        *,
+        thread_id: str,
+        folder_name: str,
+        files: Iterable[tuple[str, BinaryIO]],
+    ) -> FolderContext:
+        """Persist a read-only uploaded folder for a conversation."""
+
+        if not thread_id.strip():
+            raise ValueError("thread_id must not be empty")
+        if self._folder_context_service is None:
+            raise ValueError("folder context persistence is not available")
+
+        with self._lock:
+            self._ensure_conversation(thread_id, folder_name)
+            return self._folder_context_service.attach(
+                thread_id=thread_id,
+                folder_name=folder_name,
+                files=files,
+            )
+
+    def attach_folder_context_path(
+        self,
+        *,
+        thread_id: str,
+        folder_path: str,
+    ) -> FolderContext:
+        """Persist a local folder path for a conversation."""
+
+        if not thread_id.strip():
+            raise ValueError("thread_id must not be empty")
+        if self._folder_context_service is None:
+            raise ValueError("folder context persistence is not available")
+
+        with self._lock:
+            self._ensure_conversation(thread_id)
+            context = self._folder_context_service.attach_path(
+                thread_id=thread_id,
+                folder_path=folder_path,
+            )
+            self._ensure_conversation(thread_id, context.folder_name)
+            return context
+
+    def get_folder_context(self, thread_id: str) -> FolderContext | None:
+        """Return the folder context attached to a conversation."""
+
+        if not thread_id.strip():
+            raise ValueError("thread_id must not be empty")
+        with self._lock:
+            return self._folder_context_for(thread_id)
+
+    def delete_folder_context(self, thread_id: str) -> bool:
+        """Remove the folder context attached to a conversation."""
+
+        if not thread_id.strip():
+            raise ValueError("thread_id must not be empty")
+        if self._folder_context_service is None:
+            return False
+        with self._lock:
+            return self._folder_context_service.delete(thread_id)
 
     def update_conversation(
         self,
@@ -313,6 +386,7 @@ class AgentService:
                 self._persistence.close()
                 self._persistence = None
                 self._conversation_service = None
+                self._folder_context_service = None
 
     def _create_context(
         self,
@@ -378,12 +452,19 @@ class AgentService:
             return None
         return self._conversation_service.get(thread_id)
 
+    def _folder_context_for(self, thread_id: str) -> FolderContext | None:
+        if self._folder_context_service is None:
+            return None
+        return self._folder_context_service.get(thread_id)
+
     def _conversation_metadata(self):
         if self._conversation_service is None:
             return {}
         return {item.thread_id: item for item in self._conversation_service.list()}
 
     def _delete_thread_storage(self, thread_id: str) -> None:
+        if self._folder_context_service is not None:
+            self._folder_context_service.delete(thread_id)
         if self._persistence is not None:
             self._persistence.delete_thread(thread_id)
         else:
@@ -441,4 +522,5 @@ __all__ = [
     "Conversation",
     "ConversationMessage",
     "ConversationSummary",
+    "FolderContext",
 ]

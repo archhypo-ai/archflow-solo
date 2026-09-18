@@ -9,8 +9,20 @@ import {
 } from "@assistant-ui/react";
 import { makeMarkdownText } from "@assistant-ui/react-ui";
 import remarkGfm from "remark-gfm";
-import { ArrowUp, Check, Copy, Plus, Square } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import {
+  ArrowUp,
+  Check,
+  Copy,
+  FolderOpen,
+  Plus,
+  Square,
+  X,
+} from "lucide-react";
+import { type ChangeEvent, useEffect, useRef, useState } from "react";
+import type { BackendFolderContext } from "../../agent";
+import { Menu, MenuContent, MenuItem } from "../../../components/overlay/Menu";
+import { useToast } from "../../../components/feedback";
+import { isTauriDesktop, pickNativeFolder } from "../folderPicker";
 import { useI18n } from "../../../i18n";
 
 const MarkdownText = makeMarkdownText({
@@ -163,12 +175,89 @@ function ValidationDisclaimer() {
   );
 }
 
-function Composer() {
+type ComposerProps = {
+  folderContext: BackendFolderContext | null;
+  onFolderSelected: (folderName: string, files: File[]) => Promise<void>;
+  onFolderPathSelected: (folderPath: string) => Promise<void>;
+  onFolderRemoved: () => Promise<void>;
+};
+
+function Composer({
+  folderContext,
+  onFolderSelected,
+  onFolderPathSelected,
+  onFolderRemoved,
+}: ComposerProps) {
   const { t } = useI18n();
+  const toast = useToast();
   const isRunning = useThread((state) => state.isRunning);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isAttaching, setIsAttaching] = useState(false);
+  const [isRemoving, setIsRemoving] = useState(false);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFolderRemove = async () => {
+    setIsRemoving(true);
+    try {
+      await onFolderRemoved();
+    } catch {
+      toast.error(t("chat.folderRemoveError"));
+    } finally {
+      setIsRemoving(false);
+    }
+  };
+
+  const handleFolderPicker = async () => {
+    setMenuOpen(false);
+    setIsAttaching(true);
+    try {
+      if (isTauriDesktop()) {
+        const folderPath = await pickNativeFolder();
+        if (folderPath) {
+          await onFolderPathSelected(folderPath);
+          toast.success(t("chat.folderAttached"));
+        }
+      } else {
+        folderInputRef.current?.click();
+      }
+    } catch {
+      toast.error(t("chat.folderAttachError"));
+    } finally {
+      setIsAttaching(false);
+    }
+  };
+
+  const handleFolderChange = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.currentTarget.files ?? []);
+    const firstPath = files[0]?.webkitRelativePath || files[0]?.name || "";
+    const folderName = firstPath.split("/")[0];
+    event.currentTarget.value = "";
+    if (!folderName || files.length === 0) return;
+
+    setMenuOpen(false);
+    setIsAttaching(true);
+    try {
+      await onFolderSelected(folderName, files);
+      toast.success(t("chat.folderAttached"));
+    } catch {
+      toast.error(t("chat.folderAttachError"));
+    } finally {
+      setIsAttaching(false);
+    }
+  };
 
   return (
     <ComposerPrimitive.Root className="chat-composer">
+      <input
+        ref={folderInputRef}
+        className="chat-folder-input"
+        type="file"
+        multiple
+        {...({ webkitdirectory: "", directory: "" } as Record<string, string>)}
+        onChange={(event) => void handleFolderChange(event)}
+        aria-hidden="true"
+        tabIndex={-1}
+      />
       <ComposerPrimitive.Input
         className="chat-input"
         minRows={1}
@@ -177,14 +266,46 @@ function Composer() {
         aria-label={t("chat.message")}
       />
       <div className="composer-footer">
-        <button
-          className="composer-tool-button"
-          aria-label={t("chat.addAttachment")}
-          title={t("chat.addAttachment")}
-          type="button"
-        >
-          <Plus aria-hidden="true" />
-        </button>
+        <div className="composer-tools">
+          <Menu open={menuOpen} onOpenChange={setMenuOpen}>
+            <button
+              className="composer-tool-button"
+              aria-label={t("chat.addAttachment")}
+              title={t("chat.addAttachment")}
+              type="button"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <Plus aria-hidden="true" />
+            </button>
+            <MenuContent open={menuOpen} className="composer-attachment-menu">
+              <MenuItem
+                icon={<FolderOpen aria-hidden="true" />}
+                label={
+                  isAttaching
+                    ? t("chat.attachingFolder")
+                    : t("chat.addFolder")
+                }
+                disabled={isAttaching}
+                onClick={() => void handleFolderPicker()}
+              />
+            </MenuContent>
+          </Menu>
+          {folderContext && (
+            <button
+              className="composer-folder-context"
+              type="button"
+              aria-label={t("chat.removeFolder")}
+              title={t("chat.removeFolder")}
+              disabled={isAttaching || isRemoving}
+              onClick={() => void handleFolderRemove()}
+            >
+              <FolderOpen aria-hidden="true" />
+              <span>{folderContext.folder_name}</span>
+              <X aria-hidden="true" />
+            </button>
+          )}
+        </div>
         {!isRunning ? (
           <ComposerPrimitive.Send asChild>
             <button
@@ -213,8 +334,28 @@ function Composer() {
   );
 }
 
-export function ArchwiseThread() {
+type ArchwiseThreadProps = {
+  folderContext: BackendFolderContext | null;
+  onFolderSelected: (folderName: string, files: File[]) => Promise<void>;
+  onFolderPathSelected: (folderPath: string) => Promise<void>;
+  onFolderRemoved: () => Promise<void>;
+};
+
+export function ArchwiseThread({
+  folderContext,
+  onFolderSelected,
+  onFolderPathSelected,
+  onFolderRemoved,
+}: ArchwiseThreadProps) {
   const isEmpty = useThread((state) => state.messages.length === 0);
+  const composer = (
+    <Composer
+      folderContext={folderContext}
+      onFolderSelected={onFolderSelected}
+      onFolderPathSelected={onFolderPathSelected}
+      onFolderRemoved={onFolderRemoved}
+    />
+  );
 
   return (
     <ThreadPrimitive.Root className="aui-root chat-root">
@@ -223,7 +364,7 @@ export function ArchwiseThread() {
           <div className="chat-empty-state">
             <Welcome />
             <div className="chat-empty-composer">
-              <Composer />
+              {composer}
               <ValidationDisclaimer />
             </div>
           </div>
@@ -233,7 +374,7 @@ export function ArchwiseThread() {
         {!isEmpty && (
           <div className="chat-footer">
             <div className="chat-footer-content">
-              <Composer />
+              {composer}
               <ValidationDisclaimer />
             </div>
           </div>

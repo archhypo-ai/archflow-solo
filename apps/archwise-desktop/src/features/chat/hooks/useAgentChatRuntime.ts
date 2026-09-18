@@ -5,11 +5,14 @@ import {
   useExternalStoreRuntime,
 } from "@assistant-ui/react";
 import {
+  attachFolderContext,
+  attachFolderPath,
   cancelChatRun,
+  deleteFolderContext,
   getThread,
   sendChatMessage,
 } from "../../agent";
-import type { BackendThread } from "../../agent";
+import type { BackendFolderContext, BackendThread } from "../../agent";
 import { useI18n } from "../../../i18n";
 
 type UserThreadMessage = Extract<ThreadMessage, { role: "user" }>;
@@ -108,6 +111,8 @@ export function useAgentChatRuntime(
   const [messages, setMessages] = useState<ThreadMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [folderContext, setFolderContext] =
+    useState<BackendFolderContext | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const cancelPromiseRef = useRef<Promise<void> | null>(null);
   const generationRef = useRef(0);
@@ -151,6 +156,7 @@ export function useAgentChatRuntime(
     setIsLoading(true);
     setIsRunning(false);
     setMessages([]);
+    setFolderContext(null);
 
     if (!persisted) {
       setIsLoading(false);
@@ -161,6 +167,7 @@ export function useAgentChatRuntime(
       .then((thread) => {
         if (generationRef.current !== generation) return;
         setMessages(thread ? restoreMessages(thread) : []);
+        setFolderContext(thread?.folder_context ?? null);
       })
       .catch(() => {
         // A new thread has no checkpoint until its first message is sent.
@@ -177,6 +184,29 @@ export function useAgentChatRuntime(
   useEffect(() => {
     return onRegisterCancellation?.(threadId, cancelActiveRun);
   }, [cancelActiveRun, onRegisterCancellation, threadId]);
+
+  const onFolderPathSelected = useCallback(
+    async (folderPath: string) => {
+      const context = await attachFolderPath(threadId, folderPath);
+      setFolderContext(context);
+      onConversationStarted?.(threadId, context.folder_name);
+    },
+    [onConversationStarted, threadId],
+  );
+
+  const onFolderSelected = useCallback(
+    async (folderName: string, files: File[]) => {
+      const context = await attachFolderContext(threadId, folderName, files);
+      setFolderContext(context);
+      onConversationStarted?.(threadId, folderName);
+    },
+    [onConversationStarted, threadId],
+  );
+
+  const onFolderRemoved = useCallback(async () => {
+    await deleteFolderContext(threadId);
+    setFolderContext(null);
+  }, [threadId]);
 
   const onNew = useCallback(
     async (message: AppendMessage) => {
@@ -320,5 +350,13 @@ export function useAgentChatRuntime(
     [isLoading, isRunning, messages, onCancel, onNew],
   );
 
-  return useExternalStoreRuntime(store);
+  const runtime = useExternalStoreRuntime(store);
+
+  return {
+    runtime,
+    folderContext,
+    onFolderSelected,
+    onFolderPathSelected,
+    onFolderRemoved,
+  };
 }

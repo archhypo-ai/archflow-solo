@@ -6,6 +6,11 @@ from .checkpoints import (
     open_sqlite_checkpointer,
     open_sqlite_persistence,
 )
+from .contexts import (
+    FolderContextMetadata,
+    FolderContextRepository,
+    SQLiteFolderContextRepository,
+)
 from .conversations import (
     DEFAULT_CONVERSATION_TITLE,
     ConversationMetadata,
@@ -24,11 +29,14 @@ __all__ = [
     "APPLICATION_ROOT",
     "CHECKPOINT_DB_PATH",
     "ConversationMetadata",
+    "FolderContextMetadata",
+    "FolderContextRepository",
     "ConversationRepository",
     "CURRENT_SCHEMA_VERSION",
     "DEFAULT_CONVERSATION_TITLE",
     "RUNTIME_ROOT",
     "SQLiteConversationRepository",
+    "SQLiteFolderContextRepository",
     "SQLitePersistence",
     "STORAGE_ROOT",
     "TransactionalSqliteSaver",

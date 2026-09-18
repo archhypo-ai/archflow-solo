@@ -30,6 +30,17 @@ AgentStreamEvent: TypeAlias = AgentEvent
 
 
 @dataclass(frozen=True, slots=True)
+class FolderContext:
+    """Persisted read-only folder context attached to a conversation."""
+
+    context_id: str
+    thread_id: str
+    folder_name: str
+    file_count: int
+    total_bytes: int
+
+
+@dataclass(frozen=True, slots=True)
 class ConversationMessage:
     """User-visible message from a checkpointed conversation."""
 
@@ -56,6 +67,7 @@ class Conversation:
     message_count: int
     messages: list[ConversationMessage]
     pinned: bool = False
+    folder_context: FolderContext | None = None
 
 
 __all__ = [
@@ -63,5 +75,6 @@ __all__ = [
     "AgentTurn",
     "Conversation",
     "ConversationMessage",
+    "FolderContext",
     "ConversationSummary",
 ]

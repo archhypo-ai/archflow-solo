@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ToastProvider } from "../components/feedback";
 import { AppShell } from "../components/layout/AppShell";
 import { ArchwiseChat } from "../features/chat";
 import { useConversations } from "../features/conversations";
@@ -61,7 +62,9 @@ export default function App() {
   return (
     <I18nProvider>
       <ThemeProvider>
-        <AppContent />
+        <ToastProvider>
+          <AppContent />
+        </ToastProvider>
       </ThemeProvider>
     </I18nProvider>
   );

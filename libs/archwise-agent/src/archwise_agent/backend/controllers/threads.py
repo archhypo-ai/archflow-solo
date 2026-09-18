@@ -13,6 +13,8 @@ from archwise_agent.backend.data import (
 from archwise_agent.backend.dependencies import AgentServiceDependency
 from archwise_agent.services import ConversationSummary
 
+from .folder_contexts import folder_context_response
+
 router = APIRouter(prefix="/api", tags=["threads"])
 
 
@@ -61,6 +63,11 @@ def get_thread(
             for message in conversation.messages
         ],
         pinned=conversation.pinned,
+        folder_context=(
+            folder_context_response(conversation.folder_context)
+            if conversation.folder_context is not None
+            else None
+        ),
     )
 
 

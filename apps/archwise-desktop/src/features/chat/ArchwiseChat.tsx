@@ -20,7 +20,13 @@ export function ArchwiseChat({
   onRegisterCancellation,
   onThreadUpdated,
 }: ArchwiseChatProps) {
-  const runtime = useAgentChatRuntime(threadId, {
+  const {
+    runtime,
+    folderContext,
+    onFolderSelected,
+    onFolderPathSelected,
+    onFolderRemoved,
+  } = useAgentChatRuntime(threadId, {
     persisted,
     onConversationStarted,
     onRegisterCancellation,
@@ -29,7 +35,12 @@ export function ArchwiseChat({
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <ArchwiseThread />
+      <ArchwiseThread
+        folderContext={folderContext}
+        onFolderSelected={onFolderSelected}
+        onFolderPathSelected={onFolderPathSelected}
+        onFolderRemoved={onFolderRemoved}
+      />
     </AssistantRuntimeProvider>
   );
 }

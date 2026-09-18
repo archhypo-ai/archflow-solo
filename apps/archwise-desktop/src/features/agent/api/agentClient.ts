@@ -1,6 +1,7 @@
 import i18n from "../../../i18n/config";
 import type {
   BackendChatResponse,
+  BackendFolderContext,
   BackendThread,
   BackendThreadSummary,
 } from "../types";
@@ -80,6 +81,51 @@ export async function sendChatMessage(
     }),
     signal,
   });
+}
+
+export async function attachFolderContext(
+  threadId: string,
+  folderName: string,
+  files: File[],
+  signal?: AbortSignal,
+): Promise<BackendFolderContext> {
+  const formData = new FormData();
+  formData.append("folder_name", folderName);
+  for (const file of files) {
+    formData.append("files", file, file.webkitRelativePath || file.name);
+  }
+
+  return request<BackendFolderContext>(
+    `${API_URL}/api/threads/${encodeURIComponent(threadId)}/folder-context`,
+    {
+      method: "POST",
+      body: formData,
+      signal,
+    },
+  );
+}
+
+export async function attachFolderPath(
+  threadId: string,
+  folderPath: string,
+  signal?: AbortSignal,
+): Promise<BackendFolderContext> {
+  return request<BackendFolderContext>(
+    `${API_URL}/api/threads/${encodeURIComponent(threadId)}/folder-context/path`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ folder_path: folderPath }),
+      signal,
+    },
+  );
+}
+
+export async function deleteFolderContext(threadId: string): Promise<void> {
+  await request<void>(
+    `${API_URL}/api/threads/${encodeURIComponent(threadId)}/folder-context`,
+    { method: "DELETE" },
+  );
 }
 
 export async function cancelChatRun(runId: string): Promise<boolean> {
