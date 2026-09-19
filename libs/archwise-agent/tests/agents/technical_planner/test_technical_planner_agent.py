@@ -1,11 +1,12 @@
 from langchain_core.messages import HumanMessage
 
-from archwise_agent import TechnicalPlan, build_technical_plan_agent
+from archwise_agent import TechnicalPlan
+from archwise_agent.agents.technical_planner import build_technical_planner_agent
 from tests.fakes import fake_hypothesis_model
 
 
-def test_technical_plan_agent_returns_a_catalog_grounded_plan() -> None:
-    agent = build_technical_plan_agent(fake_hypothesis_model(["unused"]))
+def test_technical_planner_returns_a_catalog_grounded_plan() -> None:
+    agent = build_technical_planner_agent(fake_hypothesis_model(["unused"]))
 
     result = agent.invoke(
         {

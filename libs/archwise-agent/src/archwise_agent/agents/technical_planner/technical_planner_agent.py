@@ -1,4 +1,4 @@
-"""Technical plan agent with governed skill-catalog access."""
+"""Technical planner agent with governed skill-catalog access."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ Use `read_archhypo_catalog` for references; do not use filesystem tools.
 """
 
 SYSTEM_PROMPT = f"""\
-You are the ArchWise Technical Plan Agent.
+You are the ArchWise Technical Planner Agent.
 
 Create a technical plan to reduce the architectural uncertainty represented by
 the supplied hypothesis and classification.
@@ -69,8 +69,8 @@ Authoritative catalog skill and index:
 """
 
 
-def build_technical_plan_agent(model: BaseChatModel):
-    """Build the technical-plan agent with one governed catalog tool."""
+def build_technical_planner_agent(model: BaseChatModel):
+    """Build the technical planner with one governed catalog tool."""
 
     backend = FilesystemBackend(root_dir=PACKAGE_ROOT, virtual_mode=True)
     catalog_tool = make_catalog_tool(CATALOG_ROOT)
@@ -86,13 +86,8 @@ def build_technical_plan_agent(model: BaseChatModel):
                 system_prompt=SKILLS_SYSTEM_PROMPT,
             )
         ],
-        name="technical_plan_agent",
+        name="technical_planner_agent",
     )
 
 
-__all__ = [
-    "CATALOG_INDEX",
-    "SKILLS_SYSTEM_PROMPT",
-    "SYSTEM_PROMPT",
-    "build_technical_plan_agent",
-]
+__all__ = ["build_technical_planner_agent"]

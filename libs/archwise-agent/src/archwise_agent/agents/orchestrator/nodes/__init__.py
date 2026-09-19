@@ -1,22 +1,16 @@
-"""LangGraph workflow nodes."""
+"""Public node factories used by the ArchWise orchestrator."""
 
-from archwise_agent.graph import GraphNode
-
-from .classification import create_classify_hypothesis_node
-from .hypothesis import create_formulate_hypothesis_node
-from .response import create_response_node
-from .routing import create_request_router_node, route_request
-from .technical_plan import create_technical_plan_node
-
-Node = GraphNode
+from .hypothesis_assessment_node import create_hypothesis_assessment_node
+from .hypothesis_formulation_node import create_hypothesis_formulation_node
+from .request_routing_node import create_request_routing_node, route_request
+from .response_composition_node import create_response_composition_node
+from .technical_plan_generation_node import create_technical_plan_generation_node
 
 __all__ = [
-    "GraphNode",
-    "Node",
-    "create_classify_hypothesis_node",
-    "create_formulate_hypothesis_node",
-    "create_request_router_node",
-    "create_response_node",
-    "create_technical_plan_node",
+    "create_hypothesis_assessment_node",
+    "create_hypothesis_formulation_node",
+    "create_request_routing_node",
+    "create_response_composition_node",
+    "create_technical_plan_generation_node",
     "route_request",
 ]

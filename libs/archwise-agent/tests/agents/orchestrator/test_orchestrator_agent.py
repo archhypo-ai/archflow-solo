@@ -4,7 +4,7 @@ import time
 from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
-from archwise_agent import AgentService, Hypothesis, build_archwise_agent
+from archwise_agent import AgentService, Hypothesis, build_orchestrator_agent
 from archwise_agent.core import AgentCancelledError
 from tests.fakes import fake_hypothesis_model
 
@@ -52,10 +52,10 @@ def test_agent_runs_one_uncertainty_at_a_time() -> None:
     assert state.values["result"].hypothesis.statement == "second reply"
     assert len(state.values["messages"]) == 10
     assert [message.name for message in state.values["messages"][-4:]] == [
-        "hypothesis_agent",
-        "classifier_agent",
-        "technical_plan_agent",
-        "response_agent",
+        "hypothesis_formulator_agent",
+        "hypothesis_assessor_agent",
+        "technical_planner_agent",
+        "response_composer_agent",
     ]
 
 
@@ -148,8 +148,8 @@ def test_cancelling_an_active_run_does_not_persist_its_response() -> None:
     assert conversation.messages[0].role == "user"
 
 
-def test_build_agent_accepts_injected_model() -> None:
-    agent = build_archwise_agent(
+def test_build_orchestrator_accepts_injected_model() -> None:
+    agent = build_orchestrator_agent(
         model=fake_hypothesis_model(["ok"]),
         checkpointer=InMemorySaver(),
     )
@@ -164,3 +164,20 @@ def test_build_agent_accepts_injected_model() -> None:
 
     assert result["result"].hypothesis.statement == "ok"
     assert result["result"].uncertainty == "hello"
+
+
+def test_orchestrator_uses_canonical_stage_ids() -> None:
+    agent = build_orchestrator_agent(
+        model=fake_hypothesis_model(["unused"]),
+        checkpointer=InMemorySaver(),
+    )
+
+    assert set(agent.get_graph().nodes) == {
+        "__start__",
+        "__end__",
+        "request_routing",
+        "response_composition",
+        "hypothesis_formulation",
+        "hypothesis_assessment",
+        "technical_plan_generation",
+    }

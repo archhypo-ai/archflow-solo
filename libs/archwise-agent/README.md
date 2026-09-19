@@ -15,13 +15,13 @@ src/archwise_agent/
 ├── persistence/     # SQLite checkpoints, repositories, migrations, and paths
 ├── providers/       # Model provider integrations
 ├── agents/          # Orchestrator and concrete workflow agents
-│   ├── classifier/
-│   ├── hypothesis/
+│   ├── hypothesis_assessor/
+│   ├── hypothesis_formulator/
 │   ├── orchestrator/
 │   │   └── nodes/
-│   ├── response/
 │   ├── request_router/
-│   └── technical_plan/
+│   ├── response_composer/
+│   └── technical_planner/
 ├── cli/             # Package command-line utilities
 ├── observability/   # Optional LangSmith/Langfuse tracing
 ├── services/        # Application API for future interfaces
@@ -35,7 +35,7 @@ Tests mirror the source layout:
 
 ```text
 tests/
-├── agents/hypothesis/
+├── agents/hypothesis_formulator/
 ├── agents/orchestrator/
 └── backend/controllers/
 ```
@@ -51,7 +51,7 @@ The default model is already
 `openrouter:deepseek/deepseek-v4.1-flash`. The prefix is accepted in the
 configuration and removed only before the request is sent to OpenRouter.
 
-The technical plan agent uses the `archhypo-catalog` skill through
+The technical planner uses the `archhypo-catalog` skill through
 `SkillsMiddleware` and read-only `FilesystemMiddleware`. It loads the skill
 metadata first and reads the relevant pattern references only when needed.
 
@@ -134,7 +134,7 @@ created on first startup and is ignored by Git. Database migrations run before
 LangGraph initializes its checkpoint tables. Set `ARCHWISE_STORAGE_ROOT` to
 use another storage directory.
 
-`build_archwise_agent` still accepts an injected checkpointer, which keeps unit
+`build_orchestrator_agent` still accepts an injected checkpointer, which keeps unit
 tests and alternative runtimes independent from the local database. The
 application-facing `AgentService` opens and owns the SQLite connection by
 default.

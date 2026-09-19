@@ -1,20 +1,22 @@
 import pytest
 from langchain_core.runnables import RunnableLambda
 
-from archwise_agent.agents.hypothesis import build_hypothesis_agent
-from archwise_agent.agents.orchestrator.nodes import (
-    create_classify_hypothesis_node,
-    create_formulate_hypothesis_node,
-    create_technical_plan_node,
+from archwise_agent.agents.hypothesis_formulator import (
+    build_hypothesis_formulator_agent,
 )
-from archwise_agent.agents.technical_plan import build_technical_plan_agent
+from archwise_agent.agents.orchestrator.nodes import (
+    create_hypothesis_assessment_node,
+    create_hypothesis_formulation_node,
+    create_technical_plan_generation_node,
+)
+from archwise_agent.agents.technical_planner import build_technical_planner_agent
 from archwise_agent.core import Hypothesis, HypothesisClassification, TechnicalPlan
 from tests.fakes import fake_hypothesis_model
 
 
 def test_formulate_hypothesis_node_normalizes_uncertainty() -> None:
-    node = create_formulate_hypothesis_node(
-        build_hypothesis_agent(
+    node = create_hypothesis_formulation_node(
+        build_hypothesis_formulator_agent(
             fake_hypothesis_model(
                 ["The system handles the load."],
                 uncertainties=["Peak capacity is unknown."],
@@ -26,11 +28,11 @@ def test_formulate_hypothesis_node_normalizes_uncertainty() -> None:
 
     assert result["uncertainty"] == "Peak capacity is unknown."
     assert isinstance(result["hypothesis"], Hypothesis)
-    assert result["messages"][0].name == "hypothesis_agent"
+    assert result["messages"][0].name == "hypothesis_formulator_agent"
 
 
 def test_classify_hypothesis_node_requires_a_hypothesis() -> None:
-    node = create_classify_hypothesis_node(
+    node = create_hypothesis_assessment_node(
         RunnableLambda(
             lambda _: HypothesisClassification(
                 nfr="Performance",
@@ -48,7 +50,7 @@ def test_classify_hypothesis_node_requires_a_hypothesis() -> None:
 
 
 def test_technical_plan_node_requires_previous_results() -> None:
-    node = create_technical_plan_node(RunnableLambda(lambda _: {}))
+    node = create_technical_plan_generation_node(RunnableLambda(lambda _: {}))
 
     with pytest.raises(
         ValueError,
@@ -73,7 +75,9 @@ def test_technical_plan_node_builds_complete_result() -> None:
         uncertainty="High",
         uncertainty_justification="Unknown.",
     )
-    node = create_technical_plan_node(build_technical_plan_agent(model))
+    node = create_technical_plan_generation_node(
+        build_technical_planner_agent(model)
+    )
 
     result = node(
         {

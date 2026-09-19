@@ -26,7 +26,7 @@ _MAX_SESSIONS = 128
 
 
 class CatalogReadRequest(BaseModel):
-    """Patterns requested by the Technical Plan Agent."""
+    """Patterns requested by the Technical Planner Agent."""
 
     patterns: list[str] = Field(
         default_factory=list,

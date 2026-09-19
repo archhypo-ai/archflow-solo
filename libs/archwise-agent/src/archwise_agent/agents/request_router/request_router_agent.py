@@ -42,4 +42,4 @@ def build_request_router_agent(model: BaseChatModel):
     return prompt | model.with_structured_output(RequestRouting)
 
 
-__all__ = ["SYSTEM_PROMPT", "build_request_router_agent"]
+__all__ = ["build_request_router_agent"]

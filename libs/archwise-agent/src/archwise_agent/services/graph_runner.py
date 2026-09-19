@@ -9,7 +9,7 @@ from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.runtime import RunControl
 
-from archwise_agent.agents import build_archwise_agent
+from archwise_agent.agents import build_orchestrator_agent
 from archwise_agent.config import AgentSettings
 from archwise_agent.core import ExecutionContext
 from archwise_agent.observability import Observability
@@ -26,7 +26,7 @@ class GraphRunner:
         checkpointer: BaseCheckpointSaver,
         observability: Observability,
     ) -> None:
-        self._agent = build_archwise_agent(
+        self._agent = build_orchestrator_agent(
             model=model,
             configuration=configuration,
             checkpointer=checkpointer,

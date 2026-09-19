@@ -9,7 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from archwise_agent.core import Hypothesis
 
 SYSTEM_PROMPT = """\
-You are the ArchWise Hypothesis Formulation Agent.
+You are the ArchWise Hypothesis Formulator Agent.
 
 Transform the supplied architectural material into one normalized uncertainty
 and exactly one structured, testable architectural hypothesis.
@@ -35,7 +35,7 @@ one central architectural uncertainty and do not combine unrelated concerns.
 """
 
 
-def build_hypothesis_agent(model: BaseChatModel):
+def build_hypothesis_formulator_agent(model: BaseChatModel):
     """Build the hypothesis chain with a fixed Pydantic response."""
 
     prompt = ChatPromptTemplate.from_messages(
@@ -47,10 +47,13 @@ def build_hypothesis_agent(model: BaseChatModel):
     return prompt | model.with_structured_output(Hypothesis)
 
 
-def hypothesis_input(uncertainty: str) -> dict[str, list[HumanMessage]]:
+def make_hypothesis_input(uncertainty: str) -> dict[str, list[HumanMessage]]:
     """Create the typed human-message input for the hypothesis chain."""
 
     return {"messages": [HumanMessage(content=uncertainty)]}
 
 
-__all__ = ["SYSTEM_PROMPT", "build_hypothesis_agent", "hypothesis_input"]
+__all__ = [
+    "build_hypothesis_formulator_agent",
+    "make_hypothesis_input",
+]

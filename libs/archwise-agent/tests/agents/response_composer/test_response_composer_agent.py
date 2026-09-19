@@ -1,11 +1,12 @@
 from langchain_core.messages import HumanMessage
 
-from archwise_agent import UserResponse, build_response_agent
+from archwise_agent import UserResponse
+from archwise_agent.agents.response_composer import build_response_composer_agent
 from tests.fakes import fake_hypothesis_model
 
 
-def test_response_agent_returns_human_facing_text() -> None:
-    agent = build_response_agent(
+def test_response_composer_returns_human_facing_text() -> None:
+    agent = build_response_composer_agent(
         fake_hypothesis_model(
             ["unused"],
             route="direct_response",

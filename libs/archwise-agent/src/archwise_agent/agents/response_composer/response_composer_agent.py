@@ -8,7 +8,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from archwise_agent.core import UserResponse
 
 SYSTEM_PROMPT = """\
-You are the ArchWise Response Agent.
+You are the ArchWise Response Composer Agent.
 
 Produce the final human-facing answer for the current conversation.
 
@@ -26,7 +26,7 @@ Rules:
 """
 
 
-def build_response_agent(model: BaseChatModel):
+def build_response_composer_agent(model: BaseChatModel):
     """Build the structured human-facing response agent."""
 
     prompt = ChatPromptTemplate.from_messages(
@@ -38,4 +38,4 @@ def build_response_agent(model: BaseChatModel):
     return prompt | model.with_structured_output(UserResponse)
 
 
-__all__ = ["SYSTEM_PROMPT", "build_response_agent"]
+__all__ = ["build_response_composer_agent"]

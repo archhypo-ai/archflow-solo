@@ -1,4 +1,4 @@
-"""Hypothesis classification workflow node."""
+"""Hypothesis assessment workflow node."""
 
 from __future__ import annotations
 
@@ -7,7 +7,9 @@ from typing import Any
 from langchain_core.runnables import Runnable
 from langgraph.runtime import Runtime
 
-from archwise_agent.agents.classifier.agent import classifier_input
+from archwise_agent.agents.hypothesis_assessor.hypothesis_assessor_agent import (
+    make_hypothesis_assessment_input,
+)
 from archwise_agent.core import (
     ArchHypoState,
     HypothesisClassification,
@@ -16,23 +18,23 @@ from archwise_agent.core import (
 from archwise_agent.graph import GraphNode, agent_message, raise_if_cancelled
 
 
-def create_classify_hypothesis_node(
-    classifier_agent: Runnable[Any, Any],
+def create_hypothesis_assessment_node(
+    hypothesis_assessor_agent: Runnable[Any, Any],
 ) -> GraphNode[ArchHypoState, RunContext]:
-    """Create the node that classifies NFR, impact, and uncertainty."""
+    """Create the node that assesses NFR, impact, and uncertainty."""
 
-    def classify_hypothesis(
+    def assess_hypothesis(
         state: ArchHypoState,
         runtime: Runtime[RunContext] | None = None,
     ) -> dict[str, object]:
         raise_if_cancelled(runtime)
         hypothesis = state.get("hypothesis")
         if hypothesis is None:
-            raise ValueError("hypothesis is required before classification")
+            raise ValueError("hypothesis is required before assessment")
 
         classification = HypothesisClassification.model_validate(
-            classifier_agent.invoke(
-                classifier_input(
+            hypothesis_assessor_agent.invoke(
+                make_hypothesis_assessment_input(
                     state["uncertainty"],
                     hypothesis.model_dump_json(indent=2),
                 )
@@ -41,10 +43,10 @@ def create_classify_hypothesis_node(
         raise_if_cancelled(runtime)
         return {
             "classification": classification,
-            "messages": [agent_message("classifier_agent", classification)],
+            "messages": [agent_message("hypothesis_assessor_agent", classification)],
         }
 
-    return classify_hypothesis
+    return assess_hypothesis
 
 
-__all__ = ["create_classify_hypothesis_node"]
+__all__ = ["create_hypothesis_assessment_node"]

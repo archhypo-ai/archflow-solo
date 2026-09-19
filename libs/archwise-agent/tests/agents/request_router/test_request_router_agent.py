@@ -1,6 +1,7 @@
 from langchain_core.messages import HumanMessage
 
-from archwise_agent import RequestRouting, build_request_router_agent
+from archwise_agent import RequestRouting
+from archwise_agent.agents.request_router import build_request_router_agent
 from tests.fakes import fake_hypothesis_model
 
 

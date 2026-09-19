@@ -1,4 +1,4 @@
-"""Hypothesis classification agent."""
+"""Hypothesis assessment agent."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from archwise_agent.core import HypothesisClassification
 
 SYSTEM_PROMPT = """\
-You are the ArchWise Hypothesis Classification Agent.
+You are the ArchWise Hypothesis Assessor Agent.
 
 Classify exactly one architectural hypothesis. Select exactly one non-functional
 requirement and assess both its impact and uncertainty. Every assessment must
@@ -29,8 +29,8 @@ Requirements:
 """
 
 
-def build_classifier_agent(model: BaseChatModel):
-    """Build the classifier with a fixed Pydantic response."""
+def build_hypothesis_assessor_agent(model: BaseChatModel):
+    """Build the assessor with a fixed Pydantic response."""
 
     prompt = ChatPromptTemplate.from_messages(
         [
@@ -41,11 +41,11 @@ def build_classifier_agent(model: BaseChatModel):
     return prompt | model.with_structured_output(HypothesisClassification)
 
 
-def classifier_input(
+def make_hypothesis_assessment_input(
     uncertainty: str,
     hypothesis: str,
 ) -> dict[str, list[HumanMessage]]:
-    """Create the typed human-message input for the classifier chain."""
+    """Create the typed human-message input for the assessor chain."""
 
     return {
         "messages": [
@@ -62,7 +62,6 @@ def classifier_input(
 
 
 __all__ = [
-    "SYSTEM_PROMPT",
-    "build_classifier_agent",
-    "classifier_input",
+    "build_hypothesis_assessor_agent",
+    "make_hypothesis_assessment_input",
 ]

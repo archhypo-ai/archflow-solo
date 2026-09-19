@@ -11,7 +11,7 @@ from archwise_agent.core import ArchHypoState, RequestRouting, RunContext
 from archwise_agent.graph import GraphNode, raise_if_cancelled
 
 
-def create_request_router_node(
+def create_request_routing_node(
     request_router_agent: Runnable[Any, Any],
 ) -> GraphNode[ArchHypoState, RunContext]:
     """Create the node that chooses direct response or ArchWise workflow."""
@@ -37,8 +37,8 @@ def route_request(state: ArchHypoState) -> str:
     if routing is None:
         raise ValueError("request routing is required")
     if routing.route == "direct_response":
-        return "respond_directly"
-    return "formulate_hypothesis"
+        return "response_composition"
+    return "hypothesis_formulation"
 
 
-__all__ = ["create_request_router_node", "route_request"]
+__all__ = ["create_request_routing_node", "route_request"]

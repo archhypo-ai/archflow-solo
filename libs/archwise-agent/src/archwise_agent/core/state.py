@@ -28,7 +28,4 @@ class ArchHypoState(TypedDict):
     result: NotRequired[ArchHypo]
 
 
-# Temporary compatibility alias for existing callers.
-AgentState = ArchHypoState
-
-__all__ = ["AgentState", "ArchHypoState"]
+__all__ = ["ArchHypoState"]

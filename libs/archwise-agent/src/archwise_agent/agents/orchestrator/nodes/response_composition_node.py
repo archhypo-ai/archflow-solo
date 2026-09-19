@@ -11,9 +11,11 @@ from langgraph.runtime import Runtime
 from archwise_agent.core import ArchHypoState, RunContext, UserResponse
 from archwise_agent.graph import GraphNode, raise_if_cancelled
 
+_RESPONSE_AGENT_NAMES = {"response_composer_agent", "response_agent"}
 
-def create_response_node(
-    response_agent: Runnable[Any, Any],
+
+def create_response_composition_node(
+    response_composer_agent: Runnable[Any, Any],
 ) -> GraphNode[ArchHypoState, RunContext]:
     """Create the final node that renders a human-facing response."""
 
@@ -35,12 +37,17 @@ def create_response_node(
             )
 
         response = UserResponse.model_validate(
-            response_agent.invoke({"messages": messages})
+            response_composer_agent.invoke({"messages": messages})
         )
         raise_if_cancelled(runtime)
         return {
             "response": response.message,
-            "messages": [AIMessage(name="response_agent", content=response.message)],
+            "messages": [
+                AIMessage(
+                    name="response_composer_agent",
+                    content=response.message,
+                )
+            ],
         }
 
     return respond
@@ -55,9 +62,9 @@ def response_history(messages: list[Any]) -> list[Any]:
         if isinstance(message, HumanMessage)
         or (
             isinstance(message, AIMessage)
-            and getattr(message, "name", None) == "response_agent"
+            and getattr(message, "name", None) in _RESPONSE_AGENT_NAMES
         )
     ]
 
 
-__all__ = ["create_response_node", "response_history"]
+__all__ = ["create_response_composition_node", "response_history"]

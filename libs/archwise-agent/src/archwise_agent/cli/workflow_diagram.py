@@ -10,7 +10,7 @@ from typing import Any
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langchain_core.runnables import RunnableLambda
 
-from archwise_agent import build_archwise_agent
+from archwise_agent import build_orchestrator_agent
 
 
 class DiagramModel(FakeListChatModel):
@@ -37,7 +37,7 @@ def generate_workflow_diagram(output_directory: Path) -> tuple[Path, Path]:
     mermaid_path = output_directory / "archwise-workflow.mmd"
     png_path = output_directory / "archwise-workflow.png"
 
-    agent = build_archwise_agent(model=DiagramModel())
+    agent = build_orchestrator_agent(model=DiagramModel())
     graph = agent.get_graph()
     mermaid_path.write_text(graph.draw_mermaid(), encoding="utf-8")
     png_path.write_bytes(graph.draw_mermaid_png())

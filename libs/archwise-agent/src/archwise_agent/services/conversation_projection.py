@@ -8,6 +8,16 @@ from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
 from archwise_agent.core import ArchHypo
 
+_RESPONSE_AGENT_NAMES = {"response_composer_agent", "response_agent"}
+_INTERNAL_AGENT_NAMES = {
+    "hypothesis_formulator_agent",
+    "hypothesis_assessor_agent",
+    "hypothesis_agent",
+    "classifier_agent",
+    "technical_planner_agent",
+    "technical_plan_agent",
+}
+
 
 def checkpoint_thread_id(checkpoint: Any) -> str | None:
     """Extract a thread id from a LangGraph checkpoint."""
@@ -60,7 +70,7 @@ def user_visible_messages(messages: list[Any]) -> list[Any]:
 
     has_final_response = any(
         isinstance(message, AIMessage)
-        and getattr(message, "name", None) == "response_agent"
+        and getattr(message, "name", None) in _RESPONSE_AGENT_NAMES
         for message in messages
     )
     if has_final_response:
@@ -70,7 +80,7 @@ def user_visible_messages(messages: list[Any]) -> list[Any]:
             if isinstance(message, HumanMessage)
             or (
                 isinstance(message, AIMessage)
-                and getattr(message, "name", None) == "response_agent"
+                and getattr(message, "name", None) in _RESPONSE_AGENT_NAMES
             )
         ]
 
@@ -127,11 +137,10 @@ def message_role(message: Any) -> Literal["user", "assistant"] | None:
 def _is_internal_agent_message(message: Any) -> bool:
     """Recognize only messages explicitly emitted by workflow agents."""
 
-    return isinstance(message, AIMessage) and getattr(message, "name", None) in {
-        "hypothesis_agent",
-        "classifier_agent",
-        "technical_plan_agent",
-    }
+    return (
+        isinstance(message, AIMessage)
+        and getattr(message, "name", None) in _INTERNAL_AGENT_NAMES
+    )
 
 
 __all__ = [

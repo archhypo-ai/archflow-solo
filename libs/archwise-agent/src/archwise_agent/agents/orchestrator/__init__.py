@@ -1,5 +1,5 @@
-"""Public API for the main ArchWise orchestrator."""
+"""Public API for the ArchWise workflow orchestrator."""
 
-from .agent import build_archwise_agent
+from .orchestrator_agent import build_orchestrator_agent
 
-__all__ = ["build_archwise_agent"]
+__all__ = ["build_orchestrator_agent"]

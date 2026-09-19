@@ -12,8 +12,8 @@ from archwise_agent.core import ArchHypo, ArchHypoState, RunContext, TechnicalPl
 from archwise_agent.graph import GraphNode, agent_message, raise_if_cancelled
 
 
-def create_technical_plan_node(
-    technical_plan_agent: Runnable[Any, Any],
+def create_technical_plan_generation_node(
+    technical_planner_agent: Runnable[Any, Any],
 ) -> GraphNode[ArchHypoState, RunContext]:
     """Create the node that generates the technical plan."""
 
@@ -45,7 +45,7 @@ def create_technical_plan_node(
                     "thread_id": runtime.context.get("thread_id"),
                 }
             }
-        result = technical_plan_agent.invoke(
+        result = technical_planner_agent.invoke(
             {"messages": [HumanMessage(content=prompt)]},
             child_config,
             context=(runtime.context if runtime is not None else None),
@@ -62,10 +62,10 @@ def create_technical_plan_node(
         return {
             "technical_plan": technical_plan,
             "result": final_result,
-            "messages": [agent_message("technical_plan_agent", technical_plan)],
+            "messages": [agent_message("technical_planner_agent", technical_plan)],
         }
 
     return create_technical_plan
 
 
-__all__ = ["create_technical_plan_node"]
+__all__ = ["create_technical_plan_generation_node"]
