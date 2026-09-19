@@ -6,7 +6,7 @@ from threading import RLock
 
 from langgraph.runtime import RunControl
 
-from archwise_agent.core import ExecutionContext
+from archwise_agent.core import ConcurrentRunError, ExecutionContext
 
 
 class RunRegistry:
@@ -24,6 +24,14 @@ class RunRegistry:
         with self._lock:
             if context.run_id in self._active_runs:
                 raise ValueError("run_id is already active")
+            if any(
+                active_thread_id == context.thread_id
+                for active_thread_id in self._run_threads.values()
+            ):
+                raise ConcurrentRunError(
+                    "thread_id already has an active run; wait for it to finish "
+                    "or cancel it before sending another message"
+                )
             self._active_runs[context.run_id] = control
             self._run_threads[context.run_id] = context.thread_id
 

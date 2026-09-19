@@ -1,7 +1,7 @@
 """Core contracts shared across ArchWise agents and services."""
 
 from .context import DEFAULT_WORKSPACE_ID, ExecutionContext, RunContext
-from .contracts import AgentCancelledError
+from .contracts import AgentCancelledError, ConcurrentRunError
 from .models import (
     NFR,
     ArchHypo,
@@ -19,6 +19,7 @@ from .state import ArchHypoState
 
 __all__ = [
     "AgentCancelledError",
+    "ConcurrentRunError",
     "ArchHypo",
     "ArchHypoState",
     "ArchHypoPattern",

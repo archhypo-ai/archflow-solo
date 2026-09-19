@@ -5,7 +5,7 @@ from langchain_core.messages import HumanMessage
 from langgraph.checkpoint.memory import InMemorySaver
 
 from archwise_agent import AgentService, Hypothesis, build_orchestrator_agent
-from archwise_agent.core import AgentCancelledError
+from archwise_agent.core import AgentCancelledError, ConcurrentRunError
 from tests.fakes import fake_hypothesis_model
 
 
@@ -57,6 +57,39 @@ def test_agent_runs_one_uncertainty_at_a_time() -> None:
         "technical_planner_agent",
         "response_composer_agent",
     ]
+
+
+def test_agent_rejects_concurrent_runs_for_the_same_thread() -> None:
+    service = AgentService(
+        model=fake_hypothesis_model(["reply"], sleep=0.2),
+        checkpointer=InMemorySaver(),
+    )
+    errors: list[Exception] = []
+
+    def run() -> None:
+        try:
+            service.send(thread_id="same-thread", message="first")
+        except Exception as error:
+            errors.append(error)
+
+    worker = threading.Thread(target=run)
+    worker.start()
+    for _ in range(100):
+        if service.get_active_run("same-thread") is not None:
+            break
+        time.sleep(0.01)
+
+    assert service.get_active_run("same-thread") is not None
+    try:
+        service.send(thread_id="same-thread", message="second")
+    except ConcurrentRunError:
+        pass
+    else:
+        raise AssertionError("concurrent same-thread run was not rejected")
+
+    worker.join(timeout=5)
+    assert not worker.is_alive()
+    assert not errors
 
 
 def test_agent_stream_can_be_cancelled() -> None:

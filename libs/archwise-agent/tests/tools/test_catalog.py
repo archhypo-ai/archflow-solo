@@ -22,39 +22,38 @@ def test_catalog_index_contains_only_canonical_related_patterns() -> None:
     )
 
 
-def test_catalog_reader_deduplicates_within_one_graph_run() -> None:
+def test_catalog_reader_is_stateless_between_calls() -> None:
     reader = CatalogReader(CATALOG_ROOT)
 
-    first = reader.read(
-        run_id="run-1",
-        patterns=["Architectural Spike", "Protective Guideline"],
-    )
-    second = reader.read(
-        run_id="run-1",
-        patterns=["Architectural Spike", "Continuous Inspection"],
-    )
+    first = reader.read(patterns=["Architectural Spike"])
+    second = reader.read(patterns=["Architectural Spike"])
 
-    assert first["read_now"] == ["Architectural Spike", "Protective Guideline"]
-    assert second["read_now"] == ["Continuous Inspection"]
-    assert second["skipped_already_read"] == ["Architectural Spike"]
+    assert first["read_now"] == ["Architectural Spike"]
+    assert second["read_now"] == ["Architectural Spike"]
+    assert first["references"] == second["references"]
+    assert first["skipped_already_read"] == []
+    assert second["skipped_already_read"] == []
 
 
-def test_catalog_reader_isolates_runs_and_enforces_reference_budget() -> None:
+def test_catalog_reader_enforces_request_budget() -> None:
     reader = CatalogReader(CATALOG_ROOT)
 
-    first = reader.read(run_id="run-1", patterns=["Architectural Spike"])
-    second = reader.read(run_id="run-2", patterns=["Architectural Spike"])
     selected = reader.read(
-        run_id="run-3",
         patterns=[
             "Architectural Spike",
             "Quality Checkpoint",
             "Technical Debt Management",
-        ],
+        ]
     )
-    overflow = reader.read(run_id="run-3", patterns=["Continuous Inspection"])
+    overflow = reader.read(
+        patterns=[
+            "Continuous Inspection",
+            "Learning from Experiments",
+            "Plan for Preparation",
+            "Tracer Bullets",
+        ]
+    )
 
-    assert first["read_now"] == ["Architectural Spike"]
-    assert second["read_now"] == ["Architectural Spike"]
     assert len(selected["read_now"]) == 3
-    assert overflow["status"] == "reference_budget_exceeded"
+    assert overflow["status"] == "error"
+    assert overflow["max_references"] == 3

@@ -7,4 +7,8 @@ class AgentCancelledError(Exception):
     """Raised when a client requests cancellation of an active run."""
 
 
-__all__ = ["AgentCancelledError"]
+class ConcurrentRunError(RuntimeError):
+    """Raised when a conversation already has an active graph execution."""
+
+
+__all__ = ["AgentCancelledError", "ConcurrentRunError"]

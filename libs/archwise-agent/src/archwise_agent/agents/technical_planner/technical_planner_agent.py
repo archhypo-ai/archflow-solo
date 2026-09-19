@@ -11,7 +11,7 @@ from langchain.agents.structured_output import ToolStrategy
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from archwise_agent.core import TechnicalPlan
-from archwise_agent.tools import make_catalog_tool
+from archwise_agent.tools import read_archhypo_catalog
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[4]
 CATALOG_ROOT = PACKAGE_ROOT / "skills" / "archhypo-catalog"
@@ -42,14 +42,16 @@ Research protocol:
 1. Screen the complete catalog index and classify up to five candidates.
 2. Select up to three strongest patterns using their summaries and related
    official patterns. Do not read a reference merely to create a candidate.
-3. Request only the selected patterns with `read_archhypo_catalog`. The tool
-   enforces a maximum of three references per graph execution.
-4. Use the returned references to create a concise plan. Do not request
-   additional related references or traverse relationships recursively.
+3. Make one call to `read_archhypo_catalog` with only the selected patterns.
+   The request may contain at most three references.
+4. Use the returned references to create a concise plan. Do not call the tool
+   again, request additional related references, or traverse relationships
+   recursively.
 
 Use only `read_archhypo_catalog` to access catalog references. Do not use
 filesystem traversal, construct paths, follow relationships recursively, or
-invent catalog patterns.
+invent catalog patterns. The tool is stateless: its output is scoped to the
+current call, so do not infer or request an "already read" session.
 
 Requirements:
 - Generate between one and three concrete technical plan items.
@@ -70,11 +72,10 @@ def build_technical_planner_agent(model: BaseChatModel):
     """Build the technical planner with one governed catalog tool."""
 
     backend = FilesystemBackend(root_dir=PACKAGE_ROOT, virtual_mode=True)
-    catalog_tool = make_catalog_tool(CATALOG_ROOT)
     return create_agent(
         model=model,
         system_prompt=SYSTEM_PROMPT,
-        tools=[catalog_tool],
+        tools=[read_archhypo_catalog],
         response_format=ToolStrategy(TechnicalPlan),
         middleware=[
             SkillsMiddleware(

@@ -1,17 +1,14 @@
-"""Governed access to the ArchHypo catalog references."""
+"""Stateless, governed access to the ArchHypo catalog references."""
 
 from __future__ import annotations
 
 import logging
 import re
-from collections import OrderedDict
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
-from threading import RLock
 from typing import Any
 
-from langchain.tools import ToolRuntime
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field
 
@@ -23,8 +20,8 @@ _REFERENCE_ROW = re.compile(
     r"`(?P<reference>[^`]+)`\s*\|\s*$"
 )
 _DEFAULT_MAX_CONTEXT_CHARS = 200_000
-_MAX_SESSIONS = 128
-_MAX_REFERENCES_PER_RUN = 3
+_MAX_REFERENCES_PER_REQUEST = 3
+_CATALOG_ROOT = Path(__file__).resolve().parents[3] / "skills" / "archhypo-catalog"
 
 
 class CatalogReadRequest(BaseModel):
@@ -32,10 +29,10 @@ class CatalogReadRequest(BaseModel):
 
     patterns: list[str] = Field(
         default_factory=list,
-        max_length=_MAX_REFERENCES_PER_RUN,
+        max_length=_MAX_REFERENCES_PER_REQUEST,
         description=(
-            "Exact pattern names from the catalog index. Use this for selected "
-            "primary or one-hop related patterns."
+            "Exact pattern names from the catalog index. Request only the "
+            "selected patterns."
         ),
     )
 
@@ -50,31 +47,19 @@ class CatalogEntry:
     reference: str
 
 
-@dataclass(slots=True)
-class _ReadSession:
-    read_set: set[str] = field(default_factory=set)
-    chars_loaded: int = 0
-
-
 class CatalogReader:
-    """Read catalog content with per-run deduplication and context budgeting."""
+    """Read catalog content without conversation or execution state."""
 
     def __init__(
         self,
         catalog_root: Path,
         *,
         max_context_chars: int = _DEFAULT_MAX_CONTEXT_CHARS,
-        max_sessions: int = _MAX_SESSIONS,
     ) -> None:
         if max_context_chars <= 0:
             raise ValueError("max_context_chars must be positive")
-        if max_sessions <= 0:
-            raise ValueError("max_sessions must be positive")
         self.catalog_root = catalog_root
         self.max_context_chars = max_context_chars
-        self.max_sessions = max_sessions
-        self._sessions: OrderedDict[str, _ReadSession] = OrderedDict()
-        self._lock = RLock()
 
     @property
     def index_path(self) -> Path:
@@ -103,6 +88,7 @@ class CatalogReader:
             )
         if not entries:
             raise ValueError("The catalog index contains no patterns")
+
         names = [entry.name for entry in entries]
         if len(names) != len(set(names)):
             raise ValueError("The catalog index contains duplicate pattern names")
@@ -122,27 +108,28 @@ class CatalogReader:
             )
         return entries
 
-    def read(
-        self,
-        *,
-        run_id: str,
-        patterns: Sequence[str] | None = None,
-    ) -> dict[str, Any]:
-        """Return newly requested references and skip files already in context."""
+    def read(self, *, patterns: Sequence[str] | None = None) -> dict[str, Any]:
+        """Return the requested references for this call only.
+
+        The reader deliberately has no run-, thread-, or process-session state.
+        Conversation isolation belongs to LangGraph checkpoints; catalog reads
+        are ordinary functional inputs and outputs.
+        """
 
         entries = self.index()
         by_name = {entry.name: entry for entry in entries}
         requested = list(dict.fromkeys(patterns or []))
-        if len(requested) > _MAX_REFERENCES_PER_RUN:
+        if len(requested) > _MAX_REFERENCES_PER_REQUEST:
             return {
                 "status": "error",
                 "error": (
-                    "A graph run may read at most "
-                    f"{_MAX_REFERENCES_PER_RUN} catalog references."
+                    "A catalog read may request at most "
+                    f"{_MAX_REFERENCES_PER_REQUEST} references."
                 ),
-                "max_references": _MAX_REFERENCES_PER_RUN,
+                "max_references": _MAX_REFERENCES_PER_REQUEST,
                 "requested": requested,
             }
+
         unknown = [name for name in requested if name not in by_name]
         if unknown:
             return {
@@ -158,141 +145,65 @@ class CatalogReader:
                 "available_patterns": list(by_name),
             }
 
-        with self._lock:
-            session = self._session_for(run_id)
-            references: list[dict[str, str]] = []
-            skipped: list[str] = []
-            new_names = [name for name in requested if name not in session.read_set]
-            if len(session.read_set) + len(new_names) > _MAX_REFERENCES_PER_RUN:
+        references: list[dict[str, Any]] = []
+        chars_loaded = 0
+        for name in requested:
+            entry = by_name[name]
+            path = self.catalog_root / entry.reference
+            content = path.read_text(encoding="utf-8")
+            if chars_loaded + len(content) > self.max_context_chars:
                 return {
-                    "status": "reference_budget_exceeded",
+                    "status": "context_budget_exceeded",
                     "error": (
-                        "A graph run may read at most "
-                        f"{_MAX_REFERENCES_PER_RUN} catalog references."
+                        "The selected references exceed the catalog context "
+                        f"budget of {self.max_context_chars} characters."
                     ),
-                    "max_references": _MAX_REFERENCES_PER_RUN,
-                    "read_set": sorted(session.read_set),
-                    "requested": requested,
+                    "read_set": [item["pattern"] for item in references],
+                    "read_now": [item["pattern"] for item in references],
+                    "skipped_already_read": [],
+                    "references": references,
+                    "omitted": name,
+                    "available_patterns": list(by_name),
                 }
-            for name in requested:
-                if name in session.read_set:
-                    skipped.append(name)
-                    continue
 
-                entry = by_name[name]
-                path = self.catalog_root / entry.reference
-                content = path.read_text(encoding="utf-8")
-                if session.chars_loaded + len(content) > self.max_context_chars:
-                    return {
-                        "status": "context_budget_exceeded",
-                        "error": (
-                            "The selected references exceed the catalog context "
-                            f"budget of {self.max_context_chars} characters."
-                        ),
-                        "read_set": sorted(session.read_set),
-                        "read_now": [item["pattern"] for item in references],
-                        "skipped_already_read": skipped,
-                        "references": references,
-                        "omitted": name,
-                        "available_patterns": list(by_name),
-                    }
+            chars_loaded += len(content)
+            references.append(
+                {
+                    "pattern": name,
+                    "path": f"/skills/archhypo-catalog/{entry.reference}",
+                    "content": content,
+                    "related_patterns": list(entry.related_patterns),
+                }
+            )
 
-                session.read_set.add(name)
-                session.chars_loaded += len(content)
-                references.append(
-                    {
-                        "pattern": name,
-                        "path": f"/skills/archhypo-catalog/{entry.reference}",
-                        "content": content,
-                        "related_patterns": list(entry.related_patterns),
-                    }
-                )
-
-            return {
-                "status": "ok",
-                "mode": "selected",
-                "read_set": sorted(session.read_set),
-                "read_now": [item["pattern"] for item in references],
-                "skipped_already_read": skipped,
-                "references": references,
-                "available_patterns": list(by_name),
-            }
-
-    def _session_for(self, run_id: str) -> _ReadSession:
-        session = self._sessions.pop(run_id, None)
-        if session is None:
-            if len(self._sessions) >= self.max_sessions:
-                self._sessions.popitem(last=False)
-            session = _ReadSession()
-        self._sessions[run_id] = session
-        return session
+        return {
+            "status": "ok",
+            "mode": "selected",
+            "read_set": requested,
+            "read_now": requested,
+            "skipped_already_read": [],
+            "references": references,
+            "available_patterns": list(by_name),
+        }
 
 
-def _runtime_run_id(runtime: ToolRuntime | None) -> str:
-    if runtime is None:
-        return "standalone"
-    context = runtime.context
-    if isinstance(context, dict) and context.get("run_id"):
-        return str(context["run_id"])
-    config_run_id = runtime.config.get("run_id")
-    if config_run_id:
-        return str(config_run_id)
-    configurable = runtime.config.get("configurable", {})
-    if isinstance(configurable, dict):
-        if configurable.get("run_id"):
-            return str(configurable["run_id"])
-        if configurable.get("thread_id"):
-            return str(configurable["thread_id"])
-    return "standalone"
+@tool("read_archhypo_catalog", args_schema=CatalogReadRequest)
+def read_archhypo_catalog(patterns: list[str] | None = None) -> dict[str, Any]:
+    """Read selected ArchHypo references from the official catalog."""
 
-
-def make_catalog_tool(
-    catalog_root: Path,
-    *,
-    max_context_chars: int = _DEFAULT_MAX_CONTEXT_CHARS,
-):
-    """Create the only catalog access tool for one technical-plan agent."""
-
-    reader = CatalogReader(
-        catalog_root,
-        max_context_chars=max_context_chars,
+    result = CatalogReader(_CATALOG_ROOT).read(patterns=patterns)
+    logger.info(
+        "catalog_read status=%s patterns=%s references=%s",
+        result.get("status"),
+        patterns or [],
+        result.get("read_now", []),
     )
-
-    @tool("read_archhypo_catalog", args_schema=CatalogReadRequest)
-    def read_archhypo_catalog(
-        patterns: list[str] | None = None,
-        runtime: ToolRuntime | None = None,
-    ) -> dict[str, Any]:
-        """Read selected ArchHypo references without filesystem traversal.
-
-        Pattern names are resolved from the skill's SKILL.md index. The reader
-        owns a read set per graph run, so related-pattern requests cannot reread
-        content already supplied to the model.
-        """
-
-        run_id = _runtime_run_id(runtime)
-        result = reader.read(
-            run_id=run_id,
-            patterns=patterns,
-        )
-        logger.info(
-            "catalog_read run_id=%s status=%s mode=%s read_now=%s skipped=%s "
-            "read_set=%s",
-            run_id,
-            result.get("status"),
-            result.get("mode", "-"),
-            result.get("read_now", []),
-            result.get("skipped_already_read", []),
-            result.get("read_set", []),
-        )
-        return result
-
-    return read_archhypo_catalog
+    return result
 
 
 __all__ = [
     "CatalogEntry",
     "CatalogReadRequest",
     "CatalogReader",
-    "make_catalog_tool",
+    "read_archhypo_catalog",
 ]

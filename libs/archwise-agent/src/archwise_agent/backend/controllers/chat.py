@@ -14,7 +14,7 @@ from archwise_agent.backend.data import (
     ChatResponse,
 )
 from archwise_agent.backend.dependencies import AgentServiceDependency
-from archwise_agent.core import AgentCancelledError
+from archwise_agent.core import AgentCancelledError, ConcurrentRunError
 from archwise_agent.services import AgentStreamEvent
 
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ def chat(
             user_id=payload.user_id,
             run_id=payload.run_id,
         )
-    except AgentCancelledError as error:
+    except (AgentCancelledError, ConcurrentRunError) as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
@@ -65,7 +65,7 @@ def chat_stream(
             run_id=payload.run_id,
         ):
             yield _to_server_sent_event(event)
-    except ValueError as error:
+    except (ValueError, ConcurrentRunError) as error:
         yield _error_server_sent_event(
             thread_id=payload.thread_id,
             run_id=payload.run_id or "unknown",

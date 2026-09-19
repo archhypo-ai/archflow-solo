@@ -43,6 +43,9 @@ class GraphRunner:
         """Execute one message through the compiled graph."""
 
         config = self._observability.graph_config(context)
+        # thread_id is the only configurable value used for checkpoint
+        # persistence.  Per-execution data belongs in runtime context and
+        # tracing, never in the conversation checkpoint key.
         config["configurable"] = {"thread_id": context.thread_id}
         return self._agent.invoke(
             {

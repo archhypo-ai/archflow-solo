@@ -41,7 +41,6 @@ def create_technical_plan_generation_node(
         if runtime is not None and isinstance(runtime.context, dict):
             child_config = {
                 "configurable": {
-                    "run_id": runtime.context.get("run_id"),
                     "thread_id": runtime.context.get("thread_id"),
                 }
             }
