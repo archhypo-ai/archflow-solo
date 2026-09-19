@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from langchain_core.runnables import Runnable
 from langgraph.runtime import Runtime
 
 from archwise_agent.core import ArchHypoState, RequestRouting, RunContext
 from archwise_agent.graph import GraphNode, raise_if_cancelled
+
+RouteTarget = Literal[
+    "direct_response_generation",
+    "hypothesis_formulation",
+]
 
 
 def create_request_routing_node(
@@ -39,7 +44,7 @@ def create_request_routing_node(
     return request_router
 
 
-def route_request(state: ArchHypoState) -> str:
+def route_request(state: ArchHypoState) -> RouteTarget:
     """Select the next graph node from the routing decision."""
 
     routing = state.get("routing")
@@ -50,4 +55,4 @@ def route_request(state: ArchHypoState) -> str:
     return "hypothesis_formulation"
 
 
-__all__ = ["create_request_routing_node", "route_request"]
+__all__ = ["RouteTarget", "create_request_routing_node", "route_request"]

@@ -10,7 +10,11 @@ from .direct_response_generation_node import (
 )
 from .hypothesis_assessment_node import create_hypothesis_assessment_node
 from .hypothesis_formulation_node import create_hypothesis_formulation_node
-from .request_routing_node import create_request_routing_node, route_request
+from .request_routing_node import (
+    RouteTarget,
+    create_request_routing_node,
+    route_request,
+)
 from .technical_plan_generation_node import create_technical_plan_generation_node
 
 __all__ = [
@@ -21,6 +25,7 @@ __all__ = [
     "create_hypothesis_formulation_node",
     "create_request_routing_node",
     "create_technical_plan_generation_node",
+    "RouteTarget",
     "response_history",
     "route_request",
 ]
