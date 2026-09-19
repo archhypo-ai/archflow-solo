@@ -211,7 +211,10 @@ export function useAgentChatRuntime(
       // The next conversation mount will query its status and poll for its
       // persisted result.
     };
-  }, [persisted, threadId]);
+  // `persisted` only controls the initial hydration. A new thread becomes
+  // persisted while its first run is active; rehydrating here would clear the
+  // optimistic user message before the backend checkpoint is available.
+  }, [threadId]);
 
   useEffect(() => {
     if (!activeRun) return;
