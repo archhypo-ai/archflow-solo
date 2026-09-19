@@ -55,7 +55,7 @@ def test_agent_runs_one_uncertainty_at_a_time() -> None:
         "hypothesis_formulator_agent",
         "hypothesis_assessor_agent",
         "technical_planner_agent",
-        "response_composer_agent",
+        "archwise_response_agent",
     ]
 
 
@@ -209,7 +209,9 @@ def test_orchestrator_uses_canonical_stage_ids() -> None:
         "__start__",
         "__end__",
         "request_routing",
-        "response_composition",
+        "direct_response_generation",
+        "archwise_result_rendering",
+        "archwise_response_generation",
         "hypothesis_formulation",
         "hypothesis_assessment",
         "technical_plan_generation",

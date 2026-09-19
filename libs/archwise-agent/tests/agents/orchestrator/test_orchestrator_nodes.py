@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from langchain_core.runnables import RunnableLambda
 
@@ -5,13 +7,38 @@ from archwise_agent.agents.hypothesis_formulator import (
     build_hypothesis_formulator_agent,
 )
 from archwise_agent.agents.orchestrator.nodes import (
+    create_archwise_result_rendering_node,
     create_hypothesis_assessment_node,
     create_hypothesis_formulation_node,
     create_technical_plan_generation_node,
 )
 from archwise_agent.agents.technical_planner import build_technical_planner_agent
-from archwise_agent.core import Hypothesis, HypothesisClassification, TechnicalPlan
-from tests.fakes import fake_hypothesis_model
+from archwise_agent.core import (
+    ArchHypo,
+    Hypothesis,
+    HypothesisClassification,
+    TechnicalPlan,
+)
+from tests.fakes import archhypo_json, fake_hypothesis_model
+
+
+def test_archwise_result_rendering_is_deterministic() -> None:
+    node = create_archwise_result_rendering_node()
+    result = ArchHypo.model_validate(
+        json.loads(
+            archhypo_json(
+                "Peak capacity is unknown.",
+                "The system handles the projected load.",
+            )
+        )
+    )
+
+    rendered = node({"result": result})
+
+    assert rendered["response"].startswith("## ArchWise analysis")
+    assert "### Classification" in rendered["response"]
+    assert "### Technical plan" in rendered["response"]
+    assert "messages" not in rendered
 
 
 def test_formulate_hypothesis_node_normalizes_uncertainty() -> None:

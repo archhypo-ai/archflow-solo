@@ -25,7 +25,16 @@ def create_request_routing_node(
             request_router_agent.invoke({"messages": state["messages"]})
         )
         raise_if_cancelled(runtime)
-        return {"routing": routing}
+        # These fields belong to the current turn. Resetting them prevents a
+        # previous ArchWise result from leaking into a later direct response.
+        return {
+            "routing": routing,
+            "response": None,
+            "hypothesis": None,
+            "classification": None,
+            "technical_plan": None,
+            "result": None,
+        }
 
     return request_router
 
@@ -37,7 +46,7 @@ def route_request(state: ArchHypoState) -> str:
     if routing is None:
         raise ValueError("request routing is required")
     if routing.route == "direct_response":
-        return "response_composition"
+        return "direct_response_generation"
     return "hypothesis_formulation"
 
 

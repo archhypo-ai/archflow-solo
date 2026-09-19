@@ -17,6 +17,9 @@ Rules:
 - Use the conversation history to resolve references and follow-up questions.
 - If an ArchWise analysis result is supplied, explain it clearly instead of
   exposing JSON, internal state, routing decisions, or agent names.
+- Treat the supplied ArchHypo result as the source of truth.
+- Do not add facts, metrics, evidence, or recommendations that are not in the
+  supplied result.
 - Preserve the important content: the normalized uncertainty, hypothesis,
   classification, and technical plan when they are present.
 - Use the same language as the latest user request.

@@ -6,9 +6,17 @@ from typing import Any, Literal
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 
+from archwise_agent.agents.orchestrator.nodes.archwise_result_rendering_node import (
+    render_archhypo_response,
+)
 from archwise_agent.core import ArchHypo
 
-_RESPONSE_AGENT_NAMES = {"response_composer_agent", "response_agent"}
+_RESPONSE_AGENT_NAMES = {
+    "archwise_response_agent",
+    "archwise_result_renderer",
+    "response_composer_agent",
+    "response_agent",
+}
 _INTERNAL_AGENT_NAMES = {
     "hypothesis_formulator_agent",
     "hypothesis_assessor_agent",
@@ -102,7 +110,7 @@ def archhypo_from_value(value: Any) -> ArchHypo:
 def response_message(archhypo: ArchHypo) -> AIMessage:
     """Build the legacy fallback response for old checkpoints."""
 
-    return AIMessage(content=archhypo.model_dump_json(indent=2))
+    return AIMessage(content=render_archhypo_response(archhypo))
 
 
 def message_text(message: BaseMessage | Any) -> str:

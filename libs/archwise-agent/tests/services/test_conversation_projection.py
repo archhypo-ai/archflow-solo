@@ -1,6 +1,6 @@
 from langchain_core.messages import AIMessage, HumanMessage
 
-from archwise_agent.agents.orchestrator.nodes.response_composition_node import (
+from archwise_agent.agents.orchestrator.nodes.direct_response_generation_node import (
     response_history,
 )
 from archwise_agent.services.conversation_projection import user_visible_messages

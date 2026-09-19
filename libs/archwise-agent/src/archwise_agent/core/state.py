@@ -20,12 +20,12 @@ class ArchHypoState(TypedDict):
 
     messages: Annotated[list[AnyMessage], add_messages]
     uncertainty: str
-    routing: NotRequired[RequestRouting]
-    response: NotRequired[str]
-    hypothesis: NotRequired[Hypothesis]
-    classification: NotRequired[HypothesisClassification]
-    technical_plan: NotRequired[TechnicalPlan]
-    result: NotRequired[ArchHypo]
+    routing: NotRequired[RequestRouting | None]
+    response: NotRequired[str | None]
+    hypothesis: NotRequired[Hypothesis | None]
+    classification: NotRequired[HypothesisClassification | None]
+    technical_plan: NotRequired[TechnicalPlan | None]
+    result: NotRequired[ArchHypo | None]
 
 
 __all__ = ["ArchHypoState"]

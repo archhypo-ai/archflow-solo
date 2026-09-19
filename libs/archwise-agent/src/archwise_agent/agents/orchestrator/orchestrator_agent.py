@@ -21,10 +21,12 @@ from archwise_agent.core import ArchHypoState, RunContext
 from archwise_agent.providers import create_openrouter_model
 
 from .nodes import (
+    create_archwise_response_generation_node,
+    create_archwise_result_rendering_node,
+    create_direct_response_generation_node,
     create_hypothesis_assessment_node,
     create_hypothesis_formulation_node,
     create_request_routing_node,
-    create_response_composition_node,
     create_technical_plan_generation_node,
     route_request,
 )
@@ -51,8 +53,16 @@ def build_orchestrator_agent(
         create_request_routing_node(request_router_agent),
     )
     workflow.add_node(
-        "response_composition",
-        create_response_composition_node(response_composer_agent),
+        "direct_response_generation",
+        create_direct_response_generation_node(response_composer_agent),
+    )
+    workflow.add_node(
+        "archwise_result_rendering",
+        create_archwise_result_rendering_node(),
+    )
+    workflow.add_node(
+        "archwise_response_generation",
+        create_archwise_response_generation_node(response_composer_agent),
     )
     workflow.add_node(
         "hypothesis_formulation",
@@ -72,14 +82,22 @@ def build_orchestrator_agent(
         "request_routing",
         route_request,
         {
-            "response_composition": "response_composition",
+            "direct_response_generation": "direct_response_generation",
             "hypothesis_formulation": "hypothesis_formulation",
         },
     )
-    workflow.add_edge("response_composition", END)
+    workflow.add_edge("direct_response_generation", END)
     workflow.add_edge("hypothesis_formulation", "hypothesis_assessment")
     workflow.add_edge("hypothesis_assessment", "technical_plan_generation")
-    workflow.add_edge("technical_plan_generation", "response_composition")
+    workflow.add_edge(
+        "technical_plan_generation",
+        "archwise_result_rendering",
+    )
+    workflow.add_edge(
+        "archwise_result_rendering",
+        "archwise_response_generation",
+    )
+    workflow.add_edge("archwise_response_generation", END)
 
     return workflow.compile(
         checkpointer=(checkpointer if checkpointer is not None else InMemorySaver())

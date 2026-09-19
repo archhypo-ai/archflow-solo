@@ -6,8 +6,12 @@ from typing import Any
 
 from langchain_core.messages import AIMessage
 
+from archwise_agent.agents.orchestrator.nodes.archwise_result_rendering_node import (
+    render_archhypo_response,
+)
+
 from .contracts import AgentTurn
-from .conversation_projection import archhypo_from_value, response_message
+from .conversation_projection import archhypo_from_value
 
 
 def present_turn(thread_id: str, state: dict[str, Any]) -> AgentTurn:
@@ -20,7 +24,7 @@ def present_turn(thread_id: str, state: dict[str, Any]) -> AgentTurn:
         response = AIMessage(content=direct_response)
     else:
         archhypo = archhypo_from_value(state.get("result"))
-        response = response_message(archhypo)
+        response = AIMessage(content=render_archhypo_response(archhypo))
 
     return AgentTurn(thread_id=thread_id, message=response, result=archhypo)
 
