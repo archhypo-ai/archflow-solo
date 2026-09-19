@@ -51,6 +51,17 @@ The default model is already
 `openrouter:deepseek/deepseek-v4.1-flash`. The prefix is accepted in the
 configuration and removed only before the request is sent to OpenRouter.
 
+Jev routing is optional and disabled by default. It uses the same OpenRouter
+API key through the Decisions API:
+
+```bash
+export JEV_ENABLED=true
+export JEV_MODEL="typesafe/jev-1.13"
+```
+
+If the Jev request fails or returns an invalid route, the existing LLM router
+is used as a fallback.
+
 The technical planner uses the `archhypo-catalog` skill through
 `SkillsMiddleware` and read-only `FilesystemMiddleware`. It loads the skill
 metadata first and reads the relevant pattern references only when needed.

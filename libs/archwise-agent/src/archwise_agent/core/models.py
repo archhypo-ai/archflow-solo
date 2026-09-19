@@ -41,6 +41,8 @@ class RequestRouting(_DomainModel):
     """Destination selected for the current user request."""
 
     route: RequestRoute
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    probabilities: dict[str, float] | None = None
 
 
 class UserResponse(_DomainModel):

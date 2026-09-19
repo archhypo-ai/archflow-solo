@@ -13,10 +13,13 @@ from archwise_agent.agents.hypothesis_assessor import (
 from archwise_agent.agents.hypothesis_formulator import (
     build_hypothesis_formulator_agent,
 )
-from archwise_agent.agents.request_router import build_request_router_agent
+from archwise_agent.agents.request_router import (
+    build_jev_request_router,
+    build_request_router_agent,
+)
 from archwise_agent.agents.response_composer import build_response_composer_agent
 from archwise_agent.agents.technical_planner import build_technical_planner_agent
-from archwise_agent.config import AgentSettings
+from archwise_agent.config import AgentSettings, settings
 from archwise_agent.core import ArchHypoState, RunContext
 from archwise_agent.providers import create_openrouter_model
 
@@ -40,8 +43,19 @@ def build_orchestrator_agent(
 ):
     """Build and compile the ArchHypo workflow orchestrator."""
 
-    chat_model = model or create_openrouter_model(configuration)
-    request_router_agent = build_request_router_agent(chat_model)
+    resolved_configuration = configuration or (
+        settings if model is None else AgentSettings(_env_file=None)
+    )
+    chat_model = model or create_openrouter_model(resolved_configuration)
+    llm_request_router_agent = build_request_router_agent(chat_model)
+    request_router_agent = (
+        build_jev_request_router(
+            configuration=resolved_configuration,
+            fallback_agent=llm_request_router_agent,
+        )
+        if resolved_configuration.jev_enabled
+        else llm_request_router_agent
+    )
     response_composer_agent = build_response_composer_agent(chat_model)
     hypothesis_formulator_agent = build_hypothesis_formulator_agent(chat_model)
     hypothesis_assessor_agent = build_hypothesis_assessor_agent(chat_model)

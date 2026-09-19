@@ -41,6 +41,23 @@ class AgentSettings(BaseSettings):
         default=None,
         validation_alias="OPENROUTER_APP_NAME",
     )
+    jev_enabled: bool = Field(
+        default=False,
+        validation_alias="JEV_ENABLED",
+    )
+    jev_model: str = Field(
+        default="typesafe/jev-1.13",
+        validation_alias="JEV_MODEL",
+    )
+    jev_endpoint: str = Field(
+        default="https://openrouter.ai/api/alpha/decisions",
+        validation_alias="JEV_ENDPOINT",
+    )
+    jev_timeout: float = Field(
+        default=30.0,
+        gt=0,
+        validation_alias="JEV_TIMEOUT",
+    )
     tavily_api_key: str = Field(
         default="",
         validation_alias="TAVILY_API_KEY",
