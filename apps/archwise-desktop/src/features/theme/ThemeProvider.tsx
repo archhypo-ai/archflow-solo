@@ -58,7 +58,16 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   const theme = appearance === "system" ? systemTheme : appearance;
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
+    const root = document.documentElement;
+    root.dataset.theme = theme;
+
+    const themeColor = getComputedStyle(root)
+      .getPropertyValue("--color-background")
+      .trim();
+    const themeColorMeta = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"]',
+    );
+    if (themeColorMeta && themeColor) themeColorMeta.content = themeColor;
   }, [theme]);
 
   const setAppearance = useCallback((nextAppearance: AppearancePreference) => {
