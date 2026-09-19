@@ -52,10 +52,7 @@ def response_history(messages: list[Any]) -> list[Any]:
     return [
         message
         for message in messages
-        if (
-            isinstance(message, HumanMessage)
-            and not is_internal_history_message(message)
-        )
+        if isinstance(message, HumanMessage)
         or (
             isinstance(message, AIMessage)
             and getattr(message, "name", None) == "response_agent"
@@ -63,21 +60,4 @@ def response_history(messages: list[Any]) -> list[Any]:
     ]
 
 
-def is_internal_history_message(message: Any) -> bool:
-    """Exclude prompts from older workflow implementations."""
-
-    if getattr(message, "name", None) in {
-        "hypothesis_agent",
-        "classifier_agent",
-        "technical_plan_agent",
-    }:
-        return True
-    content = getattr(message, "content", "")
-    return isinstance(content, str) and "{input}" in content and "{/input}" in content
-
-
-__all__ = [
-    "create_response_node",
-    "is_internal_history_message",
-    "response_history",
-]
+__all__ = ["create_response_node", "response_history"]

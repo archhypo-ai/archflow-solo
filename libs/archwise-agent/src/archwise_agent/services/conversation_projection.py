@@ -74,7 +74,9 @@ def user_visible_messages(messages: list[Any]) -> list[Any]:
             )
         ]
 
-    return [message for message in messages if not _is_internal_message(message)]
+    return [
+        message for message in messages if not _is_internal_agent_message(message)
+    ]
 
 
 def archhypo_from_value(value: Any) -> ArchHypo:
@@ -122,15 +124,14 @@ def message_role(message: Any) -> Literal["user", "assistant"] | None:
     return None
 
 
-def _is_internal_message(message: Any) -> bool:
-    """Recognize workflow messages from checkpoints created before response."""
+def _is_internal_agent_message(message: Any) -> bool:
+    """Recognize only messages explicitly emitted by workflow agents."""
 
-    name = getattr(message, "name", None)
-    if name in {"hypothesis_agent", "classifier_agent", "technical_plan_agent"}:
-        return True
-
-    text = message_text(message)
-    return "{input}" in text and "{/input}" in text
+    return isinstance(message, AIMessage) and getattr(message, "name", None) in {
+        "hypothesis_agent",
+        "classifier_agent",
+        "technical_plan_agent",
+    }
 
 
 __all__ = [
