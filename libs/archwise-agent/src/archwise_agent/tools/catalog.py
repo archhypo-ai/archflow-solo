@@ -196,6 +196,9 @@ def _runtime_run_id(runtime: ToolRuntime | None) -> str:
     context = runtime.context
     if isinstance(context, dict) and context.get("run_id"):
         return str(context["run_id"])
+    config_run_id = runtime.config.get("run_id")
+    if config_run_id:
+        return str(config_run_id)
     configurable = runtime.config.get("configurable", {})
     if isinstance(configurable, dict):
         if configurable.get("run_id"):
@@ -230,13 +233,16 @@ def make_catalog_tool(
         content already supplied to the model.
         """
 
+        run_id = _runtime_run_id(runtime)
         result = reader.read(
-            run_id=_runtime_run_id(runtime),
+            run_id=run_id,
             patterns=patterns,
             read_all=read_all,
         )
         logger.info(
-            "catalog_read status=%s mode=%s read_now=%s skipped=%s read_set=%s",
+            "catalog_read run_id=%s status=%s mode=%s read_now=%s skipped=%s "
+            "read_set=%s",
+            run_id,
             result.get("status"),
             result.get("mode", "-"),
             result.get("read_now", []),
