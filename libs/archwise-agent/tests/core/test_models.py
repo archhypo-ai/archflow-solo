@@ -58,9 +58,26 @@ def test_complete_archhypo_contract_is_valid() -> None:
     assert result.hypothesis.uncertainty == result.uncertainty
 
 
-def test_technical_plan_requires_three_to_five_items() -> None:
+def test_technical_plan_requires_one_to_three_items() -> None:
     with pytest.raises(ValidationError):
         TechnicalPlan(items=[], rationale="No plan")
+
+    single_item = {
+        "title": "Run a benchmark",
+        "objective": "Measure capacity",
+        "description": "Use representative load",
+        "pattern": "Learning from Experiments",
+        "tradeoff": "Requires test effort",
+    }
+    assert len(
+        TechnicalPlan(items=[single_item], rationale="Generate evidence").items
+    ) == 1
+
+    with pytest.raises(ValidationError):
+        TechnicalPlan(
+            items=[single_item, single_item, single_item, single_item],
+            rationale="Too many actions",
+        )
 
 
 def test_domain_models_are_immutable_and_forbid_extra_fields() -> None:

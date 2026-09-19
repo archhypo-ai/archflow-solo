@@ -19,10 +19,12 @@ logger = logging.getLogger(__name__)
 
 _REFERENCE_ROW = re.compile(
     r"^\|\s*\d+\s*\|\s*(?P<name>[^|]+?)\s*\|\s*"
-    r"(?P<use_when>[^|]+?)\s*\|\s*`(?P<reference>[^`]+)`\s*\|\s*$"
+    r"(?P<use_when>[^|]+?)\s*\|\s*(?P<related>[^|]*?)\s*\|\s*"
+    r"`(?P<reference>[^`]+)`\s*\|\s*$"
 )
 _DEFAULT_MAX_CONTEXT_CHARS = 200_000
 _MAX_SESSIONS = 128
+_MAX_REFERENCES_PER_RUN = 3
 
 
 class CatalogReadRequest(BaseModel):
@@ -30,17 +32,10 @@ class CatalogReadRequest(BaseModel):
 
     patterns: list[str] = Field(
         default_factory=list,
-        max_length=100,
+        max_length=_MAX_REFERENCES_PER_RUN,
         description=(
             "Exact pattern names from the catalog index. Use this for selected "
             "primary or one-hop related patterns."
-        ),
-    )
-    read_all: bool = Field(
-        default=False,
-        description=(
-            "Read every pattern in the catalog when comparing the complete "
-            "catalog is justified. The final answer still contains only 3–5 items."
         ),
     )
 
@@ -51,6 +46,7 @@ class CatalogEntry:
 
     name: str
     use_when: str
+    related_patterns: tuple[str, ...]
     reference: str
 
 
@@ -92,10 +88,16 @@ class CatalogReader:
             match = _REFERENCE_ROW.match(line)
             if match is None:
                 continue
+            related = tuple(
+                item.strip()
+                for item in match.group("related").split(";")
+                if item.strip() and item.strip() not in {"-", "—"}
+            )
             entries.append(
                 CatalogEntry(
                     name=match.group("name").strip(),
                     use_when=match.group("use_when").strip(),
+                    related_patterns=related,
                     reference=match.group("reference").strip(),
                 )
             )
@@ -104,6 +106,20 @@ class CatalogReader:
         names = [entry.name for entry in entries]
         if len(names) != len(set(names)):
             raise ValueError("The catalog index contains duplicate pattern names")
+        known_names = set(names)
+        unknown_related = sorted(
+            {
+                related
+                for entry in entries
+                for related in entry.related_patterns
+                if related not in known_names
+            }
+        )
+        if unknown_related:
+            raise ValueError(
+                "The catalog index contains unknown related pattern names: "
+                + ", ".join(unknown_related)
+            )
         return entries
 
     def read(
@@ -111,13 +127,22 @@ class CatalogReader:
         *,
         run_id: str,
         patterns: Sequence[str] | None = None,
-        read_all: bool = False,
     ) -> dict[str, Any]:
         """Return newly requested references and skip files already in context."""
 
         entries = self.index()
         by_name = {entry.name: entry for entry in entries}
-        requested = list(by_name) if read_all else list(patterns or [])
+        requested = list(dict.fromkeys(patterns or []))
+        if len(requested) > _MAX_REFERENCES_PER_RUN:
+            return {
+                "status": "error",
+                "error": (
+                    "A graph run may read at most "
+                    f"{_MAX_REFERENCES_PER_RUN} catalog references."
+                ),
+                "max_references": _MAX_REFERENCES_PER_RUN,
+                "requested": requested,
+            }
         unknown = [name for name in requested if name not in by_name]
         if unknown:
             return {
@@ -129,7 +154,7 @@ class CatalogReader:
         if not requested:
             return {
                 "status": "error",
-                "error": "Provide patterns or set read_all=true.",
+                "error": "Provide at least one catalog pattern name.",
                 "available_patterns": list(by_name),
             }
 
@@ -137,7 +162,19 @@ class CatalogReader:
             session = self._session_for(run_id)
             references: list[dict[str, str]] = []
             skipped: list[str] = []
-            for name in dict.fromkeys(requested):
+            new_names = [name for name in requested if name not in session.read_set]
+            if len(session.read_set) + len(new_names) > _MAX_REFERENCES_PER_RUN:
+                return {
+                    "status": "reference_budget_exceeded",
+                    "error": (
+                        "A graph run may read at most "
+                        f"{_MAX_REFERENCES_PER_RUN} catalog references."
+                    ),
+                    "max_references": _MAX_REFERENCES_PER_RUN,
+                    "read_set": sorted(session.read_set),
+                    "requested": requested,
+                }
+            for name in requested:
                 if name in session.read_set:
                     skipped.append(name)
                     continue
@@ -167,12 +204,13 @@ class CatalogReader:
                         "pattern": name,
                         "path": f"/skills/archhypo-catalog/{entry.reference}",
                         "content": content,
+                        "related_patterns": list(entry.related_patterns),
                     }
                 )
 
             return {
                 "status": "ok",
-                "mode": "all" if read_all else "selected",
+                "mode": "selected",
                 "read_set": sorted(session.read_set),
                 "read_now": [item["pattern"] for item in references],
                 "skipped_already_read": skipped,
@@ -223,7 +261,6 @@ def make_catalog_tool(
     @tool("read_archhypo_catalog", args_schema=CatalogReadRequest)
     def read_archhypo_catalog(
         patterns: list[str] | None = None,
-        read_all: bool = False,
         runtime: ToolRuntime | None = None,
     ) -> dict[str, Any]:
         """Read selected ArchHypo references without filesystem traversal.
@@ -237,7 +274,6 @@ def make_catalog_tool(
         result = reader.read(
             run_id=run_id,
             patterns=patterns,
-            read_all=read_all,
         )
         logger.info(
             "catalog_read run_id=%s status=%s mode=%s read_now=%s skipped=%s "

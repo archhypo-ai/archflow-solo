@@ -35,27 +35,24 @@ Create a technical plan to reduce the architectural uncertainty represented by
 the supplied hypothesis and classification.
 
 The complete official ArchHypo catalog index is included below. The final plan
-must contain three to five items; this limit applies to the answer, not to the
+must contain one to three items; this limit applies to the answer, not to the
 research exploration.
 
 Research protocol:
-1. Screen the index and identify the primary patterns relevant to the
-   uncertainty. Request up to five names with `read_archhypo_catalog`, or use
-   `read_all=true` when comparing the complete catalog is justified.
-2. Read the returned references and inspect their `Related Patterns` sections.
-   A related pattern is only a one-hop suggestion. Request a new related
-   catalog pattern only if it could change the plan.
-3. The catalog reader keeps a read set per graph execution. It skips any
-   pattern already loaded, so never try to force a reread of the same pattern.
-4. Stop when the evidence is sufficient or the reader reports a context
-   budget. Then select the three to five strongest patterns for the final plan.
+1. Screen the complete catalog index and classify up to five candidates.
+2. Select up to three strongest patterns using their summaries and related
+   official patterns. Do not read a reference merely to create a candidate.
+3. Request only the selected patterns with `read_archhypo_catalog`. The tool
+   enforces a maximum of three references per graph execution.
+4. Use the returned references to create a concise plan. Do not request
+   additional related references or traverse relationships recursively.
 
 Use only `read_archhypo_catalog` to access catalog references. Do not use
 filesystem traversal, construct paths, follow relationships recursively, or
-invent catalog patterns. The reader may load all patterns when `read_all=true`.
+invent catalog patterns.
 
 Requirements:
-- Generate between three and five concrete technical plan items.
+- Generate between one and three concrete technical plan items.
 - Each item must include a concise title, objective, description, one valid
   ArchHypo pattern, and an honest trade-off.
 - Select patterns only from the official ArchHypo catalog.

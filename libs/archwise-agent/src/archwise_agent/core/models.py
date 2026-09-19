@@ -89,9 +89,9 @@ class TechnicalPlanItem(_DomainModel):
 
 
 class TechnicalPlan(_DomainModel):
-    """Three to five actions grounded in ArchHypo patterns."""
+    """One to three actions grounded in ArchHypo patterns."""
 
-    items: list[TechnicalPlanItem] = Field(min_length=3, max_length=5)
+    items: list[TechnicalPlanItem] = Field(min_length=1, max_length=3)
     rationale: str = Field(min_length=1)
 
 
