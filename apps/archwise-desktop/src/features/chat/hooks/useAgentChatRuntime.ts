@@ -11,9 +11,10 @@ import {
   deleteFolderContext,
   getActiveRun,
   getThread,
-  sendChatMessage,
+  streamChatMessage,
 } from "../../agent";
 import type {
+  AgentStreamEvent,
   BackendActiveRun,
   BackendFolderContext,
   BackendThread,
@@ -61,6 +62,12 @@ function userMessageFromAppend(message: AppendMessage): UserThreadMessage {
   };
 }
 
+type AssistantContent = AssistantThreadMessage["content"];
+type ToolCallPart = Extract<
+  AssistantContent[number],
+  { type: "tool-call" }
+>;
+
 function assistantMessage(
   id: string,
   text: string,
@@ -68,12 +75,13 @@ function assistantMessage(
     type: "complete",
     reason: "stop",
   },
+  content: AssistantContent = [{ type: "text", text }],
 ): AssistantThreadMessage {
   return {
     id,
     role: "assistant",
     createdAt: new Date(),
-    content: [{ type: "text", text }],
+    content,
     status,
     metadata: {
       unstable_state: null,
@@ -106,6 +114,118 @@ function restoreMessages(thread: BackendThread): ThreadMessage[] {
       };
     }
     return assistantMessage(id, message.content);
+  });
+}
+
+function parseToolArgs(text: string): ToolCallPart["args"] {
+  if (!text.trim()) return {} as ToolCallPart["args"];
+  try {
+    const value: unknown = JSON.parse(text);
+    return (value && typeof value === "object" ? value : {}) as ToolCallPart["args"];
+  } catch {
+    // assistant-ui accepts partial args through argsText. Keep an empty object
+    // until the JSON becomes complete so renderers can still show progress.
+    return {} as ToolCallPart["args"];
+  }
+}
+
+function applyAgentEvent(
+  current: ThreadMessage[],
+  pendingId: string,
+  event: AgentStreamEvent,
+): ThreadMessage[] {
+  return current.map((message) => {
+    if (message.id !== pendingId || message.role !== "assistant") {
+      return message;
+    }
+
+    let content: AssistantContent = [...message.content];
+    let status = message.status;
+    let metadata = message.metadata;
+
+    switch (event.type) {
+      case "text_delta": {
+        const textIndex = content.findIndex((part) => part.type === "text");
+        if (textIndex >= 0 && content[textIndex]?.type === "text") {
+          const textPart = content[textIndex];
+          content = [
+            ...content.slice(0, textIndex),
+            { ...textPart, text: textPart.text + event.text },
+            ...content.slice(textIndex + 1),
+          ];
+        } else {
+          content = [...content, { type: "text", text: event.text }];
+        }
+        break;
+      }
+      case "tool_call_start": {
+        const toolCall: ToolCallPart = {
+          type: "tool-call",
+          toolCallId: event.tool_call_id,
+          toolName: event.name,
+          args: {} as ToolCallPart["args"],
+          argsText: "",
+        };
+        content = [...content, toolCall];
+        break;
+      }
+      case "tool_call_delta": {
+        content = content.map((part) => {
+          if (part.type !== "tool-call" || part.toolCallId !== event.tool_call_id) {
+            return part;
+          }
+          const argsText = part.argsText + event.text;
+          return { ...part, argsText, args: parseToolArgs(argsText) };
+        });
+        break;
+      }
+      case "tool_result":
+        content = content.map((part) =>
+          part.type === "tool-call" && part.toolCallId === event.tool_call_id
+            ? { ...part, result: event.output }
+            : part,
+        );
+        break;
+      case "interrupt": {
+        const toolCall: ToolCallPart = {
+          type: "tool-call",
+          toolCallId: event.interrupt_id,
+          toolName: "human_input",
+          args: {
+            message: event.message,
+            ...(event.payload ? { payload: event.payload } : {}),
+          } as ToolCallPart["args"],
+          argsText: JSON.stringify({
+            message: event.message,
+            ...(event.payload ? { payload: event.payload } : {}),
+          }),
+          interrupt: {
+            type: "human",
+            payload: event.payload ?? { message: event.message },
+          },
+        };
+        content = [...content, toolCall];
+        status = { type: "requires-action", reason: "interrupt" };
+        break;
+      }
+      case "done":
+        status = { type: "complete", reason: "stop" };
+        break;
+      case "cancelled":
+        status = { type: "incomplete", reason: "cancelled" };
+        break;
+      case "error":
+        status = { type: "incomplete", reason: "error", error: event.message };
+        break;
+      case "phase":
+        metadata = {
+          ...message.metadata,
+          custom: { ...message.metadata.custom, phase: event.phase },
+        };
+        break;
+    }
+
+    return { ...message, content, status, metadata };
   });
 }
 
@@ -145,11 +265,11 @@ export function useAgentChatRuntime(
     if (pendingId) {
       setMessages((current) =>
         current.map((item) =>
-          item.id === pendingId
-            ? assistantMessage(pendingId, "", {
-                type: "incomplete",
-                reason: "cancelled",
-              })
+          item.id === pendingId && item.role === "assistant"
+            ? {
+                ...item,
+                status: { type: "incomplete", reason: "cancelled" },
+              }
             : item,
         ),
       );
@@ -295,39 +415,28 @@ export function useAgentChatRuntime(
       setIsRunning(true);
 
       try {
-        const result = await sendChatMessage(
+        await streamChatMessage(
           threadId,
           text,
           controller.signal,
           runId,
+          (event) => {
+            if (
+              generationRef.current !== generation ||
+              controller.signal.aborted
+            ) {
+              return;
+            }
+            setMessages((current) =>
+              applyAgentEvent(current, pendingId, event),
+            );
+          },
         );
         if (
           generationRef.current !== generation ||
           controller.signal.aborted
         ) {
           return;
-        }
-
-        const persistedThread = await getThread(threadId).catch(() => null);
-        if (
-          generationRef.current !== generation ||
-          controller.signal.aborted
-        ) {
-          return;
-        }
-
-        if (persistedThread) {
-          // Reload the backend's user-visible projection so old internal
-          // workflow prompts cannot remain in the local chat state.
-          setMessages(restoreMessages(persistedThread));
-        } else {
-          setMessages((current) =>
-            current.map((item) =>
-              item.id === pendingId
-                ? assistantMessage(pendingId, result.message)
-                : item,
-            ),
-          );
         }
         onThreadUpdated?.();
       } catch (error) {
@@ -341,15 +450,19 @@ export function useAgentChatRuntime(
         const detail =
           error instanceof Error ? error.message : t("chat.executionError");
         setMessages((current) =>
-          current.map((item) =>
-            item.id === pendingId
-              ? assistantMessage(pendingId, detail, {
-                  type: "incomplete",
-                  reason: "error",
-                  error: detail,
-                })
-              : item,
-          ),
+          current.map((item) => {
+            if (item.id !== pendingId || item.role !== "assistant") {
+              return item;
+            }
+            return {
+              ...item,
+              content:
+                item.content.length > 0
+                  ? [...item.content, { type: "text", text: detail }]
+                  : [{ type: "text", text: detail }],
+              status: { type: "incomplete", reason: "error", error: detail },
+            };
+          }),
         );
       } finally {
         if (generationRef.current === generation) {
@@ -385,11 +498,11 @@ export function useAgentChatRuntime(
       setTimeout(() => {
         setMessages((current) =>
           current.map((item) =>
-            item.id === pendingId
-              ? assistantMessage(pendingId, "", {
-                  type: "incomplete",
-                  reason: "cancelled",
-                })
+            item.id === pendingId && item.role === "assistant"
+              ? {
+                  ...item,
+                  status: { type: "incomplete", reason: "cancelled" },
+                }
               : item,
           ),
         );

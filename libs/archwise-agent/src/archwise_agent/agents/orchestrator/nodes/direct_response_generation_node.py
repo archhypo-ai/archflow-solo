@@ -8,7 +8,12 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable
 from langgraph.runtime import Runtime
 
-from archwise_agent.core import ArchHypoState, RunContext, UserResponse
+from archwise_agent.core import (
+    ArchHypoState,
+    RunContext,
+    UncertaintyDiscoveryReport,
+    UserResponse,
+)
 from archwise_agent.graph import GraphNode, raise_if_cancelled
 
 _RESPONSE_AGENT_NAMES = {
@@ -29,8 +34,17 @@ def create_direct_response_generation_node(
         runtime: Runtime[RunContext] | None = None,
     ) -> dict[str, object]:
         raise_if_cancelled(runtime)
+        messages = response_history(state["messages"])
+        discovery = state.get("discovery")
+        if discovery is not None:
+            messages.append(
+                AIMessage(
+                    name="architectural_uncertainty_discovery_agent",
+                    content=_discovery_context(discovery),
+                )
+            )
         response = UserResponse.model_validate(
-            response_agent.invoke({"messages": response_history(state["messages"])})
+            response_agent.invoke({"messages": messages})
         )
         raise_if_cancelled(runtime)
         return {
@@ -45,6 +59,17 @@ def create_direct_response_generation_node(
         }
 
     return respond
+
+
+def _discovery_context(report: UncertaintyDiscoveryReport) -> str:
+    """Provide discovery findings to the direct response composer."""
+
+    return (
+        "A read-only workspace investigation was requested. Use this report to "
+        "answer the latest user request. Do not mention internal agent names or "
+        "expose this JSON directly:\n"
+        f"{report.model_dump_json(indent=2)}"
+    )
 
 
 def response_history(messages: list[Any]) -> list[Any]:

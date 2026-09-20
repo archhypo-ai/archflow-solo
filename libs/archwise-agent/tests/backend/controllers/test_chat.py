@@ -55,7 +55,11 @@ def test_chat_stream_controller_emits_sse_events() -> None:
 
     assert events == ["archwise"] * len(payloads)
     assert payloads[0]["type"] == "phase"
-    assert payloads[1]["type"] == "phase"
+    assert [
+        payload["phase"] for payload in payloads if payload["type"] == "phase"
+    ] == ["thinking", "answering"]
+    assert any(payload["type"] == "tool_call_start" for payload in payloads)
+    assert any(payload["type"] == "tool_result" for payload in payloads)
     assert payloads[-1]["type"] == "done"
     assert (
         "".join(

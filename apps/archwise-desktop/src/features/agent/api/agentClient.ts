@@ -1,5 +1,6 @@
 import i18n from "../../../i18n/config";
 import type {
+  AgentStreamEvent,
   BackendActiveRun,
   BackendChatResponse,
   BackendFolderContext,
@@ -92,6 +93,163 @@ export async function sendChatMessage(
     }),
     signal,
   });
+}
+
+/**
+ * Execute a turn over SSE so tool-call parts can be rendered while the agent
+ * runs. The regular request/response endpoint remains available to non-chat
+ * clients.
+ */
+export async function streamChatMessage(
+  threadId: string,
+  message: string,
+  signal: AbortSignal | undefined,
+  runId: string | undefined,
+  onEvent: (event: AgentStreamEvent) => void,
+): Promise<BackendChatResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}/api/chat/stream`, {
+      method: "POST",
+      headers: {
+        Accept: "text/event-stream",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        thread_id: threadId,
+        message,
+        run_id: runId,
+        workspace_id: "default",
+        project_id: null,
+        user_id: null,
+      }),
+      signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") throw error;
+    throw new Error(i18n.t("chat.communicationError"));
+  }
+
+  if (!response.ok) throw await requestError(response);
+  if (!response.body) throw new Error(i18n.t("chat.communicationError"));
+
+  let text = "";
+  let completed = false;
+  let cancelled = false;
+  for await (const event of readAgentEvents(response.body, signal)) {
+    onEvent(event);
+    if (event.type === "text_delta") text += event.text;
+    if (event.type === "done") completed = true;
+    if (event.type === "cancelled") cancelled = true;
+    if (event.type === "error") throw new Error(event.message);
+  }
+
+  if (!completed && !cancelled) {
+    throw new Error(i18n.t("chat.executionError"));
+  }
+  return { thread_id: threadId, message: text, status: "completed" };
+}
+
+async function* readAgentEvents(
+  body: ReadableStream<Uint8Array>,
+  signal?: AbortSignal,
+): AsyncGenerator<AgentStreamEvent> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let dataLines: string[] = [];
+
+  const emit = (): AgentStreamEvent | undefined => {
+    if (dataLines.length === 0) return undefined;
+    const data = dataLines.join("\n");
+    dataLines = [];
+    return parseAgentEvent(data);
+  };
+
+  while (true) {
+    if (signal?.aborted) return;
+    const chunk = await reader.read();
+    buffer += decoder.decode(chunk.value ?? new Uint8Array(), {
+      stream: !chunk.done,
+    });
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      if (line === "") {
+        const event = emit();
+        if (event) yield event;
+      } else if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).replace(/^ /, ""));
+      }
+    }
+
+    if (chunk.done) {
+      if (buffer.startsWith("data:")) {
+        dataLines.push(buffer.slice(5).replace(/^ /, ""));
+      }
+      const event = emit();
+      if (event) yield event;
+      return;
+    }
+  }
+}
+
+function parseAgentEvent(data: string): AgentStreamEvent {
+  let value: unknown;
+  try {
+    value = JSON.parse(data);
+  } catch {
+    throw new Error(i18n.t("chat.executionError"));
+  }
+
+  if (!isRecord(value) || value.protocol_version !== 1) {
+    throw new Error(i18n.t("chat.executionError"));
+  }
+  if (
+    typeof value.run_id !== "string" ||
+    typeof value.thread_id !== "string" ||
+    typeof value.type !== "string"
+  ) {
+    throw new Error(i18n.t("chat.executionError"));
+  }
+
+  switch (value.type) {
+    case "phase":
+      return requireEventFields(value, ["phase"]);
+    case "text_delta":
+      return requireEventFields(value, ["text"]);
+    case "done":
+      return requireEventFields(value, ["status"]);
+    case "cancelled":
+      return value as unknown as AgentStreamEvent;
+    case "error":
+      return requireEventFields(value, ["message"]);
+    case "tool_call_start":
+      return requireEventFields(value, ["tool_call_id", "name"]);
+    case "tool_call_delta":
+      return requireEventFields(value, ["tool_call_id", "text"]);
+    case "tool_result":
+      return requireEventFields(value, ["tool_call_id", "output"]);
+    case "interrupt":
+      return requireEventFields(value, ["interrupt_id", "message"]);
+    default:
+      throw new Error(i18n.t("chat.executionError"));
+  }
+}
+
+function requireEventFields(
+  value: Record<string, unknown>,
+  fields: string[],
+): AgentStreamEvent {
+  if (fields.some((field) => !(field in value))) {
+    throw new Error(i18n.t("chat.executionError"));
+  }
+  return value as unknown as AgentStreamEvent;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }
 
 export async function attachFolderContext(

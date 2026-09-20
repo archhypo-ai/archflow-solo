@@ -33,14 +33,12 @@ Current events:
 - `text_delta`;
 - `done`;
 - `cancelled`;
-- `error`.
-
-Reserved events for upcoming capabilities:
-
+- `error`;
 - `tool_call_start`;
 - `tool_call_delta`;
-- `tool_result`;
-- `interrupt`.
+- `tool_result`.
+
+`interrupt` remains reserved for future human-in-the-loop workflows.
 
 Python, Rust, and TypeScript SDKs provide language-native models and SSE
 framing/parsing. They must not contain agent orchestration or UI behavior.

@@ -179,7 +179,8 @@ curl -N -X POST http://127.0.0.1:8765/api/chat/stream \\
 The backend creates one long-lived agent service and uses the supplied
 `thread_id` for persistent conversation checkpoints. The `/api/chat/stream`
 endpoint uses the shared agent stream protocol (`phase`, `text_delta`, `done`,
-`cancelled`, and `error`) for clients that need progressive responses. The
+`cancelled`, `error`, `tool_call_start`, `tool_call_delta`, and `tool_result`)
+for clients that need progressive responses and tool visibility. The
 protocol and SDKs live in `docs/protocol/agent-stream.md` and
 `libs/agent-stream-*`. Active runs can receive a cooperative cancellation request through
 `POST /api/chat/runs/{run_id}/cancel`. User-facing conversation

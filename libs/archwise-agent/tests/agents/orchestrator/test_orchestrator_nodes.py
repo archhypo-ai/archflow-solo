@@ -1,6 +1,8 @@
 import json
+from types import SimpleNamespace
 
 import pytest
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableLambda
 
 from archwise_agent.agents.hypothesis_formulator import (
@@ -11,6 +13,11 @@ from archwise_agent.agents.orchestrator.nodes import (
     create_hypothesis_assessment_node,
     create_hypothesis_formulation_node,
     create_technical_plan_generation_node,
+    create_uncertainty_discovery_node,
+    route_discovery_result,
+)
+from archwise_agent.agents.orchestrator.nodes.uncertainty_discovery_node import (
+    _DoomLoopGuard,
 )
 from archwise_agent.agents.technical_planner import build_technical_planner_agent
 from archwise_agent.core import (
@@ -18,6 +25,7 @@ from archwise_agent.core import (
     Hypothesis,
     HypothesisClassification,
     TechnicalPlan,
+    UncertaintyDiscoveryReport,
 )
 from tests.fakes import archhypo_json, fake_hypothesis_model
 
@@ -56,6 +64,188 @@ def test_formulate_hypothesis_node_normalizes_uncertainty() -> None:
     assert result["uncertainty"] == "Peak capacity is unknown."
     assert isinstance(result["hypothesis"], Hypothesis)
     assert result["messages"][0].name == "hypothesis_formulator_agent"
+
+
+def test_doom_loop_guard_stops_the_fourth_consecutive_repeat() -> None:
+    guard = _DoomLoopGuard()
+
+    for index in range(3):
+        call_id = f"ls-{index}"
+        assert guard.accept(
+            {
+                "messages": [
+                    AIMessage(
+                        content="",
+                        tool_calls=[
+                            {
+                                "name": "ls",
+                                "args": {"path": "/src"},
+                                "id": call_id,
+                            }
+                        ],
+                    )
+                ]
+            }
+        )
+        assert guard.accept(
+            {
+                "messages": [
+                    ToolMessage(
+                        content="['/src/app.py']",
+                        tool_call_id=call_id,
+                    )
+                ]
+            }
+        )
+
+    assert not guard.accept(
+        {
+            "messages": [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "ls",
+                            "args": {"path": "/src"},
+                            "id": "ls-4",
+                        }
+                    ],
+                )
+            ]
+        }
+    )
+
+
+def test_uncertainty_discovery_node_returns_a_candidate(tmp_path) -> None:
+    report = UncertaintyDiscoveryReport.model_validate(
+        {
+            "status": "found",
+            "summary": "The repository has an unclear integration boundary.",
+            "candidates": [
+                {
+                    "uncertainty": "It is unclear who owns integration retries.",
+                    "rationale": "Two components implement retry behavior.",
+                }
+            ],
+            "evidence": [
+                {
+                    "path": "src/client.py",
+                    "location": "Client.send",
+                    "source_type": "code",
+                    "observation": "The client retries failed requests.",
+                }
+            ],
+            "confidence": 0.9,
+        }
+    )
+
+    def build_fake_agent(*args, **kwargs):
+        return RunnableLambda(lambda _: {"structured_response": report})
+
+    node = create_uncertainty_discovery_node(
+        model=fake_hypothesis_model(["unused"]),
+        agent_builder=build_fake_agent,
+    )
+    runtime = SimpleNamespace(
+        context={
+            "thread_id": "discovery-thread",
+            "folder_context_path": str(tmp_path),
+        },
+        control=SimpleNamespace(drain_requested=False),
+    )
+
+    result = node(
+        {
+            "messages": [HumanMessage(content="Investigate the repository.")],
+            "uncertainty": "Investigate the repository.",
+        },
+        runtime,
+    )
+
+    assert result["discovery"] == report
+    assert result["uncertainty"] == (
+        "It is unclear who owns integration retries."
+    )
+    assert route_discovery_result({"discovery": report}) == (
+        "hypothesis_formulation"
+    )
+
+
+def test_uncertainty_discovery_selects_the_most_critical_candidate(
+    tmp_path,
+) -> None:
+    report = UncertaintyDiscoveryReport.model_validate(
+        {
+            "status": "found",
+            "summary": "Several candidates were found.",
+            "candidates": [
+                {
+                    "uncertainty": "A low-impact concern.",
+                    "rationale": "It affects one optional script.",
+                    "criticality": "Low",
+                },
+                {
+                    "uncertainty": "A high-impact boundary is unclear.",
+                    "rationale": "It affects all installers.",
+                    "criticality": "High",
+                },
+            ],
+        }
+    )
+
+    def build_fake_agent(*args, **kwargs):
+        return RunnableLambda(lambda _: {"structured_response": report})
+
+    node = create_uncertainty_discovery_node(
+        model=fake_hypothesis_model(["unused"]),
+        agent_builder=build_fake_agent,
+    )
+    result = node(
+        {
+            "messages": [HumanMessage(content="Investigate the repository.")],
+            "uncertainty": "Investigate the repository.",
+        },
+        SimpleNamespace(
+            context={
+                "thread_id": "criticality-thread",
+                "folder_context_path": str(tmp_path),
+            },
+            control=SimpleNamespace(drain_requested=False),
+        ),
+    )
+
+    assert result["uncertainty"] == "A high-impact boundary is unclear."
+
+
+def test_scope_confirmation_routes_to_direct_response() -> None:
+    report = UncertaintyDiscoveryReport(
+        status="found",
+        summary="The repository contains several unrelated areas.",
+        scope_confirmation=True,
+        scope_question="Which area should be investigated first?",
+        scope_options=["Installers", "Configuration"],
+    )
+
+    assert route_discovery_result({"discovery": report}) == (
+        "direct_response_generation"
+    )
+
+
+def test_uncertainty_discovery_without_folder_goes_to_direct_response() -> None:
+    node = create_uncertainty_discovery_node(
+        model=fake_hypothesis_model(["unused"]),
+    )
+
+    result = node(
+        {
+            "messages": [HumanMessage(content="Investigate the repository.")],
+            "uncertainty": "Investigate the repository.",
+        }
+    )
+
+    report = result["discovery"]
+    assert report.status == "insufficient_context"
+    assert route_discovery_result(result) == "direct_response_generation"
 
 
 def test_classify_hypothesis_node_requires_a_hypothesis() -> None:

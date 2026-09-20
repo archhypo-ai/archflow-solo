@@ -20,19 +20,32 @@ logger = logging.getLogger(__name__)
 
 _ROUTE_QUESTION = {
     "type": "choice",
-    "instructions": "Which workflow should handle this request?",
+    "instructions": (
+        "Which software-architecture workflow should handle this request? "
+        "ArchWise does not handle buildings, construction, or physical "
+        "engineering."
+    ),
     "criteria": {
         "direct_response": (
             "A general question, follow-up, explanation, or casual conversation "
             "that does not require architectural analysis."
         ),
         "archwise_workflow": (
-            "An architectural uncertainty requiring a hypothesis, classification, "
-            "or technical plan."
+            "An already stated architectural uncertainty requiring a hypothesis, "
+            "classification, or technical plan."
+        ),
+        "uncertainty_discovery": (
+            "A request to investigate an attached workspace, source code, RFCs, "
+            "ADRs, or documentation to discover a possible architectural "
+            "uncertainty."
         ),
     },
 }
-_VALID_ROUTES = {"direct_response", "archwise_workflow"}
+_VALID_ROUTES = {
+    "direct_response",
+    "archwise_workflow",
+    "uncertainty_discovery",
+}
 
 
 def build_jev_request_router(

@@ -6,7 +6,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-from archwise_agent.core import Hypothesis
+from archwise_agent.core import Hypothesis, UncertaintyDiscoveryReport
 
 SYSTEM_PROMPT = """\
 You are the ArchWise Hypothesis Formulator Agent.
@@ -47,10 +47,21 @@ def build_hypothesis_formulator_agent(model: BaseChatModel):
     return prompt | model.with_structured_output(Hypothesis)
 
 
-def make_hypothesis_input(uncertainty: str) -> dict[str, list[HumanMessage]]:
-    """Create the typed human-message input for the hypothesis chain."""
+def make_hypothesis_input(
+    uncertainty: str,
+    discovery: UncertaintyDiscoveryReport | None = None,
+) -> dict[str, list[HumanMessage]]:
+    """Create typed input with optional workspace discovery evidence."""
 
-    return {"messages": [HumanMessage(content=uncertainty)]}
+    content = uncertainty
+    if discovery is not None:
+        content = (
+            "User-provided architectural material:\n"
+            f"{uncertainty}\n\n"
+            "Workspace discovery report:\n"
+            f"{discovery.model_dump_json(indent=2)}"
+        )
+    return {"messages": [HumanMessage(content=content)]}
 
 
 __all__ = [

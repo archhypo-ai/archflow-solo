@@ -4,16 +4,22 @@ import {
   ErrorPrimitive,
   MessagePrimitive,
   ThreadPrimitive,
+  type ToolCallMessagePartComponent,
   useAssistantState,
   useThread,
 } from "@assistant-ui/react";
 import { makeMarkdownText } from "@assistant-ui/react-ui";
 import remarkGfm from "remark-gfm";
 import {
+  AlertCircle,
   ArrowUp,
   Check,
+  CircleCheck,
+  ChevronRight,
+  Cog,
   Copy,
   FolderOpen,
+  LoaderCircle,
   Plus,
   Square,
   X,
@@ -29,6 +35,125 @@ const MarkdownText = makeMarkdownText({
   className: "message-markdown",
   remarkPlugins: [remarkGfm],
 });
+
+type ToolArgs = Record<string, unknown>;
+
+function formatToolName(name: string) {
+  return name.split("_").join(" ");
+}
+
+function toolTarget(args: ToolArgs) {
+  for (const key of ["path", "file_path", "pattern", "query", "command"]) {
+    const value = args[key];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  return "";
+}
+
+function formatToolValue(value: unknown) {
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+const ArchwiseToolUI: ToolCallMessagePartComponent<ToolArgs, unknown> = ({
+  toolName,
+  args,
+  argsText,
+  result,
+  status,
+  isError,
+  interrupt,
+}) => {
+  const { t } = useI18n();
+  const isRunning = status.type === "running";
+  const isWaiting = status.type === "requires-action";
+  const isFailed = isError || status.type === "incomplete";
+  const target = toolTarget(args);
+
+  return (
+    <details className="message-tool-call" data-status={status.type}>
+      <summary className="message-tool-call-summary">
+        <ChevronRight className="message-tool-call-chevron" aria-hidden="true" />
+        <span className="message-tool-call-icon">
+          {isRunning && (
+            <LoaderCircle className="message-tool-spinner" aria-hidden="true" />
+          )}
+          {isWaiting && <AlertCircle aria-hidden="true" />}
+          {isFailed && <AlertCircle aria-hidden="true" />}
+          {!isRunning && !isWaiting && !isFailed && (
+            <CircleCheck aria-hidden="true" />
+          )}
+        </span>
+        <span className="message-tool-call-name">{formatToolName(toolName)}</span>
+        {target && <span className="message-tool-call-target">{target}</span>}
+      </summary>
+      <div className="message-tool-call-details">
+        {argsText && (
+          <div>
+            <span className="message-tool-call-label">
+              {t("chat.toolArguments")}
+            </span>
+            <pre>{formatToolValue(args)}</pre>
+          </div>
+        )}
+        {result !== undefined && (
+          <div>
+            <span className="message-tool-call-label">
+              {t("chat.toolResult")}
+            </span>
+            <pre>{formatToolValue(result)}</pre>
+          </div>
+        )}
+        {interrupt && <pre>{formatToolValue(interrupt.payload)}</pre>}
+      </div>
+    </details>
+  );
+};
+
+function ToolCallGroup({
+  startIndex,
+  endIndex,
+  children,
+}: {
+  startIndex: number;
+  endIndex: number;
+  children?: React.ReactNode;
+}) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const count = endIndex - startIndex + 1;
+  const isRunning = useAssistantState(({ message }) =>
+    message.parts
+      .slice(startIndex, endIndex + 1)
+      .some((part) => part.type === "tool-call" && part.status.type === "running"),
+  );
+  const label = t(count === 1 ? "chat.toolCall" : "chat.toolCalls", { count });
+
+  return (
+    <div className="message-tool-group">
+      <button
+        className="message-tool-group-trigger"
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+      >
+        <ChevronRight
+          className={`message-tool-group-chevron${open ? " is-open" : ""}`}
+          aria-hidden="true"
+        />
+        {isRunning && (
+          <Cog className="message-tool-group-cog" aria-hidden="true" />
+        )}
+        <span>{label}</span>
+      </button>
+      {open && <div className="message-tool-group-content">{children}</div>}
+    </div>
+  );
+}
 
 function Welcome() {
   const { t } = useI18n();
@@ -90,15 +215,22 @@ function AssistantWorkingIndicator() {
   const isRunning = useAssistantState(
     ({ message }) => message.status?.type === "running",
   );
+  const phase = useAssistantState(({ message }) =>
+    typeof message.metadata.custom.phase === "string"
+      ? message.metadata.custom.phase
+      : "thinking",
+  );
 
   if (!isRunning) return null;
+
+  const label = phase === "answering" ? t("chat.answering") : t("chat.thinking");
 
   return (
     <span className="assistant-working-indicator" role="status">
       <span className="assistant-working-indicator-dot" aria-hidden="true">
         ●
       </span>
-      <span>{t("chat.thinking")}</span>
+      <span>{label}</span>
     </span>
   );
 }
@@ -112,10 +244,12 @@ function AssistantMessage() {
       <div className="message-content">
         <MessagePrimitive.Parts
           components={{
-            Empty: AssistantWorkingIndicator,
             Text: MarkdownText,
+            ToolGroup: ToolCallGroup,
+            tools: { Fallback: ArchwiseToolUI },
           }}
         />
+        <AssistantWorkingIndicator />
         <MessagePrimitive.Error>
           <div className="message-error">
             <ErrorPrimitive.Message />

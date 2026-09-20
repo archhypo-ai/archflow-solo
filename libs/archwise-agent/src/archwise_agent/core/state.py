@@ -12,6 +12,7 @@ from .models import (
     HypothesisClassification,
     RequestRouting,
     TechnicalPlan,
+    UncertaintyDiscoveryReport,
 )
 
 
@@ -21,6 +22,7 @@ class ArchHypoState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     uncertainty: str
     routing: NotRequired[RequestRouting | None]
+    discovery: NotRequired[UncertaintyDiscoveryReport | None]
     response: NotRequired[str | None]
     hypothesis: NotRequired[Hypothesis | None]
     classification: NotRequired[HypothesisClassification | None]
