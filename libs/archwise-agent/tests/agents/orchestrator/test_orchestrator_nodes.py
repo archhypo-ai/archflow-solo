@@ -171,6 +171,66 @@ def test_uncertainty_discovery_node_returns_a_candidate(tmp_path) -> None:
     )
 
 
+def test_uncertainty_discovery_selects_the_most_critical_candidate(
+    tmp_path,
+) -> None:
+    report = UncertaintyDiscoveryReport.model_validate(
+        {
+            "status": "found",
+            "summary": "Several candidates were found.",
+            "candidates": [
+                {
+                    "uncertainty": "A low-impact concern.",
+                    "rationale": "It affects one optional script.",
+                    "criticality": "Low",
+                },
+                {
+                    "uncertainty": "A high-impact boundary is unclear.",
+                    "rationale": "It affects all installers.",
+                    "criticality": "High",
+                },
+            ],
+        }
+    )
+
+    def build_fake_agent(*args, **kwargs):
+        return RunnableLambda(lambda _: {"structured_response": report})
+
+    node = create_uncertainty_discovery_node(
+        model=fake_hypothesis_model(["unused"]),
+        agent_builder=build_fake_agent,
+    )
+    result = node(
+        {
+            "messages": [HumanMessage(content="Investigate the repository.")],
+            "uncertainty": "Investigate the repository.",
+        },
+        SimpleNamespace(
+            context={
+                "thread_id": "criticality-thread",
+                "folder_context_path": str(tmp_path),
+            },
+            control=SimpleNamespace(drain_requested=False),
+        ),
+    )
+
+    assert result["uncertainty"] == "A high-impact boundary is unclear."
+
+
+def test_scope_confirmation_routes_to_direct_response() -> None:
+    report = UncertaintyDiscoveryReport(
+        status="found",
+        summary="The repository contains several unrelated areas.",
+        scope_confirmation=True,
+        scope_question="Which area should be investigated first?",
+        scope_options=["Installers", "Configuration"],
+    )
+
+    assert route_discovery_result({"discovery": report}) == (
+        "direct_response_generation"
+    )
+
+
 def test_uncertainty_discovery_without_folder_goes_to_direct_response() -> None:
     node = create_uncertainty_discovery_node(
         model=fake_hypothesis_model(["unused"]),

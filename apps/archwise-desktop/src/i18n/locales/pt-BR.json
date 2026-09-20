@@ -39,6 +39,7 @@
     "send": "Enviar mensagem",
     "stop": "Parar execução",
     "thinking": "Pensando...",
+    "answering": "Escrevendo resposta...",
     "toolCall": "{{count}} chamada de ferramenta",
     "toolCalls": "{{count}} chamadas de ferramenta",
     "toolArguments": "Argumentos",

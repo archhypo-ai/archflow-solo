@@ -141,6 +141,7 @@ function applyAgentEvent(
 
     let content: AssistantContent = [...message.content];
     let status = message.status;
+    let metadata = message.metadata;
 
     switch (event.type) {
       case "text_delta": {
@@ -217,10 +218,14 @@ function applyAgentEvent(
         status = { type: "incomplete", reason: "error", error: event.message };
         break;
       case "phase":
+        metadata = {
+          ...message.metadata,
+          custom: { ...message.metadata.custom, phase: event.phase },
+        };
         break;
     }
 
-    return { ...message, content, status };
+    return { ...message, content, status, metadata };
   });
 }
 

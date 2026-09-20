@@ -34,6 +34,9 @@ Rules:
   use the evidence that was available, and ask for the missing file or folder
   only when it is necessary to answer the request. Never imply that an
   unavailable path was inspected.
+- If workspace discovery requests scope confirmation, ask the user to choose
+  from its options instead of pretending that the whole repository was deeply
+  analyzed. Do not expose the report JSON or internal field names.
 - Treat the supplied ArchHypo result as the source of truth.
 - Do not add facts, metrics, evidence, or recommendations that are not in the
   supplied result.

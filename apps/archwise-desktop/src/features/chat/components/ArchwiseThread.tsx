@@ -215,15 +215,22 @@ function AssistantWorkingIndicator() {
   const isRunning = useAssistantState(
     ({ message }) => message.status?.type === "running",
   );
+  const phase = useAssistantState(({ message }) =>
+    typeof message.metadata.custom.phase === "string"
+      ? message.metadata.custom.phase
+      : "thinking",
+  );
 
   if (!isRunning) return null;
+
+  const label = phase === "answering" ? t("chat.answering") : t("chat.thinking");
 
   return (
     <span className="assistant-working-indicator" role="status">
       <span className="assistant-working-indicator-dot" aria-hidden="true">
         ●
       </span>
-      <span>{t("chat.thinking")}</span>
+      <span>{label}</span>
     </span>
   );
 }
@@ -237,12 +244,12 @@ function AssistantMessage() {
       <div className="message-content">
         <MessagePrimitive.Parts
           components={{
-            Empty: AssistantWorkingIndicator,
             Text: MarkdownText,
             ToolGroup: ToolCallGroup,
             tools: { Fallback: ArchwiseToolUI },
           }}
         />
+        <AssistantWorkingIndicator />
         <MessagePrimitive.Error>
           <div className="message-error">
             <ErrorPrimitive.Message />

@@ -165,7 +165,11 @@ def route_discovery_result(state: ArchHypoState) -> DiscoveryRoute:
     report = state.get("discovery")
     if report is None:
         raise ValueError("uncertainty discovery is required")
-    if report.status == "found" and report.candidates:
+    if (
+        report.status == "found"
+        and report.candidates
+        and not report.scope_confirmation
+    ):
         return "hypothesis_formulation"
     return "direct_response_generation"
 
@@ -267,10 +271,22 @@ def _child_config(runtime: Runtime[RunContext] | None) -> dict[str, Any] | None:
     return {"configurable": {"thread_id": thread_id}}
 
 
+_CRITICALITY_SCORE = {
+    "Very Low": 1,
+    "Low": 2,
+    "Medium": 3,
+    "High": 4,
+    "Very High": 5,
+}
+
+
 def _primary_candidate(report: UncertaintyDiscoveryReport):
     if report.status != "found" or not report.candidates:
         return None
-    return report.candidates[0]
+    return max(
+        report.candidates,
+        key=lambda candidate: _CRITICALITY_SCORE[candidate.criticality],
+    )
 
 
 def _missing_context_report(root_dir: Path | None) -> UncertaintyDiscoveryReport:

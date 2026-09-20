@@ -85,6 +85,10 @@ class DiscoveryCandidate(_DomainModel):
 
     uncertainty: str = Field(min_length=1)
     rationale: str = Field(min_length=1)
+    criticality: AssessmentLevel = Field(
+        default="Medium",
+        description="Potential architectural criticality of this uncertainty.",
+    )
 
 
 class UncertaintyDiscoveryReport(_DomainModel):
@@ -96,6 +100,9 @@ class UncertaintyDiscoveryReport(_DomainModel):
     evidence: list[DiscoveryEvidence] = Field(default_factory=list, max_length=20)
     consulted_sources: list[str] = Field(default_factory=list, max_length=20)
     missing_information: list[str] = Field(default_factory=list, max_length=10)
+    scope_confirmation: bool = False
+    scope_question: str | None = Field(default=None, min_length=1)
+    scope_options: list[str] = Field(default_factory=list, max_length=3)
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
 
 

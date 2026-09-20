@@ -39,6 +39,7 @@
     "send": "Send message",
     "stop": "Stop execution",
     "thinking": "Thinking...",
+    "answering": "Writing answer...",
     "toolCall": "{{count}} tool call",
     "toolCalls": "{{count}} tool calls",
     "toolArguments": "Arguments",
