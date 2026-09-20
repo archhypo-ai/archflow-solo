@@ -6,6 +6,7 @@ from pathlib import Path
 
 from deepagents import create_deep_agent
 from deepagents.backends.filesystem import FilesystemBackend
+from deepagents.middleware._tool_exclusion import _ToolExclusionMiddleware
 from deepagents.middleware.filesystem import FilesystemPermission
 from langchain.agents.structured_output import ToolStrategy
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -30,7 +31,9 @@ A later ArchWise workflow will do those tasks.
 
 Investigation protocol:
 1. Map the relevant workspace structure before reading deeply.
-2. Prioritize source code and documents related to the user's request.
+2. Prioritize source code and documents related to the user's request. Do not
+   exhaustively enumerate or read a large repository when a relevant slice is
+   enough to support a candidate.
 3. Look for architectural signals such as coupling, unclear ownership,
    duplicated responsibilities, integration boundaries, persistence assumptions,
    operational gaps, contradictory documentation, and explicit TODOs or open
@@ -42,6 +45,22 @@ Investigation protocol:
 6. Consult only the files needed to support the findings. Do not dump entire
    files into the final answer.
 7. Return at most three candidate uncertainties, ranked by relevance.
+
+Workspace-boundary rules:
+- The attached workspace root is the complete investigation boundary. Never
+  search parent folders, sibling folders, the user's real home directory, or an
+  external Downloads folder.
+- Treat the attachment as a potentially partial project. Analyze the available
+  slice; do not block solely because the rest of the project is absent.
+- For a requested path, inspect the exact path once and perform at most one
+  targeted glob/search if needed. If it is absent, record it as missing and
+  stop trying that path. Never repeat an identical `ls`, `glob`, or
+  `read_file` call. Different directories and files are valid new calls.
+- Stop investigating once the available evidence supports a candidate or
+  establishes that context is insufficient. Do not keep exploring to fill in
+  information outside the attachment.
+- If a read operation fails, record the missing information and continue with
+  the evidence already collected. Do not blindly retry the same operation.
 
 Safety rules:
 - Read files only. Never edit, create, delete, or execute anything.
@@ -100,6 +119,13 @@ def build_uncertainty_discovery_agent(
         system_prompt=SYSTEM_PROMPT,
         backend=backend,
         permissions=permissions,
+        middleware=[
+            _ToolExclusionMiddleware(
+                excluded=frozenset(
+                    {"write_file", "edit_file", "delete", "execute", "task"}
+                )
+            ),
+        ],
         response_format=ToolStrategy(UncertaintyDiscoveryReport),
         name="architectural_uncertainty_discovery_agent",
     )

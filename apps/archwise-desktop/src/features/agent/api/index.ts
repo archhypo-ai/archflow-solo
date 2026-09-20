@@ -8,5 +8,6 @@ export {
   getThread,
   listThreads,
   sendChatMessage,
+  streamChatMessage,
   updateThread,
 } from "./agentClient";

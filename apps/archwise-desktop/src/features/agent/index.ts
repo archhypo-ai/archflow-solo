@@ -8,9 +8,11 @@ export {
   getThread,
   listThreads,
   sendChatMessage,
+  streamChatMessage,
   updateThread,
 } from "./api";
 export type {
+  AgentStreamEvent,
   BackendActiveRun,
   BackendChatResponse,
   BackendFolderContext,

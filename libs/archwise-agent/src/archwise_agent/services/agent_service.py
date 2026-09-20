@@ -8,6 +8,9 @@ from threading import RLock
 from typing import Any, BinaryIO
 
 from agent_stream_py import (
+    ToolCallDeltaEvent,
+    ToolCallStartEvent,
+    ToolResultEvent,
     cancelled_event,
     done_event,
     phase_event,
@@ -160,7 +163,27 @@ class AgentService:
                 run_id=context.run_id,
                 phase="thinking",
             )
-            state = self._run_graph(context, control, message)
+            state: dict[str, Any] = {}
+            for mode, value in self._runner.stream(
+                message=message,
+                context=context,
+                control=control,
+            ):
+                if mode == "custom":
+                    event = _stream_event_from_custom(
+                        value,
+                        thread_id=thread_id,
+                        run_id=context.run_id,
+                    )
+                    if event is not None:
+                        yield event
+                elif mode == "values" and isinstance(value, dict):
+                    state = value
+
+            if control.drain_requested:
+                raise AgentCancelledError(
+                    control.drain_reason or "client_cancelled"
+                )
             turn = present_turn(thread_id, state)
             self._ensure_conversation(thread_id)
             response_text = turn.text
@@ -487,6 +510,49 @@ class AgentService:
             self._persistence.delete_thread(thread_id)
         else:
             self._runner.delete_thread(thread_id)
+
+
+def _stream_event_from_custom(
+    value: Any,
+    *,
+    thread_id: str,
+    run_id: str,
+) -> AgentStreamEvent | None:
+    """Add transport identity to a runtime custom tool event."""
+
+    if not isinstance(value, dict):
+        return None
+    event_type = value.get("type")
+    if event_type == "tool_call_start":
+        tool_call_id = value.get("tool_call_id")
+        name = value.get("name")
+        if isinstance(tool_call_id, str) and isinstance(name, str):
+            return ToolCallStartEvent(
+                thread_id=thread_id,
+                run_id=run_id,
+                tool_call_id=tool_call_id,
+                name=name,
+            )
+    elif event_type == "tool_call_delta":
+        tool_call_id = value.get("tool_call_id")
+        text = value.get("text")
+        if isinstance(tool_call_id, str) and isinstance(text, str):
+            return ToolCallDeltaEvent(
+                thread_id=thread_id,
+                run_id=run_id,
+                tool_call_id=tool_call_id,
+                text=text,
+            )
+    elif event_type == "tool_result":
+        tool_call_id = value.get("tool_call_id")
+        if isinstance(tool_call_id, str) and "output" in value:
+            return ToolResultEvent(
+                thread_id=thread_id,
+                run_id=run_id,
+                tool_call_id=tool_call_id,
+                output=value["output"],
+            )
+    return None
 
 
 def _validate_input(thread_id: str, message: str) -> None:

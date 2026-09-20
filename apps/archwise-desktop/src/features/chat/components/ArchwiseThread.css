@@ -151,6 +151,162 @@
   padding: 0 2px;
 }
 
+.message-tool-group {
+  width: min(100%, 560px);
+  margin: 4px 0 14px;
+}
+
+.message-tool-group-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  padding: 3px 0;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.message-tool-group-trigger:hover {
+  color: var(--color-foreground);
+}
+
+.message-tool-group-trigger:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.message-tool-group-chevron {
+  width: 14px;
+  height: 14px;
+  transition: transform 140ms ease;
+}
+
+.message-tool-group-chevron.is-open {
+  transform: rotate(90deg);
+}
+
+.message-tool-group-cog {
+  width: 13px;
+  height: 13px;
+  color: var(--color-subtle);
+  animation: message-tool-cog 2.2s linear infinite;
+}
+
+.message-tool-group-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0 0 19px;
+  border-left: 1px solid var(--color-border);
+  padding-left: 10px;
+}
+
+.message-tool-call {
+  min-width: 0;
+  color: var(--color-muted);
+  font-size: 11px;
+}
+
+.message-tool-call[data-status="running"] {
+  color: var(--color-foreground);
+}
+
+.message-tool-call[data-status="incomplete"] {
+  color: var(--color-border-strong);
+}
+
+.message-tool-call-summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  min-height: 24px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.message-tool-call-summary::-webkit-details-marker {
+  display: none;
+}
+
+.message-tool-call-summary:hover {
+  color: var(--color-foreground);
+}
+
+.message-tool-call-chevron {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 12px;
+  transition: transform 140ms ease;
+}
+
+.message-tool-call[open] .message-tool-call-chevron {
+  transform: rotate(90deg);
+}
+
+.message-tool-call-icon {
+  display: inline-flex;
+  width: 14px;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 14px;
+}
+
+.message-tool-call-icon svg {
+  width: 13px;
+  height: 13px;
+}
+
+.message-tool-call-name {
+  flex: 0 0 auto;
+  font-family: var(--font-code);
+}
+
+.message-tool-call-target {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-subtle);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message-tool-call-details {
+  margin: 3px 0 6px 33px;
+  border-left: 1px solid var(--color-border);
+  padding-left: 9px;
+}
+
+.message-tool-call-details > div + div {
+  margin-top: 6px;
+}
+
+.message-tool-call-label {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--color-subtle);
+  font-size: 10px;
+}
+
+.message-tool-call-details pre {
+  max-height: 180px;
+  margin: 0;
+  overflow: auto;
+  background: var(--color-surface-raised);
+  padding: 6px 8px;
+  font-family: var(--font-code);
+  font-size: 10px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.message-tool-spinner {
+  animation: message-tool-spin 1s linear infinite;
+}
+
 .message-action-area {
   display: flex;
   height: 31px;
@@ -593,6 +749,18 @@
   text-align: center;
 }
 
+@keyframes message-tool-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes message-tool-cog {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes assistant-working-pulse {
   0%,
   100% {
@@ -605,6 +773,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .message-tool-spinner,
+  .message-tool-group-cog,
   .assistant-working-indicator-dot {
     animation: none;
   }

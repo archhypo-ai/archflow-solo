@@ -6,7 +6,7 @@ Tauri 2 desktop shell for ArchWISE.
 
 The shell includes a collapsible sidebar, conversation navigation, an Anonymous account menu, Settings (General and Agent), theme tokens, and an assistant-ui thread/composer runtime.
 
-The development process starts the Python backend with `scripts/start-backend.mjs`; the Tauri layer remains a native window shell. The React webview communicates with the backend over its HTTP API. The chat currently uses request/response HTTP; streaming and SSE will be introduced when the backend exposes a streaming contract.
+The development process starts the Python backend with `scripts/start-backend.mjs`; the Tauri layer remains a native window shell. The React webview communicates with the backend over its HTTP API. Chat turns use the shared SSE stream; the runtime maps text and tool events to assistant-ui message parts when they are present.
 
 The agent runtime is isolated in `src/features/chat/hooks/useAgentChatRuntime.ts`, and HTTP transport is isolated in `src/features/agent/api/agentClient.ts`. Shell components do not import transport code.
 

@@ -2,7 +2,7 @@ import json
 from types import SimpleNamespace
 
 import pytest
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.runnables import RunnableLambda
 
 from archwise_agent.agents.hypothesis_formulator import (
@@ -15,6 +15,9 @@ from archwise_agent.agents.orchestrator.nodes import (
     create_technical_plan_generation_node,
     create_uncertainty_discovery_node,
     route_discovery_result,
+)
+from archwise_agent.agents.orchestrator.nodes.uncertainty_discovery_node import (
+    _DoomLoopGuard,
 )
 from archwise_agent.agents.technical_planner import build_technical_planner_agent
 from archwise_agent.core import (
@@ -61,6 +64,56 @@ def test_formulate_hypothesis_node_normalizes_uncertainty() -> None:
     assert result["uncertainty"] == "Peak capacity is unknown."
     assert isinstance(result["hypothesis"], Hypothesis)
     assert result["messages"][0].name == "hypothesis_formulator_agent"
+
+
+def test_doom_loop_guard_stops_the_fourth_consecutive_repeat() -> None:
+    guard = _DoomLoopGuard()
+
+    for index in range(3):
+        call_id = f"ls-{index}"
+        assert guard.accept(
+            {
+                "messages": [
+                    AIMessage(
+                        content="",
+                        tool_calls=[
+                            {
+                                "name": "ls",
+                                "args": {"path": "/src"},
+                                "id": call_id,
+                            }
+                        ],
+                    )
+                ]
+            }
+        )
+        assert guard.accept(
+            {
+                "messages": [
+                    ToolMessage(
+                        content="['/src/app.py']",
+                        tool_call_id=call_id,
+                    )
+                ]
+            }
+        )
+
+    assert not guard.accept(
+        {
+            "messages": [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "ls",
+                            "args": {"path": "/src"},
+                            "id": "ls-4",
+                        }
+                    ],
+                )
+            ]
+        }
+    )
 
 
 def test_uncertainty_discovery_node_returns_a_candidate(tmp_path) -> None:

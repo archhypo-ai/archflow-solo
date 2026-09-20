@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -55,6 +56,28 @@ class GraphRunner:
             config,
             context=context.as_graph_context(),
             control=control,
+        )
+
+    def stream(
+        self,
+        *,
+        message: str,
+        context: ExecutionContext,
+        control: RunControl,
+    ) -> Iterator[tuple[str, Any]]:
+        """Stream graph values and custom nested-agent events."""
+
+        config = self._observability.graph_config(context)
+        config["configurable"] = {"thread_id": context.thread_id}
+        yield from self._agent.stream(
+            {
+                "uncertainty": message,
+                "messages": [HumanMessage(content=message)],
+            },
+            config,
+            context=context.as_graph_context(),
+            control=control,
+            stream_mode=["values", "custom"],
         )
 
     def get_state(self, thread_id: str) -> Any:

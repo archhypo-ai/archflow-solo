@@ -9,7 +9,12 @@ from langchain_core.runnables import Runnable
 from langgraph.runtime import Runtime
 
 from archwise_agent.core import ArchHypo, ArchHypoState, RunContext, TechnicalPlan
-from archwise_agent.graph import GraphNode, agent_message, raise_if_cancelled
+from archwise_agent.graph import (
+    GraphNode,
+    agent_message,
+    raise_if_cancelled,
+    stream_agent_with_tool_events,
+)
 
 
 def create_technical_plan_generation_node(
@@ -50,10 +55,12 @@ def create_technical_plan_generation_node(
                     "thread_id": runtime.context.get("thread_id"),
                 }
             }
-        result = technical_planner_agent.invoke(
+        result = stream_agent_with_tool_events(
+            technical_planner_agent,
             {"messages": [HumanMessage(content=prompt)]},
-            child_config,
+            config=child_config,
             context=(runtime.context if runtime is not None else None),
+            runtime=runtime,
         )
         raise_if_cancelled(runtime)
         technical_plan = TechnicalPlan.model_validate(result.get("structured_response"))
