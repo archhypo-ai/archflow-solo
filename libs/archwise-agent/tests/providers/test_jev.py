@@ -65,6 +65,22 @@ def test_jev_client_posts_generic_decision_request(monkeypatch) -> None:
     assert response.answers["route"].confidence == 0.98
 
 
+def test_jev_client_wraps_transport_timeouts(monkeypatch) -> None:
+    def post(*args, **kwargs):
+        request = httpx.Request("POST", "https://example.test")
+        raise httpx.ReadTimeout("timed out", request=request)
+
+    monkeypatch.setattr("archwise_agent.providers.jev.httpx.post", post)
+    client = JevDecisionClient(
+        api_key="secret",
+        model="typesafe/jev-1.13",
+        endpoint="https://example.test/api/alpha/decisions",
+    )
+
+    with pytest.raises(JevRequestError, match="Jev request failed"):
+        client.decide(state="message", questions={"route": {"type": "choice"}})
+
+
 def test_jev_client_wraps_http_errors(monkeypatch) -> None:
     def post(*args, **kwargs):
         request = httpx.Request("POST", "https://example.test")

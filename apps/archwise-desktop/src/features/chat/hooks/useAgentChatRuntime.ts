@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { AgentEvent } from "agent-stream-ts";
 import {
   type AppendMessage,
   type ThreadMessage,
@@ -14,7 +15,6 @@ import {
   streamChatMessage,
 } from "../../agent";
 import type {
-  AgentStreamEvent,
   BackendActiveRun,
   BackendFolderContext,
   BackendThread,
@@ -132,7 +132,7 @@ function parseToolArgs(text: string): ToolCallPart["args"] {
 function applyAgentEvent(
   current: ThreadMessage[],
   pendingId: string,
-  event: AgentStreamEvent,
+  event: AgentEvent,
 ): ThreadMessage[] {
   return current.map((message) => {
     if (message.id !== pendingId || message.role !== "assistant") {

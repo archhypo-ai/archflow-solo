@@ -12,7 +12,6 @@ export {
   updateThread,
 } from "./api";
 export type {
-  AgentStreamEvent,
   BackendActiveRun,
   BackendChatResponse,
   BackendFolderContext,

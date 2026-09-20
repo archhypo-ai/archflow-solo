@@ -99,7 +99,8 @@ class JevDecisionClient:
             )
             response.raise_for_status()
         except httpx.HTTPError as error:
-            status = getattr(error.response, "status_code", None)
+            response = getattr(error, "response", None)
+            status = getattr(response, "status_code", None)
             suffix = f" (status={status})" if status is not None else ""
             raise JevRequestError(f"Jev request failed{suffix}") from error
 

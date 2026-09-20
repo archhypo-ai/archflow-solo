@@ -4,6 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "prebuild": "tsc -p ../../libs/agent-stream-ts/tsconfig.json",
+    "predev": "tsc -p ../../libs/agent-stream-ts/tsconfig.json",
     "dev": "vite",
     "dev:backend": "node scripts/start-backend.mjs",
     "dev:all": "concurrently --names backend,frontend --prefix-colors blue,green \"npm:dev:backend\" \"npm:dev\"",
@@ -22,6 +24,7 @@
     "@fontsource/inter": "5.3.0",
     "@tauri-apps/api": "^2.5.0",
     "@tauri-apps/plugin-dialog": "^2.7.3",
+    "agent-stream-ts": "file:../../libs/agent-stream-ts",
     "i18next": "^26.4.2",
     "lucide-react": "^0.475.0",
     "react": "^19.1.0",
