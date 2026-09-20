@@ -13,6 +13,7 @@ from .core import (
     RequestRouting,
     TechnicalPlan,
     TechnicalPlanItem,
+    UncertaintyDiscoveryReport,
     UserResponse,
 )
 from .services import AgentService, AgentStreamEvent, AgentTurn
@@ -33,6 +34,7 @@ __all__ = [
     "RequestRouting",
     "TechnicalPlan",
     "TechnicalPlanItem",
+    "UncertaintyDiscoveryReport",
     "UserResponse",
     "build_orchestrator_agent",
 ]

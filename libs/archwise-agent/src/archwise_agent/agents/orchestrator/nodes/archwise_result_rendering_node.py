@@ -84,6 +84,18 @@ def render_archhypo_response(result: ArchHypo) -> str:
             ]
         )
 
+    discovery = result.discovery
+    if discovery is not None and discovery.evidence:
+        lines.extend(["### Workspace evidence", ""])
+        for evidence in discovery.evidence:
+            location = _table_cell(evidence.location)
+            observation = _table_cell(evidence.observation)
+            path = evidence.path.replace("`", "'")
+            lines.append(
+                f"- `{path}` ({location}) — {observation}"
+            )
+        lines.append("")
+
     lines.extend(
         [
             "### Rationale",

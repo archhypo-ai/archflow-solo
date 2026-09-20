@@ -37,6 +37,12 @@ def create_technical_plan_generation_node(
             "Classification:\n"
             f"{classification.model_dump_json(indent=2)}"
         )
+        discovery = state.get("discovery")
+        if discovery is not None:
+            prompt += (
+                "\n\nWorkspace discovery report:\n"
+                f"{discovery.model_dump_json(indent=2)}"
+            )
         child_config = None
         if runtime is not None and isinstance(runtime.context, dict):
             child_config = {
@@ -57,6 +63,7 @@ def create_technical_plan_generation_node(
             hypothesis=hypothesis,
             classification=classification,
             technical_plan=technical_plan,
+            discovery=discovery,
         )
         return {
             "technical_plan": technical_plan,

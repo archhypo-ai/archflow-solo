@@ -209,6 +209,7 @@ def test_orchestrator_uses_canonical_stage_ids() -> None:
         "__start__",
         "__end__",
         "request_routing",
+        "architectural_uncertainty_discovery",
         "direct_response_generation",
         "archwise_result_rendering",
         "archwise_response_generation",

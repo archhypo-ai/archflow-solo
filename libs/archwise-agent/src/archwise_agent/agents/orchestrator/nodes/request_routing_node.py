@@ -13,6 +13,7 @@ from archwise_agent.graph import GraphNode, raise_if_cancelled
 RouteTarget = Literal[
     "direct_response_generation",
     "hypothesis_formulation",
+    "architectural_uncertainty_discovery",
 ]
 
 
@@ -34,6 +35,7 @@ def create_request_routing_node(
         # previous ArchWise result from leaking into a later direct response.
         return {
             "routing": routing,
+            "discovery": None,
             "response": None,
             "hypothesis": None,
             "classification": None,
@@ -52,6 +54,8 @@ def route_request(state: ArchHypoState) -> RouteTarget:
         raise ValueError("request routing is required")
     if routing.route == "direct_response":
         return "direct_response_generation"
+    if routing.route == "uncertainty_discovery":
+        return "architectural_uncertainty_discovery"
     return "hypothesis_formulation"
 
 

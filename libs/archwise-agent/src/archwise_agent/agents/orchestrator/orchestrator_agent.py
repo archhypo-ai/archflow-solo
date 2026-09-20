@@ -31,6 +31,8 @@ from .nodes import (
     create_hypothesis_formulation_node,
     create_request_routing_node,
     create_technical_plan_generation_node,
+    create_uncertainty_discovery_node,
+    route_discovery_result,
     route_request,
 )
 
@@ -71,6 +73,10 @@ def build_orchestrator_agent(
         create_direct_response_generation_node(response_composer_agent),
     )
     workflow.add_node(
+        "architectural_uncertainty_discovery",
+        create_uncertainty_discovery_node(chat_model),
+    )
+    workflow.add_node(
         "archwise_result_rendering",
         create_archwise_result_rendering_node(),
     )
@@ -98,6 +104,17 @@ def build_orchestrator_agent(
         {
             "direct_response_generation": "direct_response_generation",
             "hypothesis_formulation": "hypothesis_formulation",
+            "architectural_uncertainty_discovery": (
+                "architectural_uncertainty_discovery"
+            ),
+        },
+    )
+    workflow.add_conditional_edges(
+        "architectural_uncertainty_discovery",
+        route_discovery_result,
+        {
+            "hypothesis_formulation": "hypothesis_formulation",
+            "direct_response_generation": "direct_response_generation",
         },
     )
     workflow.add_edge("direct_response_generation", END)

@@ -26,7 +26,10 @@ def create_hypothesis_formulation_node(
         raise_if_cancelled(runtime)
         hypothesis = Hypothesis.model_validate(
             hypothesis_formulator_agent.invoke(
-                make_hypothesis_input(state["uncertainty"])
+                make_hypothesis_input(
+                    state["uncertainty"],
+                    state.get("discovery"),
+                )
             )
         )
         raise_if_cancelled(runtime)

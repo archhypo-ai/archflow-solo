@@ -18,6 +18,7 @@ class RunContext(TypedDict, total=False):
     workspace_id: NotRequired[str]
     project_id: NotRequired[str | None]
     user_id: NotRequired[str | None]
+    folder_context_path: NotRequired[str | None]
     run_id: NotRequired[str]
 
 
@@ -33,6 +34,7 @@ class ExecutionContext:
     workspace_id: str = DEFAULT_WORKSPACE_ID
     project_id: str | None = None
     user_id: str | None = None
+    folder_context_path: str | None = None
     run_id: str = field(default_factory=lambda: str(uuid4()))
 
     def __post_init__(self) -> None:
@@ -42,6 +44,8 @@ class ExecutionContext:
             _require_value(self.project_id, "project_id")
         if self.user_id is not None:
             _require_value(self.user_id, "user_id")
+        if self.folder_context_path is not None:
+            _require_value(self.folder_context_path, "folder_context_path")
         _require_value(self.run_id, "run_id")
 
     def as_graph_context(self) -> RunContext:
@@ -52,6 +56,7 @@ class ExecutionContext:
             "workspace_id": self.workspace_id,
             "project_id": self.project_id,
             "user_id": self.user_id,
+            "folder_context_path": self.folder_context_path,
             "run_id": self.run_id,
         }
 

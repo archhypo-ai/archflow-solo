@@ -40,6 +40,12 @@ class FolderContextService:
     def list(self) -> list[FolderContext]:
         return [_to_context(item) for item in self._repository.list()]
 
+    def get_storage_path(self, thread_id: str) -> str | None:
+        """Return the internal read-only source path for a thread."""
+
+        metadata = self._repository.get(thread_id)
+        return metadata.storage_path if metadata is not None else None
+
     def attach(
         self,
         *,

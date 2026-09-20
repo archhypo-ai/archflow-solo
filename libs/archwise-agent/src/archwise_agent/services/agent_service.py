@@ -409,11 +409,17 @@ class AgentService:
         user_id: str | None,
         run_id: str | None,
     ) -> ExecutionContext:
+        folder_context_path = (
+            self._folder_context_service.get_storage_path(thread_id)
+            if self._folder_context_service is not None
+            else None
+        )
         return ExecutionContext(
             thread_id=thread_id,
             workspace_id=workspace_id,
             project_id=project_id,
             user_id=user_id,
+            folder_context_path=folder_context_path,
             **({"run_id": run_id} if run_id is not None else {}),
         )
 

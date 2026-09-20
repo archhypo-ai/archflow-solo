@@ -16,6 +16,10 @@ from .request_routing_node import (
     route_request,
 )
 from .technical_plan_generation_node import create_technical_plan_generation_node
+from .uncertainty_discovery_node import (
+    create_uncertainty_discovery_node,
+    route_discovery_result,
+)
 
 __all__ = [
     "create_archwise_response_generation_node",
@@ -25,6 +29,8 @@ __all__ = [
     "create_hypothesis_formulation_node",
     "create_request_routing_node",
     "create_technical_plan_generation_node",
+    "create_uncertainty_discovery_node",
+    "route_discovery_result",
     "RouteTarget",
     "response_history",
     "route_request",

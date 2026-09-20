@@ -4,7 +4,27 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-RequestRoute = Literal["direct_response", "archwise_workflow"]
+RequestRoute = Literal[
+    "direct_response",
+    "archwise_workflow",
+    "uncertainty_discovery",
+]
+
+DiscoveryStatus = Literal[
+    "found",
+    "not_found",
+    "insufficient_context",
+    "failed",
+]
+
+DiscoverySourceType = Literal[
+    "code",
+    "configuration",
+    "documentation",
+    "rfc",
+    "adr",
+    "other",
+]
 
 NFR = Literal[
     "Performance",
@@ -49,6 +69,34 @@ class UserResponse(_DomainModel):
     """Human-facing response returned by the final response agent."""
 
     message: str = Field(min_length=1)
+
+
+class DiscoveryEvidence(_DomainModel):
+    """One repository or document observation supporting discovery."""
+
+    path: str = Field(min_length=1)
+    location: str = Field(default="unknown", min_length=1)
+    source_type: DiscoverySourceType
+    observation: str = Field(min_length=1)
+
+
+class DiscoveryCandidate(_DomainModel):
+    """A possible architectural uncertainty found during investigation."""
+
+    uncertainty: str = Field(min_length=1)
+    rationale: str = Field(min_length=1)
+
+
+class UncertaintyDiscoveryReport(_DomainModel):
+    """Structured result produced by the workspace investigation agent."""
+
+    status: DiscoveryStatus
+    summary: str = Field(min_length=1)
+    candidates: list[DiscoveryCandidate] = Field(default_factory=list, max_length=3)
+    evidence: list[DiscoveryEvidence] = Field(default_factory=list, max_length=20)
+    consulted_sources: list[str] = Field(default_factory=list, max_length=20)
+    missing_information: list[str] = Field(default_factory=list, max_length=10)
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
 
 
 class Hypothesis(_DomainModel):
@@ -104,6 +152,7 @@ class ArchHypo(_DomainModel):
     hypothesis: Hypothesis
     classification: HypothesisClassification
     technical_plan: TechnicalPlan
+    discovery: UncertaintyDiscoveryReport | None = None
 
 
 __all__ = [
