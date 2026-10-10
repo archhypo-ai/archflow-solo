@@ -331,6 +331,60 @@ flowchart TD
     RESPONSE --> END_WORKFLOW([Fim da execução ArchHypo])
 ```
 
+### Grafo executável proposto — evolução do grafo atual
+
+O diagrama abaixo parte de `docs/architecture/archwise-workflow.mmd` e mantém seus nós existentes. Diferentemente do diagrama conceitual anterior, cada nó intermediário representa uma chamada de modelo/agente ou uma transformação de dados. `START` e `END` são apenas os marcadores do LangGraph.
+
+Contextos global e de projeto, documentos disponíveis e skills habilitadas são resolvidos pela aplicação e fornecidos via contexto de runtime do LangGraph. Não constituem um nó nem uma chamada de LLM. O LangGraph transporta esse contexto; a aplicação ainda precisa implementar sua composição.
+
+```mermaid
+flowchart TD
+    __start__([START]) --> request_routing[request_routing]
+
+    request_routing -.->|Resposta direta| direct_response_generation[direct_response_generation]
+    request_routing -.->|Descoberta documental| architectural_uncertainty_discovery[architectural_uncertainty_discovery]
+    request_routing -.->|Incerteza ou resposta à entrevista| context_sufficiency_assessment[context_sufficiency_assessment]
+
+    architectural_uncertainty_discovery -.->|Material para hipótese| context_sufficiency_assessment
+    architectural_uncertainty_discovery -.->|Esclarecer contexto ou selecionar escopo| clarification_question_generation[clarification_question_generation]
+    architectural_uncertainty_discovery -.->|Sem incerteza identificada| direct_response_generation
+
+    context_sufficiency_assessment -.->|Contexto suficiente| hypothesis_formulation[hypothesis_formulation]
+    context_sufficiency_assessment -.->|Consultar documentos relevantes ainda não lidos| documentary_context_collection[documentary_context_collection]
+    context_sufficiency_assessment -.->|Precisar de resposta do usuário| clarification_question_generation
+
+    documentary_context_collection --> context_sufficiency_assessment
+    clarification_question_generation --> __end__([END])
+
+    hypothesis_formulation --> hypothesis_assessment[hypothesis_assessment]
+    hypothesis_assessment --> quality_tagging[quality_tagging]
+    quality_tagging --> technical_plan_generation[technical_plan_generation]
+    technical_plan_generation --> archwise_result_rendering[archwise_result_rendering]
+    archwise_result_rendering --> archwise_response_generation[archwise_response_generation]
+    archwise_response_generation --> __end__
+    direct_response_generation --> __end__
+```
+
+#### Operações dos nós acrescentados
+
+| Nó | Operação executada |
+|---|---|
+| `context_sufficiency_assessment` | Chamada estruturada de LLM para avaliar contexto mínimo, registrar lacunas e indicar o próximo passo. |
+| `documentary_context_collection` | Chamada ao Deep Agent documental para obter evidências pertinentes às lacunas. Pode reutilizar a implementação do agente de discovery com uma tarefa específica. |
+| `clarification_question_generation` | Chamada de LLM para gerar poucas perguntas e devolver uma atualização estruturada com perguntas pendentes e estado da entrevista. |
+| `quality_tagging` | Chamada a Jev/LLM para classificar uma ou mais tags de qualidade e acrescentá-las ao estado do resultado. |
+
+`archwise_result_rendering` continua sendo uma transformação de dados: incorpora hipótese, avaliação, tags, plano e referências à documentação semântica. A persistência pode permanecer no serviço responsável, sem exigir um novo agente.
+
+#### Arestas condicionais e continuidade
+
+- As decisões de caminho são funções de roteamento sobre resultados estruturados dos nós, não nós adicionais de LLM.
+- Após gerar perguntas, a execução termina com a entrevista pendente no estado persistido. A próxima mensagem inicia outra execução no mesmo `thread_id`; o roteamento reconhece a continuidade e a avaliação considera as respostas acumuladas.
+- A volta de `documentary_context_collection` para avaliação deve ser limitada pelo estado: fontes já consultadas e orçamento de busca impedem repetição indefinida. Persistindo a lacuna, o caminho seguinte é perguntar ao usuário.
+- Acesso a skills ocorre dentro de `technical_plan_generation`, sob demanda, sem um nó próprio de resolução de contexto.
+- Este diagrama não introduz um `interrupt()` obrigatório. Uma pausa de aprovação humana poderá ser acrescentada posteriormente, caso necessário.
+- A avaliação de suficiência só habilita a hipótese após selecionar uma incerteza central; não combina candidatos independentes automaticamente.
+
 ### Observações sobre o fluxo
 
 - As etapas de suficiência devem reconhecer quando uma resposta continua uma entrevista, em vez de tratar toda mensagem como uma nova incerteza.
