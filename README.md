@@ -9,7 +9,7 @@ Desktop application for exploring architectural uncertainty with the ArchHypo te
 - `docs` — project documentation.
 - `libs` — reusable libraries.
 
-The desktop app is a Tauri/React chat harness built with assistant-ui. It currently uses local demonstration responses; the LangGraph backend will be connected in a later increment.
+The desktop app is a Tauri/React chat harness built with assistant-ui and a local FastAPI/LangGraph backend. The shared SSE event contract is defined in `contracts/agent-stream.schema.json`.
 
 ## Run the desktop app
 

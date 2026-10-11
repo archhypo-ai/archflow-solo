@@ -75,6 +75,7 @@
     "chatsTitle": "Conversas",
     "emptyTitle": "Ainda não há conversas neste projeto",
     "emptyDescription": "Inicie uma nova conversa para manter tudo deste projeto junto.",
+    "noChats": "Ainda não há conversas.",
     "noPreview": "Ainda sem mensagens",
     "renameTitle": "Renomear projeto",
     "renameError": "Não foi possível renomear o projeto. Tente novamente.",

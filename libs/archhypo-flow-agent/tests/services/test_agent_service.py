@@ -169,6 +169,10 @@ def test_stream_emits_tool_calls_and_results_before_the_final_reply(
         service.close()
 
     event_types = [event["type"] for event in events]
+    assert all(event["protocol_version"] == 1 for event in events)
+    assert all(event["thread_id"] == "stream-thread" for event in events)
+    assert len({event["run_id"] for event in events}) == 1
+    assert events[0]["run_id"] != follow_up_events[0]["run_id"]
     assert event_types.count("tool_call_start") == 2
     assert event_types.count("tool_result") == 2
     first_call = next(

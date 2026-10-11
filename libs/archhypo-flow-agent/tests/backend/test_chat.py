@@ -71,6 +71,11 @@ def test_chat_stream_endpoint_emits_sse_progress_and_final_reply(tmp_path) -> No
                 "text_delta",
                 "done",
             ]
+            assert all(event["protocol_version"] == 1 for event in events)
+            assert all(event["thread_id"] == "stream-thread" for event in events)
+            assert len({event["run_id"] for event in events}) == 1
+            assert events[-1]["status"] == "completed"
+            assert events[-1]["title"] == "Explore a database decision"
             assert events[2]["text"] == (
                 "Understood. Let's explore this architectural decision."
             )

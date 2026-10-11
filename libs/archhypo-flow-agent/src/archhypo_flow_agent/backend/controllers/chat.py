@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import Iterator
+from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.sse import EventSourceResponse, ServerSentEvent
@@ -60,29 +61,40 @@ def stream_message(
             detail="Configure OPENROUTER_API_KEY in libs/archhypo-flow-agent/.env.",
         )
 
+    run_id = uuid4().hex
+
     def events() -> Iterator[ServerSentEvent]:
         try:
-            for event in agent_service.stream(payload):
+            for event in agent_service.stream(payload, run_id=run_id):
                 yield ServerSentEvent(event="chat", data=event)
         except LookupError as error:
             yield ServerSentEvent(
                 event="chat",
-                data={"type": "error", "message": str(error)},
+                data=_stream_error_data(run_id, payload.thread_id, str(error)),
             )
         except Exception as error:
             logger.error("Chat stream failed (%s)", type(error).__name__)
             yield ServerSentEvent(
                 event="chat",
-                data={
-                    "type": "error",
-                    "message": (
-                        "The OpenRouter request failed. Check the API key, model, "
-                        "and provider limits."
-                    ),
-                },
+                data=_stream_error_data(
+                    run_id,
+                    payload.thread_id,
+                    "The OpenRouter request failed. Check the API key, model, "
+                    "and provider limits.",
+                ),
             )
 
     return events()
+
+
+def _stream_error_data(run_id: str, thread_id: str, message: str) -> dict[str, object]:
+    return {
+        "protocol_version": 1,
+        "run_id": run_id,
+        "thread_id": thread_id,
+        "type": "error",
+        "message": message,
+    }
 
 
 __all__ = ["router"]

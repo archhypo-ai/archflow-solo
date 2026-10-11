@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://archwise.dev/contracts/agent-stream.schema.json",
+  "title": "ArchWise Agent Stream Event",
+  "description": "Wire contract for agent runs transported through SSE.",
+  "$defs": {
+    "base": {
+      "type": "object",
+      "required": ["protocol_version", "run_id", "thread_id", "type"],
+      "properties": {
+        "protocol_version": {"const": 1},
+        "run_id": {"type": "string", "minLength": 1},
+        "thread_id": {"type": "string", "minLength": 1},
+        "type": {"type": "string"}
+      }
+    }
+  },
+  "oneOf": [
+    {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {
+          "properties": {"type": {"const": "phase"}, "phase": {"type": "string", "minLength": 1}},
+          "required": ["phase"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {
+          "properties": {"type": {"const": "text_delta"}, "text": {"type": "string"}},
+          "required": ["text"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {
+          "properties": {"type": {"const": "done"}, "status": {"const": "completed"}, "title": {"type": "string"}, "message": {"type": "string"}},
+          "required": ["status"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {
+          "properties": {"type": {"const": "cancelled"}, "status": {"const": "cancelled"}, "reason": {"type": "string"}},
+          "required": ["status"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {
+          "properties": {"type": {"const": "error"}, "message": {"type": "string", "minLength": 1}},
+          "required": ["message"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {
+          "properties": {"type": {"const": "tool_call_start"}, "tool_call_id": {"type": "string", "minLength": 1}, "name": {"type": "string", "minLength": 1}},
+          "required": ["tool_call_id", "name"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {
+          "properties": {"type": {"const": "tool_call_delta"}, "tool_call_id": {"type": "string", "minLength": 1}, "text": {"type": "string"}},
+          "required": ["tool_call_id", "text"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {
+          "properties": {"type": {"const": "tool_result"}, "tool_call_id": {"type": "string", "minLength": 1}, "output": {}, "is_error": {"type": "boolean"}},
+          "required": ["tool_call_id", "output"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {
+          "properties": {"type": {"const": "interrupt"}, "interrupt_id": {"type": "string", "minLength": 1}, "message": {"type": "string", "minLength": 1}, "payload": {"type": "object"}},
+          "required": ["interrupt_id", "message"]
+        }
+      ]
+    }
+  ]
+}

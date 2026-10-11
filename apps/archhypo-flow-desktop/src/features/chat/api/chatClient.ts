@@ -74,10 +74,33 @@ export async function* streamChatMessage(
 
 function parseStreamEvent(data: string): ChatStreamEvent {
   const value: unknown = JSON.parse(data);
-  if (!value || typeof value !== "object" || !("type" in value)) {
-    throw new Error("Invalid chat stream event");
+  if (
+    !value ||
+    typeof value !== "object" ||
+    !("type" in value) ||
+    !("protocol_version" in value) ||
+    value.protocol_version !== 1 ||
+    !("run_id" in value) ||
+    typeof value.run_id !== "string" ||
+    !("thread_id" in value) ||
+    typeof value.thread_id !== "string"
+  ) {
+    throw new Error("Invalid chat stream event envelope");
   }
+
   const event = value as ChatStreamEvent;
   if (event.type === "error") throw new Error(event.message);
+  if (
+    ![
+      "phase",
+      "tool_call_start",
+      "tool_call_delta",
+      "tool_result",
+      "text_delta",
+      "done",
+    ].includes(event.type)
+  ) {
+    throw new Error("Unsupported chat stream event");
+  }
   return event;
 }

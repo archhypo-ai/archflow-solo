@@ -239,7 +239,9 @@ export function Sidebar({
               <span>{t("sidebar.projects")}</span>
             </button>
             {projectsExpanded && (
-              <div className="sidebar-section-items sidebar-project-items">
+              <div
+                className="sidebar-section-items sidebar-project-items"
+              >
                 {projects.map((project) => {
                   const active = project.id === activeProjectId;
                   const menuOpen = openProjectMenuId === project.id;
@@ -270,6 +272,11 @@ export function Sidebar({
                             })
                           }
                         >
+                          <ChevronRight
+                            className={`sidebar-project-chevron${expanded ? " is-expanded" : ""}`}
+                            size={12}
+                            aria-hidden="true"
+                          />
                           <ProjectIcon
                             className="sidebar-project-icon"
                             icon={project.icon}
@@ -350,8 +357,14 @@ export function Sidebar({
                         </div>
                       </div>
                       <div id={conversationsId} hidden={!expanded}>
-                        {expanded && projectConversations.length > 0 &&
-                          renderConversationItems(projectConversations, true)}
+                        {expanded &&
+                          (projectConversations.length > 0 ? (
+                            renderConversationItems(projectConversations, true)
+                          ) : (
+                            <span className="sidebar-empty-state">
+                              {t("projects.noChats")}
+                            </span>
+                          ))}
                       </div>
                     </div>
                   );

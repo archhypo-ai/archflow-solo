@@ -7,6 +7,7 @@ from collections.abc import Iterator, Sequence
 from pathlib import Path
 from threading import Lock
 from typing import cast
+from uuid import uuid4
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, HumanMessage
@@ -131,10 +132,21 @@ class AgentService:
                 tool_calls=_tool_calls_from_messages(turn_messages),
             )
 
-    def stream(self, request: ChatRequest) -> Iterator[dict[str, object]]:
+    def stream(
+        self,
+        request: ChatRequest,
+        *,
+        run_id: str | None = None,
+    ) -> Iterator[dict[str, object]]:
         """Stream tool progress and the final assistant reply for one turn."""
 
-        yield {"type": "phase", "phase": "thinking"}
+        active_run_id = run_id or uuid4().hex
+        yield _stream_event_data(
+            active_run_id,
+            request.thread_id,
+            "phase",
+            phase="thinking",
+        )
         with self._lock:
             if self._demo_model is not None:
                 self._demo_model.set_language(request.language)
@@ -163,7 +175,6 @@ class AgentService:
                 previous_state.values if isinstance(previous_state.values, dict) else {}
             )
             previous_messages = previous_values.get("messages", [])
-            previous_message_count = len(previous_messages)
             previous_tool_ids = {
                 call.id
                 for call in _tool_calls_from_messages(
@@ -194,36 +205,47 @@ class AgentService:
                             pending_calls.add(call_id)
                             args = call.get("args")
                             normalized_args = args if isinstance(args, dict) else {}
-                            yield {
-                                "type": "tool_call_start",
-                                "tool_call_id": call_id,
-                                "name": str(call.get("name") or "unknown_tool"),
-                            }
-                            yield {
-                                "type": "tool_call_delta",
-                                "tool_call_id": call_id,
-                                "text": json.dumps(
+                            yield _stream_event_data(
+                                active_run_id,
+                                request.thread_id,
+                                "tool_call_start",
+                                tool_call_id=call_id,
+                                name=str(call.get("name") or "unknown_tool"),
+                            )
+                            yield _stream_event_data(
+                                active_run_id,
+                                request.thread_id,
+                                "tool_call_delta",
+                                tool_call_id=call_id,
+                                text=json.dumps(
                                     normalized_args,
                                     ensure_ascii=False,
                                     default=str,
                                 ),
-                            }
+                            )
                     elif message.type == "tool":
                         call_id = str(getattr(message, "tool_call_id", ""))
                         if not call_id or call_id in emitted_results:
                             continue
                         emitted_results.add(call_id)
                         pending_calls.discard(call_id)
-                        yield {
-                            "type": "tool_result",
-                            "tool_call_id": call_id,
-                            "output": _tool_result_value(message.content),
-                            "is_error": (
+                        yield _stream_event_data(
+                            active_run_id,
+                            request.thread_id,
+                            "tool_result",
+                            tool_call_id=call_id,
+                            output=_tool_result_value(message.content),
+                            is_error=(
                                 getattr(message, "status", "success") == "error"
                             ),
-                        }
+                        )
                         if not pending_calls:
-                            yield {"type": "phase", "phase": "thinking"}
+                            yield _stream_event_data(
+                                active_run_id,
+                                request.thread_id,
+                                "phase",
+                                phase="thinking",
+                            )
 
             final_state = self._graph.get_state(config)
             final_values = (
@@ -233,7 +255,6 @@ class AgentService:
             if not messages:
                 raise RuntimeError("The chat graph returned no messages")
 
-            turn_messages = messages[previous_message_count:]
             last_message = cast(BaseMessage, messages[-1])
             message_text = _message_text(last_message)
             if not message_text:
@@ -242,18 +263,26 @@ class AgentService:
                 request.message
             )
 
-            yield {"type": "phase", "phase": "answering"}
-            yield {"type": "text_delta", "text": message_text}
-            yield {
-                "type": "done",
-                "thread_id": request.thread_id,
-                "title": title,
-                "message": message_text,
-                "tool_calls": [
-                    call.model_dump()
-                    for call in _tool_calls_from_messages(turn_messages)
-                ],
-            }
+            yield _stream_event_data(
+                active_run_id,
+                request.thread_id,
+                "phase",
+                phase="answering",
+            )
+            yield _stream_event_data(
+                active_run_id,
+                request.thread_id,
+                "text_delta",
+                text=message_text,
+            )
+            yield _stream_event_data(
+                active_run_id,
+                request.thread_id,
+                "done",
+                status="completed",
+                title=title,
+                message=message_text,
+            )
 
     def list_conversations(self) -> list[ConversationSummary]:
         """List saved threads newest-first with visible message counts."""
@@ -461,6 +490,21 @@ class AgentService:
                 )
                 turn_messages = []
         return projected
+
+
+def _stream_event_data(
+    run_id: str,
+    thread_id: str,
+    event_type: str,
+    **fields: object,
+) -> dict[str, object]:
+    return {
+        "protocol_version": 1,
+        "run_id": run_id,
+        "thread_id": thread_id,
+        "type": event_type,
+        **fields,
+    }
 
 
 def _messages_from_update(update: object) -> Iterator[BaseMessage]:
