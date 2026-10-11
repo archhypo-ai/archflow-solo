@@ -17,7 +17,7 @@ src/archhypo_flow_agent/
 ├── providers/       # LLM provider factories
 ├── services/        # Application-facing agent operations
 ├── stream/          # Validated events shared with the frontend
-└── tools/           # Agent tools, including future skill access
+└── tools/           # Agent tools such as bounded public-web search
 ```
 
 ## Development
@@ -29,9 +29,11 @@ uv run pytest
 uv run ruff check .
 ```
 
-The local API exposes `POST /api/chat`, `GET /api/threads`, and `GET /api/threads/{thread_id}`. LangGraph checkpoints and conversation metadata share one SQLite database, defaulting to `~/.local/share/archhypo-flow/runtime/checkpoints.sqlite`; override the storage root with `ARCHHYPO_FLOW_STORAGE_ROOT`.
+The local API exposes `POST /api/chat`, the streaming `POST /api/chat/stream` endpoint used by the desktop UI, `GET /api/threads`, and `GET /api/threads/{thread_id}`. The streaming endpoint sends tool-call starts and results as they occur before the final reply. LangGraph checkpoints and conversation metadata share one SQLite database, defaulting to `~/.local/share/archhypo-flow/runtime/checkpoints.sqlite`; override the storage root with `ARCHHYPO_FLOW_STORAGE_ROOT`.
 
 The desktop API uses `ChatOpenRouter` from the configured provider factory. Set `OPENROUTER_API_KEY` and optionally `OPENROUTER_MODEL` in this package's `.env`; the development launcher starts the backend with this directory as its working directory. Without a key, conversation history remains available, but chat requests return a configuration error instead of a fake reply.
+
+Tavily public-web search is enabled when `TAVILY_API_KEY` is configured. Install its optional dependency with `uv sync --extra research` (the desktop development launcher includes this extra). The tool only accepts bounded public queries, rejects obvious secrets and local paths, and returns short excerpts rather than raw page content. Never include private code, project details, credentials, or secrets in a search query.
 
 ## Draw the graph
 

@@ -9,7 +9,7 @@ description = "Minimal conversational LangGraph agent for ArchHypo Flow"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-  "fastapi[standard]>=0.115,<1.0",
+  "fastapi[standard]>=0.135,<1.0",
   "langchain>=1.0,<2.0",
   "langchain-core>=1.0,<2.0",
   "langchain-openrouter>=0.2.8,<1.0",
@@ -24,6 +24,9 @@ dependencies = [
 archhypo-flow-workflow-diagram = "archhypo_flow_agent.cli.workflow_diagram:main"
 
 [project.optional-dependencies]
+research = [
+  "tavily-python>=0.8,<1.0",
+]
 observability = [
   "langsmith>=0.3.0,<1.0",
 ]

@@ -182,7 +182,11 @@ function applyAgentEvent(
       case "tool_result":
         content = content.map((part) =>
           part.type === "tool-call" && part.toolCallId === event.tool_call_id
-            ? { ...part, result: event.output }
+            ? {
+                ...part,
+                result: event.output,
+                isError: event.is_error ?? false,
+              }
             : part,
         );
         break;

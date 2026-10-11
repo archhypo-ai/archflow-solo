@@ -1,5 +1,6 @@
 import { MessagePrimitive } from "@assistant-ui/react";
 import { ChatMarkdownText } from "./ChatMarkdownText";
+import { ChatMessageActions } from "./ChatMessageActions";
 
 export function ChatUserMessage() {
   return (
@@ -7,6 +8,7 @@ export function ChatUserMessage() {
       <div className="chat-message-bubble">
         <MessagePrimitive.Parts components={{ Text: ChatMarkdownText }} />
       </div>
+      <ChatMessageActions />
     </MessagePrimitive.Root>
   );
 }

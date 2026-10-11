@@ -1,3 +1,5 @@
+import json
+
 from fastapi.testclient import TestClient
 
 from archhypo_flow_agent.backend.app import create_app
@@ -24,6 +26,7 @@ def test_chat_endpoint_saves_and_returns_conversation(tmp_path) -> None:
                 "thread_id": "api-thread",
                 "title": "Explore a database decision",
                 "message": "Understood. Let's explore this architectural decision.",
+                "tool_calls": [],
             }
 
             listed = client.get("/api/threads")
@@ -37,6 +40,41 @@ def test_chat_endpoint_saves_and_returns_conversation(tmp_path) -> None:
                 "user",
                 "assistant",
             ]
+    finally:
+        service.close()
+
+
+def test_chat_stream_endpoint_emits_sse_progress_and_final_reply(tmp_path) -> None:
+    service = AgentService(database_path=tmp_path / "stream.sqlite")
+    try:
+        with TestClient(create_app(service)) as client:
+            with client.stream(
+                "POST",
+                "/api/chat/stream",
+                json={
+                    "thread_id": "stream-thread",
+                    "message": "Explore a database decision",
+                    "language": "en",
+                },
+            ) as response:
+                assert response.status_code == 200
+                assert response.headers["content-type"].startswith("text/event-stream")
+                events = [
+                    json.loads(line.removeprefix("data: "))
+                    for line in response.iter_lines()
+                    if line.startswith("data: ")
+                ]
+
+            assert [event["type"] for event in events] == [
+                "phase",
+                "phase",
+                "text_delta",
+                "done",
+            ]
+            assert events[2]["text"] == (
+                "Understood. Let's explore this architectural decision."
+            )
+            assert client.get("/api/threads/stream-thread").status_code == 200
     finally:
         service.close()
 

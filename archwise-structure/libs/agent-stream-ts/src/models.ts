@@ -48,6 +48,7 @@ export type ToolResultEvent = AgentEventBase & {
   type: "tool_result";
   tool_call_id: string;
   output: unknown;
+  is_error?: boolean;
 };
 
 export type InterruptEvent = AgentEventBase & {

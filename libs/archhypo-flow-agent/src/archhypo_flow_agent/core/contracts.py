@@ -23,6 +23,18 @@ class ChatRequest(BaseModel):
         return value
 
 
+class ToolCallRecord(BaseModel):
+    """A completed tool invocation included in the visible conversation."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str = Field(min_length=1)
+    name: str = Field(min_length=1)
+    args: dict[str, object]
+    result: object | None = None
+    is_error: bool = False
+
+
 class ChatResponse(BaseModel):
     """Assistant response for a conversation thread."""
 
@@ -31,6 +43,7 @@ class ChatResponse(BaseModel):
     thread_id: str = Field(min_length=1)
     title: str = Field(min_length=1)
     message: str = Field(min_length=1)
+    tool_calls: list[ToolCallRecord] = Field(default_factory=list)
 
 
-__all__ = ["ChatRequest", "ChatResponse"]
+__all__ = ["ChatRequest", "ChatResponse", "ToolCallRecord"]

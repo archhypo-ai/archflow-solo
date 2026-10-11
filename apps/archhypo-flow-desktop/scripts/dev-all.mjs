@@ -70,6 +70,8 @@ try {
       uv,
       [
         "run",
+        "--extra",
+        "research",
         "--project",
         backendDir,
         "python",

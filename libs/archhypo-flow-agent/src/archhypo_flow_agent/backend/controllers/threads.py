@@ -52,7 +52,11 @@ def get_thread(
         project_id=conversation.project_id,
         preview=conversation.preview,
         messages=[
-            ThreadMessageResponse(role=message.role, content=message.content)
+            ThreadMessageResponse(
+                role=message.role,
+                content=message.content,
+                tool_calls=message.tool_calls,
+            )
             for message in conversation.messages
         ],
     )

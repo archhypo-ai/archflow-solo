@@ -1,13 +1,16 @@
 """Conversation records returned by the application service."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
+
+from archhypo_flow_agent.core import ToolCallRecord
 
 
 @dataclass(frozen=True, slots=True)
 class ConversationMessage:
     role: Literal["user", "assistant"]
     content: str
+    tool_calls: list[ToolCallRecord] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)

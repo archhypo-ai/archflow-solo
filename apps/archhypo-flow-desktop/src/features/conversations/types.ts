@@ -1,6 +1,23 @@
+export type JsonValue =
+  | null
+  | boolean
+  | number
+  | string
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+export type StoredToolCall = {
+  id: string;
+  name: string;
+  args: { [key: string]: JsonValue };
+  result: JsonValue | null;
+  is_error: boolean;
+};
+
 export type StoredChatMessage = {
   role: "user" | "assistant";
   content: string;
+  tool_calls?: StoredToolCall[];
 };
 
 export type ConversationSummary = {

@@ -125,7 +125,7 @@ dev = [
 requires-dist = [
     { name = "agent-stream-py", editable = "../agent-stream-py" },
     { name = "deepagents", specifier = ">=0.7,<0.8" },
-    { name = "fastapi", extras = ["standard"], specifier = ">=0.115,<1.0" },
+    { name = "fastapi", extras = ["standard"], specifier = ">=0.135,<1.0" },
     { name = "httpx", specifier = ">=0.28,<1.0" },
     { name = "langchain", specifier = ">=1.0,<2.0" },
     { name = "langchain-core", specifier = ">=1.0,<2.0" },

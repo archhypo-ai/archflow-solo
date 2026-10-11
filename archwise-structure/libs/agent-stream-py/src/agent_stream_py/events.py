@@ -57,6 +57,7 @@ class ToolResultEvent(EventBase):
     type: Literal["tool_result"] = "tool_result"
     tool_call_id: str = Field(min_length=1)
     output: object
+    is_error: bool = False
 
 
 class InterruptEvent(EventBase):

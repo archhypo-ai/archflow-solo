@@ -153,6 +153,7 @@ def _emit_tool_events(update: Any, runtime: Any) -> None:
                         "type": "tool_result",
                         "tool_call_id": tool_call_id,
                         "output": output,
+                        "is_error": getattr(message, "status", "success") == "error",
                     },
                 )
 

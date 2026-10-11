@@ -1,14 +1,27 @@
-import type { ChatTurnResponse } from "../types";
+import type { ChatStreamEvent } from "../types";
 
 const API_BASE_URL = "http://127.0.0.1:8765";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    ...init,
+export async function* streamChatMessage(
+  threadId: string,
+  message: string,
+  language: "en" | "pt-BR",
+  projectId: string | null,
+  signal: AbortSignal,
+): AsyncGenerator<ChatStreamEvent> {
+  const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
+    method: "POST",
+    signal,
     headers: {
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...init?.headers,
+      Accept: "text/event-stream",
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      thread_id: threadId,
+      message,
+      language,
+      project_id: projectId,
+    }),
   });
 
   if (!response.ok) {
@@ -21,24 +34,50 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new Error(`Chat API error (${response.status}): ${detail}`);
   }
+  if (!response.body) throw new Error("Chat stream has no response body");
 
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let dataLines: string[] = [];
+
+  try {
+    while (true) {
+      const { value, done } = await reader.read();
+      buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
+      const lines = buffer.split(/\r?\n/);
+      buffer = lines.pop() ?? "";
+
+      for (const line of lines) {
+        if (line === "") {
+          if (dataLines.length > 0) {
+            yield parseStreamEvent(dataLines.join("\n"));
+            dataLines = [];
+          }
+        } else if (line.startsWith("data:")) {
+          dataLines.push(line.slice(5).replace(/^ /, ""));
+        }
+      }
+
+      if (done) {
+        if (buffer.startsWith("data:")) {
+          dataLines.push(buffer.slice(5).replace(/^ /, ""));
+        }
+        if (dataLines.length > 0) yield parseStreamEvent(dataLines.join("\n"));
+        return;
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
 
-export function sendChatMessage(
-  threadId: string,
-  message: string,
-  language: "en" | "pt-BR",
-  projectId: string | null,
-): Promise<ChatTurnResponse> {
-  return request<ChatTurnResponse>("/api/chat", {
-    method: "POST",
-    body: JSON.stringify({
-      thread_id: threadId,
-      message,
-      language,
-      project_id: projectId,
-    }),
-  });
+function parseStreamEvent(data: string): ChatStreamEvent {
+  const value: unknown = JSON.parse(data);
+  if (!value || typeof value !== "object" || !("type" in value)) {
+    throw new Error("Invalid chat stream event");
+  }
+  const event = value as ChatStreamEvent;
+  if (event.type === "error") throw new Error(event.message);
+  return event;
 }

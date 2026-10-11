@@ -33,7 +33,20 @@ function toInitialMessages(
   return messages.map((message, index) => ({
     id: `${threadId}-${index}`,
     role: message.role,
-    content: [{ type: "text", text: message.content }],
+    content: [
+      ...(message.role === "assistant"
+        ? (message.tool_calls ?? []).map((call) => ({
+            type: "tool-call" as const,
+            toolCallId: call.id,
+            toolName: call.name,
+            args: call.args,
+            argsText: JSON.stringify(call.args),
+            result: call.result,
+            isError: call.is_error,
+          }))
+        : []),
+      ...(message.content ? [{ type: "text" as const, text: message.content }] : []),
+    ],
     createdAt: new Date(),
   }));
 }

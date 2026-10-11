@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from archhypo_flow_agent.core import ToolCallRecord
+
 
 class HealthResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
@@ -124,6 +126,7 @@ class ThreadMessageResponse(BaseModel):
 
     role: Literal["user", "assistant"]
     content: str
+    tool_calls: list[ToolCallRecord] = Field(default_factory=list)
 
 
 class ThreadResponse(ThreadSummaryResponse):

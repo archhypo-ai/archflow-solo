@@ -62,6 +62,8 @@ pub enum AgentEvent {
         thread_id: String,
         tool_call_id: String,
         output: serde_json::Value,
+        #[serde(default)]
+        is_error: bool,
     },
     #[serde(rename = "interrupt")]
     Interrupt {
