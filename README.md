@@ -9,7 +9,7 @@ Desktop application for exploring architectural uncertainty with the ArchHypo te
 - `docs` — project documentation.
 - `libs` — reusable libraries.
 
-The desktop app is currently a minimal Tauri Hello World scaffold.
+The desktop app is a Tauri/React chat harness built with assistant-ui. It currently uses local demonstration responses; the LangGraph backend will be connected in a later increment.
 
 ## Run the desktop app
 

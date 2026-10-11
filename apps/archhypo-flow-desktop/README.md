@@ -1,7 +1,18 @@
-# Tauri + React + Typescript
+# ArchHypo Flow Desktop
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+Tauri and React desktop chat harness using the latest `@assistant-ui/react` package. Tokyo Night and Tokyo Night Day color tokens are centralized in `src/theme/tokens.css`; the sidebar theme control switches between them. On Linux, the Tauri entry point disables WebKitGTK's DMA-BUF renderer by default to avoid blank windows on affected graphics drivers; an explicitly set `WEBKIT_DISABLE_DMABUF_RENDERER` value is preserved.
 
-## Recommended IDE Setup
+The current chat runtime returns local demonstration responses. It does not call the LangGraph agent or persist conversations yet.
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## Development
+
+```bash
+npm install
+npm run tauri dev
+```
+
+Build the frontend with:
+
+```bash
+npm run build
+```
