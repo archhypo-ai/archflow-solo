@@ -2,18 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import { Settings2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../i18n";
+import type { ThemePreference } from "../../theme/types";
 import { GeneralSettings } from "./GeneralSettings";
 import "./SettingsDialog.css";
 
-type Theme = "day" | "night";
 type SettingsSection = "general";
 
 type SettingsDialogProps = {
   open: boolean;
-  theme: Theme;
+  theme: ThemePreference;
   language: AppLanguage;
   onClose: () => void;
-  onThemeChange: (theme: Theme) => void;
+  onThemeChange: (theme: ThemePreference) => void;
   onLanguageChange: (language: AppLanguage) => void;
 };
 

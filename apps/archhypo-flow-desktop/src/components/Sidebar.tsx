@@ -11,6 +11,7 @@ import {
 import { useCallback, useEffect, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../i18n";
+import { ProjectIcon, type Project } from "../features/projects";
 import { Menu, MenuContent, MenuItem, MenuRadioItem } from "./overlay";
 import "./Sidebar.css";
 
@@ -18,7 +19,9 @@ type SidebarProps = {
   accountTriggerRef: RefObject<HTMLButtonElement | null>;
   activeConversationTitle: string;
   language: AppLanguage;
+  projects: Project[];
   onNewChat: () => void;
+  onNewProject: () => void;
   onLanguageChange: (language: AppLanguage) => void;
   onSettingsOpen: () => void;
 };
@@ -27,7 +30,9 @@ export function Sidebar({
   accountTriggerRef,
   activeConversationTitle,
   language,
+  projects,
   onNewChat,
+  onNewProject,
   onLanguageChange,
   onSettingsOpen,
 }: SidebarProps) {
@@ -40,6 +45,9 @@ export function Sidebar({
   useEffect(() => {
     if (activeConversationTitle) setConversationsExpanded(true);
   }, [activeConversationTitle]);
+  useEffect(() => {
+    if (projects.length > 0) setProjectsExpanded(true);
+  }, [projects.length]);
 
   const handleMenuOpenChange = useCallback((open: boolean) => {
     setAccountMenuOpen(open);
@@ -64,7 +72,11 @@ export function Sidebar({
           <SquarePen size={17} aria-hidden="true" />
           <span>{t("sidebar.newConversation")}</span>
         </button>
-        <button className="sidebar-action-button" type="button">
+        <button
+          className="sidebar-action-button"
+          onClick={onNewProject}
+          type="button"
+        >
           <FolderPlus size={17} aria-hidden="true" />
           <span>{t("sidebar.newProject")}</span>
         </button>
@@ -85,6 +97,25 @@ export function Sidebar({
             />
             <span>{t("sidebar.projects")}</span>
           </button>
+          {projectsExpanded && projects.length > 0 && (
+            <div className="sidebar-section-items">
+              {projects.map((project) => (
+                <div
+                  className="sidebar-project"
+                  key={project.id}
+                  title={project.name}
+                >
+                  <ProjectIcon
+                    className="sidebar-project-icon"
+                    icon={project.icon}
+                    color={project.color}
+                    size={15}
+                  />
+                  <span>{project.name}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="sidebar-section">

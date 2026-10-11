@@ -90,6 +90,7 @@
   padding-left: 12px;
 }
 
+.sidebar-project,
 .sidebar-conversation {
   display: flex;
   min-width: 0;
@@ -106,11 +107,13 @@
   background: var(--color-hover);
 }
 
+.sidebar-project svg,
 .sidebar-conversation svg {
-  flex: 0 0 14px;
+  flex: 0 0 15px;
   color: var(--color-muted);
 }
 
+.sidebar-project span,
 .sidebar-conversation span {
   overflow: hidden;
   text-overflow: ellipsis;

@@ -2,13 +2,12 @@ import { useTranslation } from "react-i18next";
 import appPackage from "../../../package.json";
 import { SelectMenu } from "../../components/overlay";
 import type { AppLanguage } from "../../i18n";
-
-type Theme = "day" | "night";
+import type { ThemePreference } from "../../theme/types";
 
 type GeneralSettingsProps = {
-  theme: Theme;
+  theme: ThemePreference;
   language: AppLanguage;
-  onThemeChange: (theme: Theme) => void;
+  onThemeChange: (theme: ThemePreference) => void;
   onLanguageChange: (language: AppLanguage) => void;
 };
 
@@ -19,9 +18,10 @@ export function GeneralSettings({
   onLanguageChange,
 }: GeneralSettingsProps) {
   const { t } = useTranslation();
-  const themeOptions: { value: Theme; label: string }[] = [
-    { value: "night", label: t("settings.themeNight") },
+  const themeOptions: { value: ThemePreference; label: string }[] = [
     { value: "day", label: t("settings.themeDay") },
+    { value: "night", label: t("settings.themeNight") },
+    { value: "system", label: t("settings.themeSystem") },
   ];
   const languageOptions: { value: AppLanguage; label: string }[] = [
     { value: "en", label: t("settings.english") },

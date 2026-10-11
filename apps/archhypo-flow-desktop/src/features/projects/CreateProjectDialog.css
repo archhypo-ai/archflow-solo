@@ -1,0 +1,315 @@
+.project-dialog-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, #08090f 48%, transparent);
+  padding: 24px;
+}
+
+.project-dialog {
+  width: min(540px, 100%);
+  max-height: min(760px, 100%);
+  overflow: visible;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  box-shadow: 0 10px 32px var(--color-shadow);
+}
+
+.project-dialog-header {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--color-border);
+  padding: 12px 22px;
+}
+
+.project-dialog-header h2 {
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.project-dialog-close {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--color-muted);
+}
+
+.project-dialog-close:hover {
+  background: var(--color-hover);
+  color: var(--color-foreground);
+}
+
+.project-form {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 22px;
+}
+
+.project-field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.project-field > label {
+  color: var(--color-foreground);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.project-name-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  gap: 8px;
+}
+
+.project-name-row > input,
+.project-instructions-field > textarea {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-input);
+  color: var(--color-foreground);
+  font: inherit;
+  font-size: 12px;
+}
+
+.project-name-row > input {
+  min-height: 40px;
+  padding: 0 11px;
+}
+
+.project-name-row > input::placeholder,
+.project-instructions-field > textarea::placeholder {
+  color: var(--color-subtle);
+}
+
+.project-name-row > input:focus-visible,
+.project-instructions-field > textarea:focus-visible {
+  border-color: var(--color-accent);
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 24%, transparent);
+  outline-offset: 1px;
+}
+
+.project-icon-menu {
+  position: relative;
+  z-index: 30;
+}
+
+.project-icon-trigger {
+  display: grid;
+  width: 42px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-raised);
+  color: var(--color-foreground);
+}
+
+.project-icon-trigger:hover,
+.project-icon-trigger[aria-expanded="true"] {
+  border-color: var(--color-border-strong);
+  background: var(--color-hover);
+}
+
+.project-icon-trigger:focus-visible,
+.project-color-option:focus-visible,
+.project-icon-option:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.menu-content.project-icon-picker {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 7px);
+  right: 0;
+  width: 360px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface-raised);
+  padding: 10px;
+  box-shadow: 0 10px 32px var(--color-shadow);
+}
+
+.project-color-options {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 5px;
+  padding: 2px 0 10px;
+}
+
+.project-color-option {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  justify-self: center;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.project-color-option > span {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--project-color-neutral);
+}
+
+.project-color-option[data-project-color="red"] > span {
+  background: var(--project-color-red);
+}
+
+.project-color-option[data-project-color="orange"] > span {
+  background: var(--project-color-orange);
+}
+
+.project-color-option[data-project-color="yellow"] > span {
+  background: var(--project-color-yellow);
+}
+
+.project-color-option[data-project-color="green"] > span {
+  background: var(--project-color-green);
+}
+
+.project-color-option[data-project-color="blue"] > span {
+  background: var(--project-color-blue);
+}
+
+.project-color-option[data-project-color="purple"] > span {
+  background: var(--project-color-purple);
+}
+
+.project-color-option[data-project-color="pink"] > span {
+  background: var(--project-color-pink);
+}
+
+.project-color-option[aria-checked="true"] {
+  border-color: var(--color-border-strong);
+  box-shadow: 0 0 0 1px var(--color-border);
+}
+
+.project-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 4px;
+  padding-top: 8px;
+}
+
+.project-icon-option {
+  display: grid;
+  min-width: 0;
+  height: 36px;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-muted);
+}
+
+.project-icon-option:hover,
+.project-icon-option.is-selected {
+  border-color: var(--color-border);
+  background: var(--color-hover);
+  color: var(--color-foreground);
+}
+
+.project-icon-option.is-selected {
+  color: var(--color-accent);
+}
+
+.project-instructions-field > p {
+  margin: -3px 0 2px;
+  color: var(--color-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.project-instructions-field > textarea {
+  min-height: 112px;
+  resize: vertical;
+  padding: 10px 11px;
+  line-height: 1.5;
+}
+
+.project-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 2px;
+}
+
+.project-cancel-button,
+.project-create-button {
+  min-height: 36px;
+  border-radius: 8px;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.project-cancel-button {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-foreground);
+}
+
+.project-cancel-button:hover {
+  background: var(--color-hover);
+}
+
+.project-create-button {
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: var(--color-brand-foreground);
+}
+
+.project-create-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 520px) {
+  .project-dialog-backdrop {
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .project-dialog {
+    align-self: center;
+    max-height: 100%;
+    overflow: auto;
+  }
+
+  .project-dialog-header,
+  .project-form {
+    padding-inline: 16px;
+  }
+
+  .menu-content.project-icon-picker {
+    right: -1px;
+    width: min(360px, calc(100vw - 48px));
+  }
+
+  .project-icon-option {
+    height: 34px;
+  }
+}
