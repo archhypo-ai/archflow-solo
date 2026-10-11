@@ -1,81 +1,189 @@
-import { Clock3, MessageSquareText, Moon, Plus, Sparkles, Sun } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  FolderPlus,
+  Languages,
+  LogOut,
+  MessageSquareText,
+  Settings2,
+  SquarePen,
+} from "lucide-react";
+import { useCallback, useEffect, useState, type RefObject } from "react";
+import { useTranslation } from "react-i18next";
+import type { AppLanguage } from "../i18n";
+import { Menu, MenuContent, MenuItem, MenuRadioItem } from "./overlay";
 import "./Sidebar.css";
 
-type Theme = "day" | "night";
-
 type SidebarProps = {
-  theme: Theme;
+  accountTriggerRef: RefObject<HTMLButtonElement | null>;
   activeConversationTitle: string;
+  language: AppLanguage;
   onNewChat: () => void;
-  onToggleTheme: () => void;
+  onLanguageChange: (language: AppLanguage) => void;
+  onSettingsOpen: () => void;
 };
 
 export function Sidebar({
-  theme,
+  accountTriggerRef,
   activeConversationTitle,
+  language,
   onNewChat,
-  onToggleTheme,
+  onLanguageChange,
+  onSettingsOpen,
 }: SidebarProps) {
-  const nextTheme = theme === "night" ? "Day" : "Night";
-  const ThemeIcon = theme === "night" ? Sun : Moon;
+  const { t } = useTranslation();
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
+  const [projectsExpanded, setProjectsExpanded] = useState(false);
+  const [conversationsExpanded, setConversationsExpanded] = useState(false);
+
+  useEffect(() => {
+    if (activeConversationTitle) setConversationsExpanded(true);
+  }, [activeConversationTitle]);
+
+  const handleMenuOpenChange = useCallback((open: boolean) => {
+    setAccountMenuOpen(open);
+    if (!open) setLanguageMenuOpen(false);
+  }, []);
+  const closeAccountMenu = useCallback(() => {
+    setAccountMenuOpen(false);
+    setLanguageMenuOpen(false);
+  }, []);
+  const selectLanguage = useCallback(
+    (nextLanguage: AppLanguage) => {
+      onLanguageChange(nextLanguage);
+      closeAccountMenu();
+    },
+    [closeAccountMenu, onLanguageChange],
+  );
 
   return (
-    <aside className="sidebar" aria-label="Navegação principal">
-      <div className="sidebar-brand">
-        <span className="sidebar-brand-mark" aria-hidden="true">
-          <Sparkles size={18} />
-        </span>
-        <span className="sidebar-brand-text">
-          <strong>ArchHypo</strong>
-          <span>FLOW</span>
-        </span>
+    <aside className="sidebar" aria-label={t("sidebar.navigationLabel")}>
+      <div className="sidebar-primary-actions">
+        <button className="sidebar-action-button" onClick={onNewChat} type="button">
+          <SquarePen size={17} aria-hidden="true" />
+          <span>{t("sidebar.newConversation")}</span>
+        </button>
+        <button className="sidebar-action-button" type="button">
+          <FolderPlus size={17} aria-hidden="true" />
+          <span>{t("sidebar.newProject")}</span>
+        </button>
       </div>
 
-      <button className="sidebar-new-chat" onClick={onNewChat} type="button">
-        <Plus size={17} aria-hidden="true" />
-        <span>Nova conversa</span>
-      </button>
+      <div className="sidebar-sections">
+        <section className="sidebar-section">
+          <button
+            className="sidebar-section-trigger"
+            type="button"
+            aria-expanded={projectsExpanded}
+            onClick={() => setProjectsExpanded((expanded) => !expanded)}
+          >
+            <ChevronRight
+              className={projectsExpanded ? "is-expanded" : ""}
+              size={15}
+              aria-hidden="true"
+            />
+            <span>{t("sidebar.projects")}</span>
+          </button>
+        </section>
 
-      <nav className="sidebar-navigation" aria-label="Seções">
-        <button className="sidebar-nav-item is-active" type="button">
-          <MessageSquareText size={17} aria-hidden="true" />
-          <span>Chat</span>
-        </button>
-      </nav>
+        <section className="sidebar-section">
+          <button
+            className="sidebar-section-trigger"
+            type="button"
+            aria-expanded={conversationsExpanded}
+            onClick={() => setConversationsExpanded((expanded) => !expanded)}
+          >
+            <ChevronRight
+              className={conversationsExpanded ? "is-expanded" : ""}
+              size={15}
+              aria-hidden="true"
+            />
+            <span>{t("sidebar.conversations")}</span>
+          </button>
+          {conversationsExpanded && activeConversationTitle && (
+            <div className="sidebar-section-items">
+              <div className="sidebar-conversation" title={activeConversationTitle}>
+                <MessageSquareText size={14} aria-hidden="true" />
+                <span>{activeConversationTitle}</span>
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
 
-      <section className="sidebar-recent" aria-labelledby="recent-title">
-        <div className="sidebar-section-heading">
-          <Clock3 size={14} aria-hidden="true" />
-          <h2 id="recent-title">Conversas recentes</h2>
-        </div>
-        {activeConversationTitle ? (
-          <div className="sidebar-conversation is-active" title={activeConversationTitle}>
-            <MessageSquareText size={14} aria-hidden="true" />
-            <span>{activeConversationTitle}</span>
-          </div>
-        ) : (
-          <p className="sidebar-empty">As conversas aparecerão aqui.</p>
-        )}
-      </section>
-
-      <div className="sidebar-footer">
-        <button
-          className="sidebar-theme-toggle"
-          onClick={onToggleTheme}
-          type="button"
-          aria-label={`Alternar para Tokyo ${nextTheme}`}
-          title={`Alternar para Tokyo ${nextTheme}`}
+      <Menu
+        className="sidebar-account-menu-root"
+        open={accountMenuOpen}
+        onOpenChange={handleMenuOpenChange}
+      >
+        <MenuContent
+          open={accountMenuOpen}
+          className="sidebar-account-menu"
+          ariaLabel={t("sidebar.accountMenu")}
         >
-          <ThemeIcon size={17} aria-hidden="true" />
-          <span>Tokyo {nextTheme}</span>
+          <MenuItem
+            icon={<Settings2 aria-hidden="true" />}
+            label={t("sidebar.settings")}
+            onClick={() => {
+              closeAccountMenu();
+              onSettingsOpen();
+            }}
+          />
+          <div className="menu-submenu">
+            <button
+              className="menu-item menu-submenu-trigger"
+              type="button"
+              role="menuitem"
+              aria-haspopup="menu"
+              aria-expanded={languageMenuOpen}
+              onClick={() => setLanguageMenuOpen((open) => !open)}
+            >
+              <Languages size={16} aria-hidden="true" />
+              <span>{t("sidebar.language")}</span>
+              <ChevronRight className="menu-submenu-chevron" size={15} aria-hidden="true" />
+            </button>
+            <MenuContent
+              open={languageMenuOpen}
+              className="menu-submenu-content"
+              ariaLabel={t("sidebar.language")}
+            >
+              <MenuRadioItem
+                checked={language === "en"}
+                label={t("settings.english")}
+                onClick={() => selectLanguage("en")}
+              />
+              <MenuRadioItem
+                checked={language === "pt-BR"}
+                label={t("settings.portugueseBrazil")}
+                onClick={() => selectLanguage("pt-BR")}
+              />
+            </MenuContent>
+          </div>
+          <MenuItem
+            className="menu-item-disabled"
+            icon={<LogOut aria-hidden="true" />}
+            label={t("sidebar.logout")}
+            title={t("sidebar.logoutUnavailable")}
+            disabled
+          />
+        </MenuContent>
+        <button
+          ref={accountTriggerRef}
+          className="sidebar-profile"
+          aria-expanded={accountMenuOpen}
+          aria-haspopup="menu"
+          aria-label={t("sidebar.accountMenu")}
+          onClick={() => handleMenuOpenChange(!accountMenuOpen)}
+          type="button"
+        >
+          <span className="sidebar-profile-text">ArchHypo Flow</span>
+          <ChevronDown
+            className={`sidebar-chevron${accountMenuOpen ? " is-open" : ""}`}
+            aria-hidden="true"
+          />
         </button>
-        <div className="sidebar-profile">
-          <span className="sidebar-profile-mark" aria-hidden="true">A</span>
-          <span className="sidebar-profile-text">
-            <strong>ArchHypo Flow</strong>
-          </span>
-        </div>
-      </div>
+      </Menu>
     </aside>
   );
 }

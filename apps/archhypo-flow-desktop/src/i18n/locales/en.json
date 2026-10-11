@@ -1,0 +1,46 @@
+{
+  "app": {
+    "workspace": "WORKSPACE",
+    "chat": "Chat"
+  },
+  "sidebar": {
+    "navigationLabel": "Main navigation",
+    "newConversation": "New conversation",
+    "newProject": "New project",
+    "projects": "Projects",
+    "conversations": "Conversations",
+    "accountMenu": "Account menu",
+    "settings": "Settings",
+    "language": "Language",
+    "logout": "Log out",
+    "logoutUnavailable": "Sign-in is not enabled in this desktop app yet."
+  },
+  "chat": {
+    "welcomeTitle": "What architectural uncertainty would you like to explore?",
+    "welcomeDescription": "Share the decision context and explore alternatives for your architecture.",
+    "messagePlaceholder": "Write a message...",
+    "messageLabel": "Message",
+    "sendMessage": "Send message",
+    "stopResponse": "Stop response",
+    "demoReply": "Understood. Let's explore this architectural decision."
+  },
+  "settings": {
+    "title": "Settings",
+    "navigation": "Settings sections",
+    "general": "General",
+    "description": "Manage your general app preferences.",
+    "application": "Application",
+    "applicationDescription": "Application details and version.",
+    "appVersion": "App version",
+    "version": "{{version}}",
+    "appearance": "Appearance",
+    "appearanceDescription": "Manage the interface appearance and language.",
+    "theme": "Theme",
+    "themeNight": "Tokyo Night",
+    "themeDay": "Tokyo Day",
+    "language": "Language",
+    "english": "English",
+    "portugueseBrazil": "Português (Brasil)",
+    "close": "Close settings"
+  }
+}

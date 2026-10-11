@@ -1,4 +1,4 @@
-/* Tokyo Night / Tokyo Night Day palette: https://terminalcolors.com/themes/tokyo-night/default/ */
+/* Palette inspired by Ashtrath's Tokyo Night theme for Discord. */
 :root,
 :root[data-theme="night"] {
   color-scheme: dark;
@@ -6,39 +6,39 @@
     "Segoe UI", sans-serif;
 
   --color-background: #1a1b26;
-  --color-sidebar: #15161e;
-  --color-surface: #1a1b26;
-  --color-surface-raised: color-mix(in srgb, #1a1b26 76%, #414868);
-  --color-border: #414868;
-  --color-border-strong: #565f89;
-  --color-foreground: #c0caf5;
-  --color-muted: #a9b1d6;
-  --color-subtle: #565f89;
+  --color-sidebar: #171722;
+  --color-surface: #171722;
+  --color-surface-raised: #202332;
+  --color-border: #2c2e3c;
+  --color-border-strong: #434461;
+  --color-foreground: #b1bae6;
+  --color-muted: #8b93b7;
+  --color-subtle: #7982a8;
   --color-accent: #7aa2f7;
-  --color-brand: #bb9af7;
+  --color-brand: #7aa2f7;
   --color-brand-foreground: #15161e;
-  --color-user-message: color-mix(in srgb, #7aa2f7 14%, #15161e);
-  --color-input: color-mix(in srgb, #15161e 70%, #1a1b26);
-  --color-hover: color-mix(in srgb, #c0caf5 8%, transparent);
-  --color-shadow: color-mix(in srgb, #0b0e14 55%, transparent);
+  --color-user-message: #252836;
+  --color-input: #171722;
+  --color-hover: color-mix(in srgb, #b1bae6 7%, transparent);
+  --color-shadow: color-mix(in srgb, #0b0e14 22%, transparent);
 }
 
 :root[data-theme="day"] {
   color-scheme: light;
-  --color-background: #e1e2e7;
-  --color-sidebar: color-mix(in srgb, #e1e2e7 84%, #b4b5b9);
-  --color-surface: color-mix(in srgb, #e1e2e7 88%, #ffffff);
-  --color-surface-raised: color-mix(in srgb, #e1e2e7 72%, #b4b5b9);
-  --color-border: #b4b5b9;
-  --color-border-strong: #a1a6c5;
-  --color-foreground: #3760bf;
-  --color-muted: #6172b0;
-  --color-subtle: #6172b0;
-  --color-accent: #2e7de9;
-  --color-brand: #9854f1;
-  --color-brand-foreground: #15161e;
-  --color-user-message: color-mix(in srgb, #2e7de9 12%, #e1e2e7);
-  --color-input: color-mix(in srgb, #ffffff 64%, #e1e2e7);
-  --color-hover: color-mix(in srgb, #3760bf 8%, transparent);
-  --color-shadow: color-mix(in srgb, #3760bf 14%, transparent);
+  --color-background: #d5d6db;
+  --color-sidebar: #cecfd4;
+  --color-surface: #cecfd4;
+  --color-surface-raised: #c5c6cc;
+  --color-border: #b3b4b8;
+  --color-border-strong: #959699;
+  --color-foreground: #2e3338;
+  --color-muted: #4c505e;
+  --color-subtle: #505969;
+  --color-accent: #365aaa;
+  --color-brand: #365aaa;
+  --color-brand-foreground: #ffffff;
+  --color-user-message: #c4c7da;
+  --color-input: #c2c2c7;
+  --color-hover: color-mix(in srgb, #2e3338 6%, transparent);
+  --color-shadow: color-mix(in srgb, #2e3338 10%, transparent);
 }

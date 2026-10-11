@@ -1,38 +1,32 @@
-import {
-  AuiIf,
-  ComposerPrimitive,
-} from "@assistant-ui/react";
+import { AuiIf, ComposerPrimitive } from "@assistant-ui/react";
 import { ArrowUp, Square } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 type ChatComposerProps = {
   placeholder?: string;
   inputLabel?: string;
-  hint?: string;
 };
 
-export function ChatComposer({
-  placeholder = "Escreva uma mensagem...",
-  inputLabel = "Mensagem",
-  hint = "Enter para enviar · Shift+Enter para nova linha",
-}: ChatComposerProps) {
+export function ChatComposer({ placeholder, inputLabel }: ChatComposerProps) {
+  const { t } = useTranslation();
+
   return (
     <ComposerPrimitive.Root className="chat-composer">
       <ComposerPrimitive.Input
         className="chat-composer-input"
-        aria-label={inputLabel}
-        placeholder={placeholder}
+        aria-label={inputLabel ?? t("chat.messageLabel")}
+        placeholder={placeholder ?? t("chat.messagePlaceholder")}
         minRows={1}
         maxRows={7}
       />
       <div className="chat-composer-footer">
-        <span className="chat-composer-hint">{hint}</span>
         <AuiIf condition={(state) => state.thread.isRunning}>
           <ComposerPrimitive.Cancel asChild>
             <button
               className="chat-send-button is-cancel"
               type="button"
-              aria-label="Interromper resposta"
-              title="Interromper resposta"
+              aria-label={t("chat.stopResponse")}
+              title={t("chat.stopResponse")}
             >
               <Square size={16} aria-hidden="true" />
             </button>
@@ -43,8 +37,8 @@ export function ChatComposer({
             <button
               className="chat-send-button"
               type="button"
-              aria-label="Enviar mensagem"
-              title="Enviar mensagem"
+              aria-label={t("chat.sendMessage")}
+              title={t("chat.sendMessage")}
             >
               <ArrowUp size={18} aria-hidden="true" />
             </button>

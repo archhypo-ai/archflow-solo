@@ -1,4 +1,4 @@
-export { ChatAssistantMessage, type ChatAssistantMessageProps } from "./ChatAssistantMessage";
+export { ChatAssistantMessage } from "./ChatAssistantMessage";
 export { ChatComposer } from "./ChatComposer";
 export { ChatMarkdownText } from "./ChatMarkdownText";
 export { ChatMessageList } from "./ChatMessageList";

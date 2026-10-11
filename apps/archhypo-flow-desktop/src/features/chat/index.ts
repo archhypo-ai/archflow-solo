@@ -2,7 +2,6 @@ export { Chat } from "./Chat";
 export { createDemoChatModel } from "./adapters/demoChatModel";
 export {
   ChatAssistantMessage,
-  type ChatAssistantMessageProps,
   ChatComposer,
   ChatMarkdownText,
   ChatMessageList,

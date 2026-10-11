@@ -1,0 +1,46 @@
+{
+  "app": {
+    "workspace": "ESPAÇO DE TRABALHO",
+    "chat": "Chat"
+  },
+  "sidebar": {
+    "navigationLabel": "Navegação principal",
+    "newConversation": "Nova conversa",
+    "newProject": "Novo projeto",
+    "projects": "Projetos",
+    "conversations": "Conversas",
+    "accountMenu": "Menu da conta",
+    "settings": "Configurações",
+    "language": "Idioma",
+    "logout": "Sair",
+    "logoutUnavailable": "O login ainda não está habilitado neste aplicativo desktop."
+  },
+  "chat": {
+    "welcomeTitle": "Qual incerteza arquitetural você quer explorar?",
+    "welcomeDescription": "Compartilhe o contexto da decisão e explore alternativas para sua arquitetura.",
+    "messagePlaceholder": "Escreva uma mensagem...",
+    "messageLabel": "Mensagem",
+    "sendMessage": "Enviar mensagem",
+    "stopResponse": "Interromper resposta",
+    "demoReply": "Entendi. Vamos explorar essa decisão arquitetural."
+  },
+  "settings": {
+    "title": "Configurações",
+    "navigation": "Seções das configurações",
+    "general": "Geral",
+    "description": "Gerencie as preferências gerais do aplicativo.",
+    "application": "Aplicativo",
+    "applicationDescription": "Informações do aplicativo e versão.",
+    "appVersion": "Versão do aplicativo",
+    "version": "{{version}}",
+    "appearance": "Aparência",
+    "appearanceDescription": "Gerencie a aparência e o idioma da interface.",
+    "theme": "Tema",
+    "themeNight": "Tokyo Night",
+    "themeDay": "Tokyo Day",
+    "language": "Idioma",
+    "english": "English",
+    "portugueseBrazil": "Português (Brasil)",
+    "close": "Fechar configurações"
+  }
+}
