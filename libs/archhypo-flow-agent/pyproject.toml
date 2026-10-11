@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling>=1.27,<2.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "archhypo-flow-agent"
+version = "0.1.0"
+description = "Minimal conversational LangGraph agent for ArchHypo Flow"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi[standard]>=0.115,<1.0",
+  "langchain>=1.0,<2.0",
+  "langchain-core>=1.0,<2.0",
+  "langchain-openrouter>=0.2.8,<1.0",
+  "langgraph>=1.0,<2.0",
+  "langgraph-checkpoint-sqlite>=3.1.1,<4.0",
+  "pydantic>=2.0,<3.0",
+  "pydantic-settings>=2.0,<3.0",
+  "python-dotenv>=1.0,<2.0",
+]
+
+[project.scripts]
+archhypo-flow-workflow-diagram = "archhypo_flow_agent.cli.workflow_diagram:main"
+
+[project.optional-dependencies]
+observability = [
+  "langsmith>=0.3.0,<1.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0,<9.0",
+  "ruff>=0.9,<1.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/archhypo_flow_agent"]
+
+[tool.pytest.ini_options]
+addopts = "-ra --import-mode=importlib"
+pythonpath = ["src", "."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

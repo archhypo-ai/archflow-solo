@@ -1,0 +1,1 @@
+"""Agent tools, including future read-only skill access."""
