@@ -1,33 +1,42 @@
+import { Bot, Settings2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Settings2, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../i18n";
 import type { ThemePreference } from "../../theme/types";
+import { AgentSettings } from "./AgentSettings";
 import { GeneralSettings } from "./GeneralSettings";
 import "./SettingsDialog.css";
 
-type SettingsSection = "general";
+type SettingsSection = "general" | "agents";
 
 type SettingsDialogProps = {
   open: boolean;
   theme: ThemePreference;
   language: AppLanguage;
+  globalAgentInstructions: string;
   onClose: () => void;
   onThemeChange: (theme: ThemePreference) => void;
   onLanguageChange: (language: AppLanguage) => void;
+  onGlobalAgentInstructionsChange: (instructions: string) => void;
 };
 
 export function SettingsDialog({
   open,
   theme,
   language,
+  globalAgentInstructions,
   onClose,
   onThemeChange,
   onLanguageChange,
+  onGlobalAgentInstructionsChange,
 }: SettingsDialogProps) {
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState<SettingsSection>("general");
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const ActiveSectionIcon = activeSection === "general" ? Settings2 : Bot;
+  const activeSectionTitle = t(
+    activeSection === "general" ? "settings.general" : "settings.agents",
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -68,14 +77,23 @@ export function SettingsDialog({
               <Settings2 size={16} aria-hidden="true" />
               <span>{t("settings.general")}</span>
             </button>
+            <button
+              className={`settings-nav-item${activeSection === "agents" ? " is-active" : ""}`}
+              type="button"
+              aria-current={activeSection === "agents" ? "page" : undefined}
+              onClick={() => setActiveSection("agents")}
+            >
+              <Bot size={16} aria-hidden="true" />
+              <span>{t("settings.agents")}</span>
+            </button>
           </nav>
         </aside>
 
         <div className="settings-main">
           <header className="settings-main-header">
             <h1 id="settings-dialog-title" className="settings-main-title">
-              <Settings2 size={18} aria-hidden="true" />
-              <span>{t("settings.general")}</span>
+              <ActiveSectionIcon size={18} aria-hidden="true" />
+              <span>{activeSectionTitle}</span>
             </h1>
             <button
               ref={closeButtonRef}
@@ -89,13 +107,22 @@ export function SettingsDialog({
             </button>
           </header>
           <div className="settings-content">
-            <p className="settings-page-description">{t("settings.description")}</p>
-            {activeSection === "general" && (
-              <GeneralSettings
-                theme={theme}
-                language={language}
-                onThemeChange={onThemeChange}
-                onLanguageChange={onLanguageChange}
+            {activeSection === "general" ? (
+              <>
+                <p className="settings-page-description">
+                  {t("settings.description")}
+                </p>
+                <GeneralSettings
+                  theme={theme}
+                  language={language}
+                  onThemeChange={onThemeChange}
+                  onLanguageChange={onLanguageChange}
+                />
+              </>
+            ) : (
+              <AgentSettings
+                instructions={globalAgentInstructions}
+                onInstructionsChange={onGlobalAgentInstructionsChange}
               />
             )}
           </div>

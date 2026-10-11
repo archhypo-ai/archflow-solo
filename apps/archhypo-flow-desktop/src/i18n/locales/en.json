@@ -46,10 +46,16 @@
     "create": "Create project",
     "close": "Close create project"
   },
+  "agents": {
+    "instructionsTitle": "Instructions for ArchHypo Flow",
+    "subtitle": "Add global instructions to supplement the ArchHypo Flow system prompt.",
+    "instructionsPlaceholder": "Write additional instructions for ArchHypo Flow..."
+  },
   "settings": {
     "title": "Settings",
     "navigation": "Settings sections",
     "general": "General",
+    "agents": "Agents",
     "description": "Manage your general app preferences.",
     "application": "Application",
     "applicationDescription": "Application details and version.",

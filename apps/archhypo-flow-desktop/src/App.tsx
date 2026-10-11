@@ -8,6 +8,12 @@ import { LANGUAGE_STORAGE_KEY, toAppLanguage } from "./i18n";
 import type { ThemePreference } from "./theme/types";
 import "./App.css";
 
+const GLOBAL_AGENT_INSTRUCTIONS_STORAGE_KEY = "archhypo-flow-global-agent-instructions";
+
+function initialGlobalAgentInstructions(): string {
+  return localStorage.getItem(GLOBAL_AGENT_INSTRUCTIONS_STORAGE_KEY) ?? "";
+}
+
 function initialTheme(): ThemePreference {
   const storedTheme = localStorage.getItem("archhypo-flow-theme");
   return storedTheme === "day" || storedTheme === "night" || storedTheme === "system"
@@ -22,6 +28,9 @@ function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>(loadProjects);
+  const [globalAgentInstructions, setGlobalAgentInstructions] = useState(
+    initialGlobalAgentInstructions,
+  );
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
   const { t, i18n } = useTranslation();
   const language = toAppLanguage(i18n.resolvedLanguage);
@@ -65,6 +74,13 @@ function App() {
     saveProjects(projects);
   }, [projects]);
 
+  useEffect(() => {
+    localStorage.setItem(
+      GLOBAL_AGENT_INSTRUCTIONS_STORAGE_KEY,
+      globalAgentInstructions,
+    );
+  }, [globalAgentInstructions]);
+
   return (
     <div className="app-shell">
       <Sidebar
@@ -100,11 +116,13 @@ function App() {
         open={settingsOpen}
         theme={theme}
         language={language}
+        globalAgentInstructions={globalAgentInstructions}
         onClose={closeSettings}
         onThemeChange={setTheme}
         onLanguageChange={(nextLanguage) =>
           void i18n.changeLanguage(nextLanguage)
         }
+        onGlobalAgentInstructionsChange={setGlobalAgentInstructions}
       />
     </div>
   );

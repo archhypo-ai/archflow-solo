@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { FolderPlus, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Menu, MenuContent } from "../../components/overlay";
@@ -98,7 +98,10 @@ export function CreateProjectDialog({
         aria-labelledby="create-project-title"
       >
         <header className="project-dialog-header">
-          <h2 id="create-project-title">{t("projects.createTitle")}</h2>
+          <div className="project-dialog-title">
+            <FolderPlus className="project-dialog-title-icon" size={18} aria-hidden="true" />
+            <h2 id="create-project-title">{t("projects.createTitle")}</h2>
+          </div>
           <button
             className="project-dialog-close"
             type="button"
@@ -114,16 +117,6 @@ export function CreateProjectDialog({
           <div className="project-field">
             <label htmlFor="project-name">{t("projects.nameLabel")}</label>
             <div className="project-name-row">
-              <input
-                ref={nameInputRef}
-                id="project-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder={t("projects.namePlaceholder")}
-                maxLength={80}
-                autoComplete="off"
-                required
-              />
               <Menu
                 className="project-icon-menu"
                 open={iconPickerOpen}
@@ -195,6 +188,16 @@ export function CreateProjectDialog({
                   </div>
                 </MenuContent>
               </Menu>
+              <input
+                ref={nameInputRef}
+                id="project-name"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder={t("projects.namePlaceholder")}
+                maxLength={80}
+                autoComplete="off"
+                required
+              />
             </div>
           </div>
 

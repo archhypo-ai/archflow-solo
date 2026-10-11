@@ -130,6 +130,59 @@
   line-height: 1.5;
 }
 
+.agent-settings-intro {
+  margin-bottom: 20px;
+}
+
+.agent-settings-intro h2 {
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.agent-settings-intro p {
+  margin: 6px 0 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.agent-instructions-editor {
+  display: block;
+  width: 100%;
+  min-height: 212px;
+  resize: vertical;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-input);
+  color: var(--color-foreground);
+  padding: 12px;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.agent-instructions-editor::placeholder {
+  color: var(--color-subtle);
+}
+
+.agent-instructions-editor:focus-visible {
+  border-color: var(--color-accent);
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 24%, transparent);
+  outline-offset: 1px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
 .settings-group {
   background: transparent;
 }
