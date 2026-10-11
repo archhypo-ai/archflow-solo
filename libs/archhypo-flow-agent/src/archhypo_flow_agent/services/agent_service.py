@@ -12,7 +12,9 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from archhypo_flow_agent.core import ChatRequest, ChatResponse
 from archhypo_flow_agent.graph import build_graph
+from archhypo_flow_agent.persistence.conversations import ConversationMetadata
 from archhypo_flow_agent.persistence.paths import DATABASE_PATH
+from archhypo_flow_agent.persistence.projects import ProjectMetadata
 from archhypo_flow_agent.persistence.sqlite import (
     SQLitePersistence,
     open_sqlite_persistence,
@@ -66,6 +68,17 @@ class AgentService:
                     request.thread_id,
                     request.message,
                 )
+                if request.project_id is not None:
+                    if self._persistence is None:
+                        raise LookupError("Project not found.")
+                    if self._persistence.projects.get(request.project_id) is None:
+                        raise LookupError("Project not found.")
+                    metadata = self._conversations.set_project(
+                        request.thread_id,
+                        request.project_id,
+                    )
+            elif request.project_id is not None:
+                raise LookupError("Project persistence is not available.")
 
             result = self._graph.invoke(
                 {"messages": [HumanMessage(content=request.message)]},
@@ -96,15 +109,7 @@ class AgentService:
             summaries = []
             for metadata in self._conversations.list():
                 messages = self._load_messages(metadata.thread_id)
-                summaries.append(
-                    ConversationSummary(
-                        thread_id=metadata.thread_id,
-                        title=metadata.title,
-                        message_count=len(messages),
-                        updated_at=metadata.updated_at,
-                        pinned=metadata.pinned,
-                    )
-                )
+                summaries.append(self._conversation_summary(metadata, messages))
             return summaries
 
     def get_conversation(self, thread_id: str) -> Conversation | None:
@@ -123,6 +128,8 @@ class AgentService:
                 message_count=len(messages),
                 updated_at=metadata.updated_at,
                 pinned=metadata.pinned,
+                project_id=metadata.project_id,
+                preview=messages[-1].content if messages else "",
                 messages=messages,
             )
 
@@ -145,13 +152,91 @@ class AgentService:
             )
             if metadata is None:
                 return None
-            return ConversationSummary(
-                thread_id=thread_id,
-                title=metadata.title,
-                message_count=len(self._load_messages(thread_id)),
-                updated_at=metadata.updated_at,
-                pinned=metadata.pinned,
+            return self._conversation_summary(metadata)
+
+    def set_conversation_project(
+        self,
+        thread_id: str,
+        project_id: str | None,
+    ) -> ConversationSummary | None:
+        """Associate a conversation with a project, or clear that association."""
+
+        if not thread_id.strip() or self._conversations is None:
+            return None
+        with self._lock:
+            if project_id is not None:
+                if self._persistence is None:
+                    raise LookupError("Project not found.")
+                if self._persistence.projects.get(project_id) is None:
+                    raise LookupError("Project not found.")
+            metadata = self._conversations.set_project(thread_id, project_id)
+            if metadata is None:
+                return None
+            return self._conversation_summary(metadata)
+
+    def list_projects(self) -> list[ProjectMetadata]:
+        if self._persistence is None:
+            return []
+        with self._lock:
+            return self._persistence.projects.list()
+
+    def get_project(self, project_id: str) -> ProjectMetadata | None:
+        if self._persistence is None or not project_id.strip():
+            return None
+        with self._lock:
+            return self._persistence.projects.get(project_id)
+
+    def create_project(
+        self,
+        *,
+        project_id: str,
+        name: str,
+        icon: str,
+        color: str,
+        instructions: str = "",
+    ) -> ProjectMetadata:
+        if self._persistence is None:
+            raise RuntimeError("Project persistence is not available")
+        with self._lock:
+            return self._persistence.projects.create(
+                project_id=project_id,
+                name=name,
+                icon=icon,
+                color=color,
+                instructions=instructions,
             )
+
+    def rename_project(self, project_id: str, name: str) -> ProjectMetadata | None:
+        if self._persistence is None or not project_id.strip():
+            return None
+        with self._lock:
+            return self._persistence.projects.rename(project_id, name)
+
+    def update_project_settings(
+        self,
+        project_id: str,
+        *,
+        name: str,
+        icon: str,
+        color: str,
+        instructions: str,
+    ) -> ProjectMetadata | None:
+        if self._persistence is None or not project_id.strip():
+            return None
+        with self._lock:
+            return self._persistence.projects.update(
+                project_id,
+                name=name,
+                icon=icon,
+                color=color,
+                instructions=instructions,
+            )
+
+    def delete_project(self, project_id: str) -> bool:
+        if self._persistence is None or not project_id.strip():
+            return False
+        with self._lock:
+            return self._persistence.delete_project(project_id)
 
     def delete_conversation(self, thread_id: str) -> bool:
         """Remove the saved checkpoint and conversation metadata."""
@@ -168,6 +253,26 @@ class AgentService:
             if self._persistence is not None:
                 self._persistence.close()
                 self._persistence = None
+
+    def _conversation_summary(
+        self,
+        metadata: ConversationMetadata,
+        messages: list[ConversationMessage] | None = None,
+    ) -> ConversationSummary:
+        visible_messages = (
+            messages
+            if messages is not None
+            else self._load_messages(metadata.thread_id)
+        )
+        return ConversationSummary(
+            thread_id=metadata.thread_id,
+            title=metadata.title,
+            message_count=len(visible_messages),
+            updated_at=metadata.updated_at,
+            pinned=metadata.pinned,
+            project_id=metadata.project_id,
+            preview=visible_messages[-1].content if visible_messages else "",
+        )
 
     def _load_messages(self, thread_id: str) -> list[ConversationMessage]:
         state = self._graph.get_state(

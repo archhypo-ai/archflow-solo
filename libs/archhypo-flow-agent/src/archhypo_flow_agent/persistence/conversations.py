@@ -17,6 +17,7 @@ class ConversationMetadata:
     created_at: str
     updated_at: str
     pinned: bool
+    project_id: str | None
 
 
 class ConversationRepository(Protocol):
@@ -38,6 +39,12 @@ class ConversationRepository(Protocol):
         pinned: bool | None = None,
     ) -> ConversationMetadata | None: ...
 
+    def set_project(
+        self,
+        thread_id: str,
+        project_id: str | None,
+    ) -> ConversationMetadata | None: ...
+
     def delete(self, thread_id: str, *, commit: bool = True) -> bool: ...
 
 
@@ -50,7 +57,7 @@ class SQLiteConversationRepository:
     def list(self) -> list[ConversationMetadata]:
         rows = self._connection.execute(
             """
-            SELECT thread_id, title, created_at, updated_at, pinned
+            SELECT thread_id, title, created_at, updated_at, pinned, project_id
             FROM conversations
             ORDER BY pinned DESC, updated_at DESC
             """
@@ -60,7 +67,7 @@ class SQLiteConversationRepository:
     def get(self, thread_id: str) -> ConversationMetadata | None:
         row = self._connection.execute(
             """
-            SELECT thread_id, title, created_at, updated_at, pinned
+            SELECT thread_id, title, created_at, updated_at, pinned, project_id
             FROM conversations
             WHERE thread_id = ?
             """,
@@ -136,6 +143,24 @@ class SQLiteConversationRepository:
         self._connection.commit()
         return self.get(thread_id)
 
+    def set_project(
+        self,
+        thread_id: str,
+        project_id: str | None,
+    ) -> ConversationMetadata | None:
+        if self.get(thread_id) is None:
+            return None
+        self._connection.execute(
+            """
+            UPDATE conversations
+            SET project_id = ?, updated_at = ?
+            WHERE thread_id = ?
+            """,
+            (project_id, _now(), thread_id),
+        )
+        self._connection.commit()
+        return self.get(thread_id)
+
     def delete(self, thread_id: str, *, commit: bool = True) -> bool:
         cursor = self._connection.execute(
             "DELETE FROM conversations WHERE thread_id = ?",
@@ -153,6 +178,7 @@ def _metadata_from_row(row: sqlite3.Row | tuple[object, ...]) -> ConversationMet
         created_at=str(row[2]),
         updated_at=str(row[3]),
         pinned=bool(row[4]),
+        project_id=str(row[5]) if row[5] is not None else None,
     )
 
 

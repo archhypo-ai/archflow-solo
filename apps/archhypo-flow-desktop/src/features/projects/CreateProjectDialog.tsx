@@ -1,4 +1,4 @@
-import { FolderPlus, X } from "lucide-react";
+import { FolderPlus, Settings2, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Menu, MenuContent } from "../../components/overlay";
@@ -10,7 +10,9 @@ import "./CreateProjectDialog.css";
 type CreateProjectDialogProps = {
   open: boolean;
   onClose: () => void;
-  onCreate: (project: Project) => void;
+  project?: Project | null;
+  onCreate: (project: Project) => Promise<void>;
+  onUpdate?: (project: Project) => Promise<void>;
 };
 
 const colorLabelKeys: Record<ProjectColor, string> = {
@@ -28,6 +30,8 @@ export function CreateProjectDialog({
   open,
   onClose,
   onCreate,
+  onUpdate,
+  project = null,
 }: CreateProjectDialogProps) {
   const { t } = useTranslation();
   const [name, setName] = useState("");
@@ -35,24 +39,28 @@ export function CreateProjectDialog({
   const [color, setColor] = useState<ProjectColor>("neutral");
   const [instructions, setInstructions] = useState("");
   const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState(false);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) return;
 
-    setName("");
-    setIcon(PROJECT_ICONS[0].id);
-    setColor("neutral");
-    setInstructions("");
+    setName(project?.name ?? "");
+    setIcon(project?.icon ?? PROJECT_ICONS[0].id);
+    setColor(project?.color ?? "neutral");
+    setInstructions(project?.instructions ?? "");
     setIconPickerOpen(false);
+    setIsCreating(false);
+    setCreateError(false);
     requestAnimationFrame(() => nameInputRef.current?.focus());
-  }, [open]);
+  }, [open, project]);
 
   useEffect(() => {
     if (!open) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
+      if (event.key !== "Escape" || isCreating) return;
       if (iconPickerOpen) {
         setIconPickerOpen(false);
         event.preventDefault();
@@ -64,30 +72,44 @@ export function CreateProjectDialog({
 
     document.addEventListener("keydown", handleKeyDown, true);
     return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [iconPickerOpen, onClose, open]);
+  }, [iconPickerOpen, isCreating, onClose, open]);
 
   if (!open) return null;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const projectName = name.trim();
-    if (!projectName) return;
+    if (!projectName || isCreating) return;
 
-    onCreate({
-      id: crypto.randomUUID(),
-      name: projectName,
-      icon,
-      color,
-      instructions: instructions.trim(),
-    });
-    onClose();
+    setIsCreating(true);
+    setCreateError(false);
+    try {
+      const updatedProject: Project = {
+        id: project?.id ?? crypto.randomUUID(),
+        name: projectName,
+        icon,
+        color,
+        instructions: instructions.trim(),
+      };
+      if (project) {
+        if (!onUpdate) throw new Error("Project settings update is unavailable");
+        await onUpdate(updatedProject);
+      } else {
+        await onCreate(updatedProject);
+      }
+      onClose();
+    } catch {
+      setCreateError(true);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   return (
     <div
       className="project-dialog-backdrop"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (event.target === event.currentTarget && !isCreating) onClose();
       }}
       role="presentation"
     >
@@ -95,12 +117,18 @@ export function CreateProjectDialog({
         className="project-dialog"
         role="dialog"
         aria-modal="true"
-        aria-labelledby="create-project-title"
+        aria-labelledby="project-form-title"
       >
         <header className="project-dialog-header">
           <div className="project-dialog-title">
-            <FolderPlus className="project-dialog-title-icon" size={18} aria-hidden="true" />
-            <h2 id="create-project-title">{t("projects.createTitle")}</h2>
+            {project ? (
+              <Settings2 className="project-dialog-title-icon" size={18} aria-hidden="true" />
+            ) : (
+              <FolderPlus className="project-dialog-title-icon" size={18} aria-hidden="true" />
+            )}
+            <h2 id="project-form-title">
+              {t(project ? "projects.settingsTitle" : "projects.createTitle")}
+            </h2>
           </div>
           <button
             className="project-dialog-close"
@@ -108,6 +136,7 @@ export function CreateProjectDialog({
             aria-label={t("projects.close")}
             title={t("projects.close")}
             onClick={onClose}
+            disabled={isCreating}
           >
             <X size={18} aria-hidden="true" />
           </button>
@@ -215,20 +244,26 @@ export function CreateProjectDialog({
             />
           </div>
 
+          {createError && (
+            <p className="project-create-error" role="alert">
+              {t(project ? "projects.settingsError" : "projects.createError")}
+            </p>
+          )}
           <footer className="project-dialog-actions">
             <button
               className="project-cancel-button"
               type="button"
               onClick={onClose}
+              disabled={isCreating}
             >
               {t("projects.cancel")}
             </button>
             <button
               className="project-create-button"
               type="submit"
-              disabled={!name.trim()}
+              disabled={!name.trim() || isCreating}
             >
-              {t("projects.create")}
+              {t(project ? "projects.saveSettings" : "projects.create")}
             </button>
           </footer>
         </form>

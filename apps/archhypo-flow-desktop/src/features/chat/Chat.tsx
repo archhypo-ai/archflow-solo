@@ -3,9 +3,10 @@ import {
   useLocalRuntime,
   type ThreadMessageLike,
 } from "@assistant-ui/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../i18n";
+import type { Project } from "../projects/types";
 import { getConversation } from "./api/chatClient";
 import { createChatModelAdapter } from "./adapters/chatModelAdapter";
 import { ChatThread } from "./components/ChatThread";
@@ -14,7 +15,16 @@ import type { StoredChatMessage } from "./types";
 type ChatProps = {
   threadId: string;
   language: AppLanguage;
-  onConversationUpdated: (threadId: string, title: string) => void;
+  projectId: string | null;
+  project: Project | null;
+  projectLanding: boolean;
+  projectLandingContent?: ReactNode;
+  onConversationUpdated: (
+    threadId: string,
+    title: string,
+    preview: string,
+    projectId: string | null,
+  ) => void;
 };
 
 function toInitialMessages(
@@ -86,6 +96,10 @@ type LoadedChatProps = ChatProps & {
 function LoadedChat({
   threadId,
   language,
+  projectId,
+  project,
+  projectLanding,
+  projectLandingContent,
   onConversationUpdated,
   initialMessages,
 }: LoadedChatProps) {
@@ -94,15 +108,20 @@ function LoadedChat({
       createChatModelAdapter({
         threadId,
         language,
+        projectId,
         onConversationUpdated,
       }),
-    [threadId, language, onConversationUpdated],
+    [threadId, language, projectId, onConversationUpdated],
   );
   const runtime = useLocalRuntime(chatModel, { initialMessages });
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
-      <ChatThread />
+      <ChatThread
+        project={project}
+        projectLanding={projectLanding}
+        projectLandingContent={projectLandingContent}
+      />
     </AssistantRuntimeProvider>
   );
 }

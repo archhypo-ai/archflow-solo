@@ -27,6 +27,8 @@ def send_message(
 
     try:
         return agent_service.respond(payload)
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
     except Exception as error:
         logger.error("Chat generation failed (%s)", type(error).__name__)
         raise HTTPException(

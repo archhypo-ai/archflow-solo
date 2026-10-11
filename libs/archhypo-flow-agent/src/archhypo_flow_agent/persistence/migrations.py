@@ -38,13 +38,27 @@ def migrate_connection(connection: sqlite3.Connection) -> None:
         if version < 1:
             connection.execute(
                 """
+                CREATE TABLE IF NOT EXISTS projects (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    icon TEXT NOT NULL,
+                    color TEXT NOT NULL,
+                    instructions TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
                 CREATE TABLE IF NOT EXISTS conversations (
                     thread_id TEXT PRIMARY KEY,
                     title TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     pinned INTEGER NOT NULL DEFAULT 0
-                        CHECK (pinned IN (0, 1))
+                        CHECK (pinned IN (0, 1)),
+                    project_id TEXT REFERENCES projects(id) ON DELETE CASCADE
                 )
                 """
             )
@@ -52,6 +66,12 @@ def migrate_connection(connection: sqlite3.Connection) -> None:
                 """
                 CREATE INDEX IF NOT EXISTS idx_conversations_updated_at
                 ON conversations (pinned DESC, updated_at DESC)
+                """
+            )
+            connection.execute(
+                """
+                CREATE INDEX IF NOT EXISTS idx_conversations_project_id
+                ON conversations (project_id)
                 """
             )
             connection.execute(

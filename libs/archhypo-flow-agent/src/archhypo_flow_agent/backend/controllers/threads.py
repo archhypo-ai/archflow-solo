@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Path, Response
 from archhypo_flow_agent.backend.dependencies import AgentServiceDependency
 from archhypo_flow_agent.backend.schemas import (
     ThreadMessageResponse,
+    ThreadProjectRequest,
     ThreadResponse,
     ThreadSummaryResponse,
     ThreadUpdateRequest,
@@ -26,6 +27,8 @@ def list_threads(
             message_count=conversation.message_count,
             updated_at=conversation.updated_at,
             pinned=conversation.pinned,
+            project_id=conversation.project_id,
+            preview=conversation.preview,
         )
         for conversation in agent_service.list_conversations()
     ]
@@ -46,6 +49,8 @@ def get_thread(
         message_count=conversation.message_count,
         updated_at=conversation.updated_at,
         pinned=conversation.pinned,
+        project_id=conversation.project_id,
+        preview=conversation.preview,
         messages=[
             ThreadMessageResponse(role=message.role, content=message.content)
             for message in conversation.messages
@@ -72,6 +77,34 @@ def update_thread(
         message_count=conversation.message_count,
         updated_at=conversation.updated_at,
         pinned=conversation.pinned,
+        project_id=conversation.project_id,
+        preview=conversation.preview,
+    )
+
+
+@router.patch("/threads/{thread_id}/project", response_model=ThreadSummaryResponse)
+def set_thread_project(
+    thread_id: Annotated[str, Path(min_length=1)],
+    payload: ThreadProjectRequest,
+    agent_service: AgentServiceDependency,
+) -> ThreadSummaryResponse:
+    try:
+        conversation = agent_service.set_conversation_project(
+            thread_id,
+            payload.project_id,
+        )
+    except LookupError as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found.")
+    return ThreadSummaryResponse(
+        thread_id=conversation.thread_id,
+        title=conversation.title,
+        message_count=conversation.message_count,
+        updated_at=conversation.updated_at,
+        pinned=conversation.pinned,
+        project_id=conversation.project_id,
+        preview=conversation.preview,
     )
 
 

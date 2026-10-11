@@ -13,6 +13,8 @@ type BackendConversationSummary = {
   message_count: number;
   updated_at: string;
   pinned: boolean;
+  project_id: string | null;
+  preview: string;
 };
 
 type BackendConversation = BackendConversationSummary & {
@@ -50,6 +52,8 @@ function toConversation(summary: BackendConversationSummary): ConversationSummar
     messageCount: summary.message_count,
     updatedAt: summary.updated_at,
     pinned: summary.pinned,
+    projectId: summary.project_id,
+    preview: summary.preview,
   };
 }
 
@@ -89,6 +93,20 @@ export async function updateConversation(
   return toConversation(summary);
 }
 
+export async function setConversationProject(
+  threadId: string,
+  projectId: string | null,
+): Promise<ConversationSummary> {
+  const summary = await request<BackendConversationSummary>(
+    `/api/threads/${encodeURIComponent(threadId)}/project`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ project_id: projectId }),
+    },
+  );
+  return toConversation(summary);
+}
+
 export function deleteConversation(threadId: string): Promise<void> {
   return request<void>(`/api/threads/${encodeURIComponent(threadId)}`, {
     method: "DELETE",
@@ -99,9 +117,15 @@ export function sendChatMessage(
   threadId: string,
   message: string,
   language: "en" | "pt-BR",
+  projectId: string | null,
 ): Promise<ChatTurnResponse> {
   return request<ChatTurnResponse>("/api/chat", {
     method: "POST",
-    body: JSON.stringify({ thread_id: threadId, message, language }),
+    body: JSON.stringify({
+      thread_id: threadId,
+      message,
+      language,
+      project_id: projectId,
+    }),
   });
 }

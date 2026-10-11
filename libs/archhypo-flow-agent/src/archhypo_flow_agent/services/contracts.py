@@ -17,6 +17,8 @@ class ConversationSummary:
     message_count: int
     updated_at: str
     pinned: bool
+    project_id: str | None
+    preview: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -26,6 +28,8 @@ class Conversation:
     message_count: int
     updated_at: str
     pinned: bool
+    project_id: str | None
+    preview: str
     messages: list[ConversationMessage]
 
 

@@ -85,12 +85,37 @@
   line-height: 1.2;
 }
 
+.chat-welcome-project-heading {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.chat-welcome-project-heading > svg {
+  flex: 0 0 auto;
+}
+
 .chat-welcome p {
   max-width: 480px;
   margin: 14px 0 0;
   color: var(--color-muted);
   font-size: 14px;
   line-height: 1.65;
+}
+
+.chat-welcome-project-instructions {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+}
+
+.chat-empty-state.is-project-landing {
+  justify-content: flex-start;
+  gap: 34px;
+  padding-top: clamp(36px, 8vh, 88px);
 }
 
 .chat-empty-composer,

@@ -11,7 +11,21 @@ import {
   DeleteConversationDialog,
   RenameConversationDialog,
 } from "./features/conversations/ConversationDialogs";
-import { CreateProjectDialog, loadProjects, saveProjects, type Project } from "./features/projects";
+import {
+  CreateProjectDialog,
+  createProject as createProjectApi,
+  DeleteProjectDialog,
+  deleteProject as deleteProjectApi,
+  listProjects,
+  loadProjects,
+  renameProject as renameProjectApi,
+  updateProjectSettings as updateProjectSettingsApi,
+  RenameProjectDialog,
+  saveProjects,
+  ProjectDetail,
+  ProjectIcon,
+  type Project,
+} from "./features/projects";
 import { SettingsDialog } from "./features/settings";
 import { LANGUAGE_STORAGE_KEY, toAppLanguage } from "./i18n";
 import type { ThemePreference } from "./theme/types";
@@ -47,8 +61,13 @@ function App() {
   const [theme, setTheme] = useState<ThemePreference>(initialTheme);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
+  const [pendingProjectId, setPendingProjectId] = useState<string | null>(null);
   const [renameTarget, setRenameTarget] = useState<ConversationSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ConversationSummary | null>(null);
+  const [renameProjectTarget, setRenameProjectTarget] = useState<Project | null>(null);
+  const [projectSettingsTarget, setProjectSettingsTarget] = useState<Project | null>(null);
+  const [deleteProjectTarget, setDeleteProjectTarget] = useState<Project | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>(loadProjects);
@@ -58,12 +77,42 @@ function App() {
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
   const { i18n } = useTranslation();
   const language = toAppLanguage(i18n.resolvedLanguage);
+  const activeConversation = conversations.find(
+    (conversation) => conversation.threadId === activeConversationId,
+  );
+  const activeProject = projects.find((project) => project.id === activeProjectId);
+  const activeConversationProject = projects.find(
+    (project) => project.id === activeConversation?.projectId,
+  );
+  const chatProject =
+    activeConversationProject ??
+    projects.find((project) => project.id === pendingProjectId);
+  const projectLandingProject =
+    activeProject ?? (!activeConversation ? chatProject : undefined);
+  const isProjectLanding = Boolean(
+    activeConversationId && projectLandingProject && !activeConversation,
+  );
+  const isNewConversationActive = Boolean(
+    activeConversationId && !activeConversation && !projectLandingProject,
+  );
 
   const handleNewChat = useCallback(() => {
+    setActiveProjectId(null);
+    setPendingProjectId(null);
     setActiveConversationId(newConversationId());
   }, []);
+  const handleProjectSelect = useCallback((projectId: string) => {
+    setActiveConversationId(newConversationId());
+    setPendingProjectId(projectId);
+    setActiveProjectId(projectId);
+  }, []);
   const handleConversationUpdated = useCallback(
-    (threadId: string, title: string) => {
+    (
+      threadId: string,
+      title: string,
+      preview: string,
+      projectId: string | null,
+    ) => {
       setConversations((current) => {
         const existing = current.find((conversation) => conversation.threadId === threadId);
         const updated: ConversationSummary = {
@@ -72,23 +121,41 @@ function App() {
           messageCount: (existing?.messageCount ?? 0) + 2,
           updatedAt: new Date().toISOString(),
           pinned: existing?.pinned ?? false,
+          projectId: projectId ?? existing?.projectId ?? null,
+          preview,
         };
         return sortConversations([
           updated,
           ...current.filter((item) => item.threadId !== threadId),
         ]);
       });
+      setActiveConversationId(threadId);
+      setActiveProjectId(null);
+      setPendingProjectId(null);
     },
     [],
   );
-  const handleCreateProject = useCallback((project: Project) => {
-    setProjects((current) => [project, ...current]);
+  const handleCreateProject = useCallback(async (project: Project) => {
+    const savedProject = await createProjectApi(project);
+    setProjects((current) => [
+      savedProject,
+      ...current.filter((item) => item.id !== savedProject.id),
+    ]);
   }, []);
   const openCreateProject = useCallback(() => setCreateProjectOpen(true), []);
-  const closeCreateProject = useCallback(() => setCreateProjectOpen(false), []);
-  const handleConversationSelect = useCallback((threadId: string) => {
-    setActiveConversationId(threadId);
+  const closeCreateProject = useCallback(() => {
+    setCreateProjectOpen(false);
+    setProjectSettingsTarget(null);
   }, []);
+  const handleConversationSelect = useCallback(
+    (threadId: string) => {
+      const selected = conversations.find((conversation) => conversation.threadId === threadId);
+      setActiveProjectId(null);
+      setPendingProjectId(selected?.projectId ?? null);
+      setActiveConversationId(threadId);
+    },
+    [conversations],
+  );
   const handleToggleConversationPin = useCallback(
     async (conversation: ConversationSummary) => {
       try {
@@ -133,15 +200,75 @@ function App() {
     },
     [],
   );
+  const handleUpdateProjectSettings = useCallback(async (project: Project) => {
+    const updated = await updateProjectSettingsApi(project);
+    setProjects((current) =>
+      current.map((item) => (item.id === updated.id ? updated : item)),
+    );
+    setProjectSettingsTarget(null);
+  }, []);
+  const handleRenameProject = useCallback(
+    async (projectId: string, name: string) => {
+      const renamed = await renameProjectApi(projectId, name);
+      setProjects((current) =>
+        current.map((project) => (project.id === projectId ? renamed : project)),
+      );
+      setRenameProjectTarget(null);
+    },
+    [],
+  );
+  const handleConfirmDeleteProject = useCallback(
+    async (projectId: string) => {
+      await deleteProjectApi(projectId);
+      setProjects((current) => current.filter((project) => project.id !== projectId));
+      setConversations((current) =>
+        current.filter((conversation) => conversation.projectId !== projectId),
+      );
+      setActiveProjectId((current) => (current === projectId ? null : current));
+      if (
+        activeProjectId === projectId ||
+        activeConversation?.projectId === projectId ||
+        pendingProjectId === projectId
+      ) {
+        setActiveConversationId(newConversationId());
+      }
+      if (pendingProjectId === projectId) setPendingProjectId(null);
+      setDeleteProjectTarget(null);
+    },
+    [activeConversation?.projectId, activeProjectId, pendingProjectId],
+  );
   const closeSettings = useCallback(() => {
     setSettingsOpen(false);
     requestAnimationFrame(() => accountTriggerRef.current?.focus());
   }, []);
 
-  const activeConversation = conversations.find(
-    (conversation) => conversation.threadId === activeConversationId,
-  );
-  const isNewConversationActive = Boolean(activeConversationId && !activeConversation);
+  useEffect(() => {
+    let active = true;
+    void listProjects()
+      .then(async (storedProjects) => {
+        if (!active) return;
+        if (storedProjects.length > 0) {
+          setProjects(storedProjects);
+          return;
+        }
+
+        const importedProjects: Project[] = [];
+        for (const project of loadProjects()) {
+          try {
+            importedProjects.push(await createProjectApi(project));
+          } catch (error) {
+            console.error("Could not import a locally stored project", error);
+          }
+        }
+        if (active) setProjects(importedProjects);
+      })
+      .catch((error: unknown) => {
+        console.error("Could not load projects from the local API", error);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -198,11 +325,16 @@ function App() {
       <Sidebar
         accountTriggerRef={accountTriggerRef}
         activeConversationId={activeConversationId}
+        activeProjectId={activeProjectId}
         isNewConversationActive={isNewConversationActive}
         conversations={conversations}
         language={language}
         projects={projects}
         onConversationSelect={handleConversationSelect}
+        onProjectSelect={handleProjectSelect}
+        onRenameProject={setRenameProjectTarget}
+        onEditProjectSettings={setProjectSettingsTarget}
+        onDeleteProject={setDeleteProjectTarget}
         onRenameConversation={setRenameTarget}
         onToggleConversationPin={(conversation) =>
           void handleToggleConversationPin(conversation)
@@ -219,7 +351,20 @@ function App() {
         <header className="main-header">
           {activeConversation && (
             <div className="main-header-breadcrumb">
-              {/* A project icon and name can be inserted before the conversation title. */}
+              {chatProject && (
+                <>
+                  <button
+                    className="main-header-project-link"
+                    type="button"
+                    onClick={() => handleProjectSelect(chatProject.id)}
+                    title={chatProject.name}
+                  >
+                    <ProjectIcon icon={chatProject.icon} color={chatProject.color} size={17} />
+                    <span>{chatProject.name}</span>
+                  </button>
+                  <span className="main-header-separator" aria-hidden="true">/</span>
+                </>
+              )}
               <h1 title={activeConversation.title}>{activeConversation.title}</h1>
             </div>
           )}
@@ -229,14 +374,35 @@ function App() {
             key={activeConversationId}
             threadId={activeConversationId}
             language={language}
+            projectId={activeConversation?.projectId ?? pendingProjectId}
+            project={projectLandingProject ?? chatProject ?? null}
+            projectLanding={isProjectLanding}
+            projectLandingContent={
+              projectLandingProject ? (
+                <ProjectDetail
+                  conversations={conversations
+                    .filter((conversation) => conversation.projectId === projectLandingProject.id)
+                    .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))}
+                  language={language}
+                  onSelectConversation={handleConversationSelect}
+                  onRenameConversation={setRenameTarget}
+                  onToggleConversationPin={(conversation) =>
+                    void handleToggleConversationPin(conversation)
+                  }
+                  onDeleteConversation={setDeleteTarget}
+                />
+              ) : undefined
+            }
             onConversationUpdated={handleConversationUpdated}
           />
         )}
       </main>
       <CreateProjectDialog
-        open={createProjectOpen}
+        open={createProjectOpen || projectSettingsTarget !== null}
+        project={projectSettingsTarget}
         onClose={closeCreateProject}
         onCreate={handleCreateProject}
+        onUpdate={handleUpdateProjectSettings}
       />
       <RenameConversationDialog
         conversation={renameTarget}
@@ -247,6 +413,19 @@ function App() {
         conversation={deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDeleteConversation}
+      />
+      <RenameProjectDialog
+        project={renameProjectTarget}
+        onClose={() => setRenameProjectTarget(null)}
+        onSave={handleRenameProject}
+      />
+      <DeleteProjectDialog
+        project={deleteProjectTarget}
+        conversationCount={deleteProjectTarget
+          ? conversations.filter((conversation) => conversation.projectId === deleteProjectTarget.id).length
+          : 0}
+        onClose={() => setDeleteProjectTarget(null)}
+        onConfirm={handleConfirmDeleteProject}
       />
       <SettingsDialog
         open={settingsOpen}

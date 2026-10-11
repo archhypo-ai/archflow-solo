@@ -67,11 +67,95 @@ def test_tauri_webview_origin_can_call_local_api(tmp_path) -> None:
     try:
         with TestClient(create_app(service)) as client:
             response = client.get("/health", headers={"Origin": "tauri://localhost"})
+            preflight = client.options(
+                "/api/projects/project-1",
+                headers={
+                    "Origin": "tauri://localhost",
+                    "Access-Control-Request-Method": "PUT",
+                    "Access-Control-Request-Headers": "content-type",
+                },
+            )
     finally:
         service.close()
 
     assert response.status_code == 200
     assert response.headers["access-control-allow-origin"] == "tauri://localhost"
+    assert preflight.status_code == 200
+    assert "PUT" in preflight.headers["access-control-allow-methods"]
+
+
+def test_projects_can_be_persisted_and_linked_to_conversations(tmp_path) -> None:
+    service = AgentService(database_path=tmp_path / "projects.sqlite")
+    try:
+        with TestClient(create_app(service)) as client:
+            created = client.post(
+                "/api/projects",
+                json={
+                    "id": "project-1",
+                    "name": "Architecture",
+                    "icon": "folder",
+                    "color": "blue",
+                    "instructions": "Prefer simple designs.",
+                },
+            )
+            assert created.status_code == 201
+            assert created.json()["id"] == "project-1"
+            assert client.get("/api/projects").json()[0]["name"] == "Architecture"
+            renamed_project = client.patch(
+                "/api/projects/project-1",
+                json={"name": "Platform"},
+            )
+            assert renamed_project.status_code == 200
+            assert renamed_project.json()["name"] == "Platform"
+            settings = client.put(
+                "/api/projects/project-1",
+                json={
+                    "name": "Platform",
+                    "icon": "briefcase",
+                    "color": "red",
+                    "instructions": "Use the project context.",
+                },
+            )
+            assert settings.status_code == 200
+            assert settings.json()["icon"] == "briefcase"
+            assert settings.json()["color"] == "red"
+            assert settings.json()["instructions"] == "Use the project context."
+
+            client.post(
+                "/api/chat",
+                json={"thread_id": "project-thread", "message": "Hello"},
+            )
+            assigned = client.patch(
+                "/api/threads/project-thread/project",
+                json={"project_id": "project-1"},
+            )
+            assert assigned.status_code == 200
+            assert assigned.json()["project_id"] == "project-1"
+
+            unassigned = client.patch(
+                "/api/threads/project-thread/project",
+                json={"project_id": None},
+            )
+            assert unassigned.status_code == 200
+            assert unassigned.json()["project_id"] is None
+
+            created_chat = client.post(
+                "/api/chat",
+                json={
+                    "thread_id": "created-in-project",
+                    "message": "Project conversation",
+                    "project_id": "project-1",
+                },
+            )
+            assert created_chat.status_code == 200
+            assert client.get("/api/threads").json()[0]["project_id"] == "project-1"
+
+            deleted = client.delete("/api/projects/project-1")
+            assert deleted.status_code == 204
+            assert client.get("/api/threads/created-in-project").status_code == 404
+            assert client.get("/api/threads/project-thread").status_code == 200
+    finally:
+        service.close()
 
 
 def test_thread_metadata_can_be_renamed_pinned_and_deleted(tmp_path) -> None:

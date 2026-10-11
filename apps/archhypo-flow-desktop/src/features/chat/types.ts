@@ -9,6 +9,8 @@ export type ConversationSummary = {
   messageCount: number;
   updatedAt: string;
   pinned: boolean;
+  projectId: string | null;
+  preview: string;
 };
 
 export type StoredConversation = ConversationSummary & {

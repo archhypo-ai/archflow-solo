@@ -96,27 +96,117 @@
   padding-left: 12px;
 }
 
-.sidebar-project {
+.sidebar-project-items {
+  gap: 2px;
+  padding-left: 0;
+}
+
+.sidebar-project-group {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-project-row {
+  position: relative;
   display: flex;
   min-width: 0;
   min-height: 34px;
   align-items: center;
-  gap: 8px;
-  border-radius: 8px;
+  border-radius: 7px;
   color: var(--color-foreground);
-  padding: 6px 9px;
-  font-size: 11px;
 }
 
-.sidebar-project svg {
+.sidebar-project-row:hover,
+.sidebar-project-row.is-active {
+  background: var(--color-hover);
+}
+
+.sidebar-project-row.is-active {
+  color: var(--color-accent);
+}
+
+.sidebar-project {
+  display: flex;
+  min-width: 0;
+  min-height: 34px;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  padding: 6px 10px;
+  text-align: left;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.sidebar-project-icon {
   flex: 0 0 15px;
-  color: var(--color-muted);
 }
 
 .sidebar-project span {
+  min-width: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sidebar-project-actions {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  margin-right: 8px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.sidebar-project-menu-root {
+  position: relative;
+}
+
+.sidebar-project-row:hover .sidebar-project-actions,
+.sidebar-project-row:focus-within .sidebar-project-actions,
+.sidebar-project-row:has(.sidebar-project-menu-trigger[aria-expanded="true"]) .sidebar-project-actions {
+  opacity: 1;
+}
+
+.sidebar-project-home-trigger,
+.sidebar-project-menu-trigger {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-muted);
+  padding: 0;
+  cursor: pointer;
+}
+
+.sidebar-project-home-trigger:hover,
+.sidebar-project-menu-trigger:hover,
+.sidebar-project-menu-trigger[aria-expanded="true"] {
+  background: var(--color-hover);
+  color: var(--color-foreground);
+}
+
+.sidebar-project-menu {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 164px;
+  padding-right: 16px;
 }
 
 .sidebar-conversation-items {
@@ -160,6 +250,15 @@
   cursor: pointer;
 }
 
+.sidebar-project-conversations {
+  width: 100%;
+  padding-left: 0;
+}
+
+.sidebar-project-conversation {
+  padding-left: 16px;
+}
+
 .sidebar-conversation span {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -170,6 +269,7 @@
   position: relative;
   z-index: 2;
   flex: 0 0 auto;
+  margin-right: 8px;
   opacity: 0;
   transition: opacity 120ms ease;
 }
@@ -205,6 +305,7 @@
   top: calc(100% + 4px);
   right: 0;
   width: 164px;
+  padding-right: 16px;
 }
 
 .sidebar-account-menu-root {

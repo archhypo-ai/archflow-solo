@@ -11,6 +11,7 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from archhypo_flow_agent.persistence.conversations import SQLiteConversationRepository
 from archhypo_flow_agent.persistence.migrations import migrate_connection
 from archhypo_flow_agent.persistence.paths import DATABASE_PATH
+from archhypo_flow_agent.persistence.projects import SQLiteProjectRepository
 
 
 @dataclass(slots=True)
@@ -20,6 +21,28 @@ class SQLitePersistence:
     connection: sqlite3.Connection
     checkpointer: SqliteSaver
     conversations: SQLiteConversationRepository
+    projects: SQLiteProjectRepository
+
+    def delete_project(self, project_id: str) -> bool:
+        """Delete a project, its conversations, and their checkpoint state."""
+
+        with self.connection:
+            with self.checkpointer.cursor(transaction=False) as cursor:
+                for table in ("checkpoints", "writes"):
+                    cursor.execute(
+                        f"""
+                        DELETE FROM {table}
+                        WHERE thread_id IN (
+                            SELECT thread_id FROM conversations WHERE project_id = ?
+                        )
+                        """,
+                        (project_id,),
+                    )
+            cursor = self.connection.execute(
+                "DELETE FROM projects WHERE id = ?",
+                (project_id,),
+            )
+            return cursor.rowcount > 0
 
     def delete_thread(self, thread_id: str) -> bool:
         """Delete checkpoint state and metadata in one SQLite transaction."""
@@ -51,6 +74,7 @@ def open_sqlite_persistence(path: Path = DATABASE_PATH) -> SQLitePersistence:
         checkpointer = SqliteSaver(connection)
         checkpointer.setup()
         conversations = SQLiteConversationRepository(connection)
+        projects = SQLiteProjectRepository(connection)
     except Exception:
         connection.close()
         raise
@@ -59,6 +83,7 @@ def open_sqlite_persistence(path: Path = DATABASE_PATH) -> SQLitePersistence:
         connection=connection,
         checkpointer=checkpointer,
         conversations=conversations,
+        projects=projects,
     )
 
 

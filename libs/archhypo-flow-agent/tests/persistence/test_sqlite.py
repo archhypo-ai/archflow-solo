@@ -26,8 +26,15 @@ def test_schema_migration_is_idempotent(tmp_path) -> None:
         }
 
     assert version == CURRENT_SCHEMA_VERSION
+    assert "projects" in tables
     assert "conversations" in tables
     assert "checkpoints" not in tables
+    with sqlite3.connect(database_path) as connection:
+        columns = {
+            row[1]
+            for row in connection.execute("PRAGMA table_info(conversations)")
+        }
+    assert "project_id" in columns
 
 
 def test_chat_transcript_survives_service_restart(tmp_path) -> None:
@@ -58,6 +65,47 @@ def test_chat_transcript_survives_service_restart(tmp_path) -> None:
         "Continue",
         "Understood. Let's explore this architectural decision.",
     ]
+
+
+def test_project_delete_cascades_to_conversations_and_checkpoints(tmp_path) -> None:
+    service = AgentService(database_path=tmp_path / "projects.sqlite")
+    try:
+        service.respond(
+            ChatRequest(thread_id="project-thread", message="Hello")
+        )
+        initial = service.get_conversation("project-thread")
+        assert initial is not None
+        assert initial.project_id is None
+
+        service.create_project(
+            project_id="project-1",
+            name="Architecture",
+            icon="folder",
+            color="blue",
+            instructions="Prefer simple designs.",
+        )
+        assigned = service.set_conversation_project("project-thread", "project-1")
+        assert assigned is not None
+        assert assigned.project_id == "project-1"
+        assert len(service.list_projects()) == 1
+
+        assert service.delete_project("project-1") is True
+        assert service.get_conversation("project-thread") is None
+        assert service.list_conversations() == []
+    finally:
+        service.close()
+
+    with sqlite3.connect(tmp_path / "projects.sqlite") as connection:
+        checkpoint_count = connection.execute(
+            "SELECT COUNT(*) FROM checkpoints WHERE thread_id = ?",
+            ("project-thread",),
+        ).fetchone()[0]
+        write_count = connection.execute(
+            "SELECT COUNT(*) FROM writes WHERE thread_id = ?",
+            ("project-thread",),
+        ).fetchone()[0]
+    assert checkpoint_count == 0
+    assert write_count == 0
 
 
 def test_conversation_update_and_delete_remove_checkpoint_state(tmp_path) -> None:

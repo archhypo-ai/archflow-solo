@@ -2,6 +2,7 @@ import {
   ChevronDown,
   ChevronRight,
   FolderPlus,
+  Home,
   Languages,
   LogOut,
   MoreHorizontal,
@@ -23,11 +24,16 @@ import "./Sidebar.css";
 type SidebarProps = {
   accountTriggerRef: RefObject<HTMLButtonElement | null>;
   activeConversationId: string | null;
+  activeProjectId: string | null;
   isNewConversationActive: boolean;
   conversations: ConversationSummary[];
   language: AppLanguage;
   projects: Project[];
   onConversationSelect: (threadId: string) => void;
+  onProjectSelect: (projectId: string) => void;
+  onEditProjectSettings: (project: Project) => void;
+  onRenameProject: (project: Project) => void;
+  onDeleteProject: (project: Project) => void;
   onRenameConversation: (conversation: ConversationSummary) => void;
   onToggleConversationPin: (conversation: ConversationSummary) => void;
   onDeleteConversation: (conversation: ConversationSummary) => void;
@@ -40,11 +46,16 @@ type SidebarProps = {
 export function Sidebar({
   accountTriggerRef,
   activeConversationId,
+  activeProjectId,
   isNewConversationActive,
   conversations,
   language,
   projects,
   onConversationSelect,
+  onProjectSelect,
+  onEditProjectSettings,
+  onRenameProject,
+  onDeleteProject,
   onRenameConversation,
   onToggleConversationPin,
   onDeleteConversation,
@@ -57,11 +68,17 @@ export function Sidebar({
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
   const [projectsExpanded, setProjectsExpanded] = useState(false);
+  const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [pinsExpanded, setPinsExpanded] = useState(false);
   const [conversationsExpanded, setConversationsExpanded] = useState(false);
   const [openConversationMenuId, setOpenConversationMenuId] = useState<string | null>(null);
+  const [openProjectMenuId, setOpenProjectMenuId] = useState<string | null>(null);
   const pinnedConversations = conversations.filter((conversation) => conversation.pinned);
-  const unpinnedConversations = conversations.filter((conversation) => !conversation.pinned);
+  const unpinnedConversations = conversations.filter(
+    (conversation) => !conversation.pinned && conversation.projectId === null,
+  );
 
   useEffect(() => {
     if (unpinnedConversations.length > 0) setConversationsExpanded(true);
@@ -72,9 +89,25 @@ export function Sidebar({
   useEffect(() => {
     if (projects.length > 0) setProjectsExpanded(true);
   }, [projects.length]);
+  useEffect(() => {
+    const activeConversation = conversations.find(
+      (conversation) => conversation.threadId === activeConversationId,
+    );
+    const projectId = activeConversation?.projectId;
+    if (!projectId) return;
+    setExpandedProjectIds((current) => {
+      if (current.has(projectId)) return current;
+      return new Set(current).add(projectId);
+    });
+  }, [activeConversationId, conversations]);
 
-  const renderConversationItems = (items: ConversationSummary[]) => (
-    <div className="sidebar-section-items sidebar-conversation-items">
+  const renderConversationItems = (
+    items: ConversationSummary[],
+    projectNested = false,
+  ) => (
+    <div
+      className={`sidebar-section-items sidebar-conversation-items${projectNested ? " sidebar-project-conversations" : ""}`}
+    >
       {items.map((conversation) => {
         const isActive = conversation.threadId === activeConversationId;
         const menuOpen = openConversationMenuId === conversation.threadId;
@@ -84,7 +117,7 @@ export function Sidebar({
             key={conversation.threadId}
           >
             <button
-              className="sidebar-conversation"
+              className={`sidebar-conversation${projectNested ? " sidebar-project-conversation" : ""}`}
               type="button"
               title={conversation.title}
               aria-current={isActive ? "page" : undefined}
@@ -124,14 +157,16 @@ export function Sidebar({
                     onRenameConversation(conversation);
                   }}
                 />
-                <MenuItem
-                  icon={conversation.pinned ? <PinOff aria-hidden="true" /> : <Pin aria-hidden="true" />}
-                  label={t(conversation.pinned ? "conversations.unpin" : "conversations.pin")}
-                  onClick={() => {
-                    setOpenConversationMenuId(null);
-                    onToggleConversationPin(conversation);
-                  }}
-                />
+                {(!conversation.projectId || conversation.pinned) && (
+                  <MenuItem
+                    icon={conversation.pinned ? <PinOff aria-hidden="true" /> : <Pin aria-hidden="true" />}
+                    label={t(conversation.pinned ? "conversations.unpin" : "conversations.pin")}
+                    onClick={() => {
+                      setOpenConversationMenuId(null);
+                      onToggleConversationPin(conversation);
+                    }}
+                  />
+                )}
                 <MenuItem
                   className="menu-item-danger"
                   icon={<Trash2 aria-hidden="true" />}
@@ -204,22 +239,123 @@ export function Sidebar({
               <span>{t("sidebar.projects")}</span>
             </button>
             {projectsExpanded && (
-              <div className="sidebar-section-items">
-                {projects.map((project) => (
-                  <div
-                    className="sidebar-project"
-                    key={project.id}
-                    title={project.name}
-                  >
-                    <ProjectIcon
-                      className="sidebar-project-icon"
-                      icon={project.icon}
-                      color={project.color}
-                      size={15}
-                    />
-                    <span>{project.name}</span>
-                  </div>
-                ))}
+              <div className="sidebar-section-items sidebar-project-items">
+                {projects.map((project) => {
+                  const active = project.id === activeProjectId;
+                  const menuOpen = openProjectMenuId === project.id;
+                  const expanded = expandedProjectIds.has(project.id);
+                  const conversationsId = `project-conversations-${project.id}`;
+                  const projectConversations = conversations.filter(
+                    (conversation) =>
+                      conversation.projectId === project.id && !conversation.pinned,
+                  );
+                  return (
+                    <div className="sidebar-project-group" key={project.id}>
+                      <div
+                        className={`sidebar-project-row${active ? " is-active" : ""}`}
+                      >
+                        <button
+                          className="sidebar-project"
+                          type="button"
+                          title={project.name}
+                          aria-current={active ? "page" : undefined}
+                          aria-expanded={expanded}
+                          aria-controls={conversationsId}
+                          onClick={() =>
+                            setExpandedProjectIds((current) => {
+                              const next = new Set(current);
+                              if (next.has(project.id)) next.delete(project.id);
+                              else next.add(project.id);
+                              return next;
+                            })
+                          }
+                        >
+                          <ProjectIcon
+                            className="sidebar-project-icon"
+                            icon={project.icon}
+                            color={project.color}
+                            size={15}
+                          />
+                          <span>{project.name}</span>
+                        </button>
+                        <div className="sidebar-project-actions">
+                          <button
+                            className="sidebar-project-home-trigger"
+                            type="button"
+                            title={t("projects.home")}
+                            aria-label={t("projects.home")}
+                            onClick={() => onProjectSelect(project.id)}
+                          >
+                            <SquarePen size={16} aria-hidden="true" />
+                          </button>
+                          <Menu
+                            className="sidebar-project-menu-root"
+                            open={menuOpen}
+                            onOpenChange={(open) =>
+                              setOpenProjectMenuId(open ? project.id : null)
+                            }
+                          >
+                            <button
+                              className="sidebar-project-menu-trigger"
+                              type="button"
+                              aria-label={t("projects.actions")}
+                              aria-haspopup="menu"
+                              aria-expanded={menuOpen}
+                              onClick={() =>
+                                setOpenProjectMenuId(menuOpen ? null : project.id)
+                              }
+                            >
+                              <MoreHorizontal size={16} aria-hidden="true" />
+                            </button>
+                            <MenuContent
+                              open={menuOpen}
+                              className="sidebar-project-menu"
+                              ariaLabel={t("projects.actions")}
+                            >
+                              <MenuItem
+                                icon={<Pencil aria-hidden="true" />}
+                                label={t("conversations.rename")}
+                                onClick={() => {
+                                  setOpenProjectMenuId(null);
+                                  onRenameProject(project);
+                                }}
+                              />
+                              <MenuItem
+                                icon={<Settings2 aria-hidden="true" />}
+                                label={t("projects.settings")}
+                                onClick={() => {
+                                  setOpenProjectMenuId(null);
+                                  onEditProjectSettings(project);
+                                }}
+                              />
+                              <MenuItem
+                                icon={<Home aria-hidden="true" />}
+                                label={t("projects.home")}
+                                onClick={() => {
+                                  setOpenProjectMenuId(null);
+                                  onProjectSelect(project.id);
+                                }}
+                              />
+                              <MenuItem
+                                className="menu-item-danger"
+                                icon={<Trash2 aria-hidden="true" />}
+                                label={t("conversations.delete")}
+                                onClick={() => {
+                                  setOpenProjectMenuId(null);
+                                  onDeleteProject(project);
+                                }}
+                              />
+                            </MenuContent>
+                          </Menu>
+                        </div>
+                      </div>
+                      <div id={conversationsId} hidden={!expanded}>
+                        {expanded && projectConversations.length > 0 &&
+                          renderConversationItems(projectConversations, true)}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>

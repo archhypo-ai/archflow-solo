@@ -21,6 +21,79 @@ class ThreadSummaryResponse(BaseModel):
     message_count: int
     updated_at: str
     pinned: bool
+    project_id: str | None
+    preview: str
+
+
+class ProjectResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    name: str
+    icon: str
+    color: str
+    instructions: str
+    created_at: str
+    updated_at: str
+
+
+class ProjectCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str = Field(min_length=1, max_length=80)
+    name: str = Field(min_length=1, max_length=80)
+    icon: str = Field(min_length=1, max_length=40)
+    color: Literal[
+        "neutral", "red", "orange", "yellow", "green", "blue", "purple", "pink"
+    ]
+    instructions: str = ""
+
+    @field_validator("id", "name", "icon")
+    @classmethod
+    def normalize_required_text(cls, value: str) -> str:
+        compact = " ".join(value.split())
+        if not compact:
+            raise ValueError("field must not be blank")
+        return compact
+
+
+class ProjectUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str = Field(min_length=1, max_length=80)
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        compact = " ".join(value.split())
+        if not compact:
+            raise ValueError("name must not be blank")
+        return compact
+
+
+class ProjectSettingsUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    name: str = Field(min_length=1, max_length=80)
+    icon: str = Field(min_length=1, max_length=40)
+    color: Literal[
+        "neutral", "red", "orange", "yellow", "green", "blue", "purple", "pink"
+    ]
+    instructions: str = ""
+
+    @field_validator("name", "icon")
+    @classmethod
+    def normalize_required_text(cls, value: str) -> str:
+        compact = " ".join(value.split())
+        if not compact:
+            raise ValueError("field must not be blank")
+        return compact
+
+
+class ThreadProjectRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    project_id: str | None
 
 
 class ThreadUpdateRequest(BaseModel):
@@ -59,8 +132,13 @@ class ThreadResponse(ThreadSummaryResponse):
 
 __all__ = [
     "HealthResponse",
+    "ProjectCreateRequest",
+    "ProjectResponse",
+    "ProjectSettingsUpdateRequest",
+    "ProjectUpdateRequest",
     "ThreadMessageResponse",
     "ThreadResponse",
     "ThreadSummaryResponse",
+    "ThreadProjectRequest",
     "ThreadUpdateRequest",
 ]

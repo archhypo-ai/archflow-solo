@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from archhypo_flow_agent.backend.controllers import (
     chat_router,
     health_router,
+    projects_router,
     threads_router,
 )
 from archhypo_flow_agent.providers.openrouter import create_openrouter_model
@@ -53,11 +54,12 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
             "http://tauri.localhost",
         ],
         allow_credentials=False,
-        allow_methods=["GET", "POST", "PATCH", "DELETE"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Content-Type"],
     )
     application.include_router(health_router)
     application.include_router(chat_router)
+    application.include_router(projects_router)
     application.include_router(threads_router)
     return application
 

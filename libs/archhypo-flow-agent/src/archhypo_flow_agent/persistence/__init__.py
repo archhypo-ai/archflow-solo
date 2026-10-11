@@ -7,6 +7,7 @@ from .conversations import (
 )
 from .migrations import CURRENT_SCHEMA_VERSION, migrate_connection
 from .paths import DATABASE_PATH, RUNTIME_ROOT, STORAGE_ROOT
+from .projects import ProjectMetadata, ProjectRepository, SQLiteProjectRepository
 from .sqlite import SQLitePersistence, open_sqlite_persistence
 
 __all__ = [
@@ -17,6 +18,9 @@ __all__ = [
     "ConversationMetadata",
     "ConversationRepository",
     "SQLiteConversationRepository",
+    "ProjectMetadata",
+    "ProjectRepository",
+    "SQLiteProjectRepository",
     "SQLitePersistence",
     "migrate_connection",
     "open_sqlite_persistence",

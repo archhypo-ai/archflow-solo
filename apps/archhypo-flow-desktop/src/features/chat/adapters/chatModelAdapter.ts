@@ -5,7 +5,13 @@ import { sendChatMessage } from "../api/chatClient";
 type ChatModelAdapterOptions = {
   threadId: string;
   language: AppLanguage;
-  onConversationUpdated: (threadId: string, title: string) => void;
+  projectId: string | null;
+  onConversationUpdated: (
+    threadId: string,
+    title: string,
+    preview: string,
+    projectId: string | null,
+  ) => void;
 };
 
 function textFromMessage(message: Extract<ThreadMessage, { role: "user" }>) {
@@ -19,6 +25,7 @@ function textFromMessage(message: Extract<ThreadMessage, { role: "user" }>) {
 export function createChatModelAdapter({
   threadId,
   language,
+  projectId,
   onConversationUpdated,
 }: ChatModelAdapterOptions): ChatModelAdapter {
   return {
@@ -32,8 +39,8 @@ export function createChatModelAdapter({
       const text = latestUserMessage ? textFromMessage(latestUserMessage) : "";
       if (!text) return { content: [] };
 
-      const turn = await sendChatMessage(threadId, text, language);
-      onConversationUpdated(turn.thread_id, turn.title);
+      const turn = await sendChatMessage(threadId, text, language, projectId);
+      onConversationUpdated(turn.thread_id, turn.title, turn.message, projectId);
 
       return {
         content: [{ type: "text", text: turn.message }],
