@@ -4,7 +4,7 @@
   inset: 0;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, #08090f 48%, transparent);
+  background: var(--color-backdrop);
   padding: 24px;
 }
 

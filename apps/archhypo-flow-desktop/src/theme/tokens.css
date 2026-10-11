@@ -21,6 +21,7 @@
   --color-input: #171722;
   --color-hover: color-mix(in srgb, #b1bae6 7%, transparent);
   --color-shadow: color-mix(in srgb, #0b0e14 22%, transparent);
+  --color-backdrop: color-mix(in srgb, #08090f 48%, transparent);
   --project-color-neutral: var(--color-muted);
   --project-color-red: #f7768e;
   --project-color-orange: #ff9e64;
@@ -49,6 +50,7 @@
   --color-input: #c2c2c7;
   --color-hover: color-mix(in srgb, #2e3338 6%, transparent);
   --color-shadow: color-mix(in srgb, #2e3338 10%, transparent);
+  --color-backdrop: color-mix(in srgb, #2e3338 38%, transparent);
   --project-color-neutral: var(--color-muted);
   --project-color-red: #b7445d;
   --project-color-orange: #b85c16;
