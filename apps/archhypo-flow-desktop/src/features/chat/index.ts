@@ -1,5 +1,6 @@
 export { Chat } from "./Chat";
-export { createDemoChatModel } from "./adapters/demoChatModel";
+export type { ConversationSummary } from "./types";
+export { createChatModelAdapter } from "./adapters/chatModelAdapter";
 export {
   ChatAssistantMessage,
   ChatComposer,

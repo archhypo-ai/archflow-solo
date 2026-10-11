@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Sidebar } from "./components";
-import { Chat } from "./features/chat";
+import { Chat, type ConversationSummary } from "./features/chat";
+import { listConversations } from "./features/chat/api/chatClient";
 import { CreateProjectDialog, loadProjects, saveProjects, type Project } from "./features/projects";
 import { SettingsDialog } from "./features/settings";
 import { LANGUAGE_STORAGE_KEY, toAppLanguage } from "./i18n";
@@ -14,6 +15,12 @@ function initialGlobalAgentInstructions(): string {
   return localStorage.getItem(GLOBAL_AGENT_INSTRUCTIONS_STORAGE_KEY) ?? "";
 }
 
+function newConversationId(): string {
+  return typeof crypto.randomUUID === "function"
+    ? crypto.randomUUID()
+    : `thread-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 function initialTheme(): ThemePreference {
   const storedTheme = localStorage.getItem("archhypo-flow-theme");
   return storedTheme === "day" || storedTheme === "night" || storedTheme === "system"
@@ -23,8 +30,8 @@ function initialTheme(): ThemePreference {
 
 function App() {
   const [theme, setTheme] = useState<ThemePreference>(initialTheme);
-  const [chatKey, setChatKey] = useState(0);
-  const [activeConversationTitle, setActiveConversationTitle] = useState("");
+  const [conversations, setConversations] = useState<ConversationSummary[]>([]);
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [projects, setProjects] = useState<Project[]>(loadProjects);
@@ -36,20 +43,55 @@ function App() {
   const language = toAppLanguage(i18n.resolvedLanguage);
 
   const handleNewChat = useCallback(() => {
-    setActiveConversationTitle("");
-    setChatKey((current) => current + 1);
+    setActiveConversationId(newConversationId());
   }, []);
-  const handleConversationStarted = useCallback((title: string) => {
-    setActiveConversationTitle((current) => current || title);
-  }, []);
+  const handleConversationUpdated = useCallback(
+    (threadId: string, title: string) => {
+      setConversations((current) => {
+        const existing = current.find((conversation) => conversation.threadId === threadId);
+        const updated: ConversationSummary = {
+          threadId,
+          title,
+          messageCount: (existing?.messageCount ?? 0) + 2,
+          updatedAt: new Date().toISOString(),
+        };
+        return [updated, ...current.filter((item) => item.threadId !== threadId)];
+      });
+    },
+    [],
+  );
   const handleCreateProject = useCallback((project: Project) => {
     setProjects((current) => [project, ...current]);
   }, []);
   const openCreateProject = useCallback(() => setCreateProjectOpen(true), []);
   const closeCreateProject = useCallback(() => setCreateProjectOpen(false), []);
+  const handleConversationSelect = useCallback((threadId: string) => {
+    setActiveConversationId(threadId);
+  }, []);
   const closeSettings = useCallback(() => {
     setSettingsOpen(false);
     requestAnimationFrame(() => accountTriggerRef.current?.focus());
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    void listConversations()
+      .then((loaded) => {
+        if (!active) return;
+        const fallbackId = newConversationId();
+        setConversations(loaded);
+        setActiveConversationId(
+          (current) => current ?? loaded[0]?.threadId ?? fallbackId,
+        );
+      })
+      .catch(() => {
+        if (!active) return;
+        const fallbackId = newConversationId();
+        setActiveConversationId((current) => current ?? fallbackId);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -85,9 +127,11 @@ function App() {
     <div className="app-shell">
       <Sidebar
         accountTriggerRef={accountTriggerRef}
-        activeConversationTitle={activeConversationTitle}
+        activeConversationId={activeConversationId}
+        conversations={conversations}
         language={language}
         projects={projects}
+        onConversationSelect={handleConversationSelect}
         onNewChat={handleNewChat}
         onNewProject={openCreateProject}
         onLanguageChange={(nextLanguage) =>
@@ -102,10 +146,14 @@ function App() {
             <h1>{t("app.chat")}</h1>
           </div>
         </header>
-        <Chat
-          key={chatKey}
-          onConversationStarted={handleConversationStarted}
-        />
+        {activeConversationId && (
+          <Chat
+            key={activeConversationId}
+            threadId={activeConversationId}
+            language={language}
+            onConversationUpdated={handleConversationUpdated}
+          />
+        )}
       </main>
       <CreateProjectDialog
         open={createProjectOpen}

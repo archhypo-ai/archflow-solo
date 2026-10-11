@@ -7,7 +7,7 @@ Minimal conversational agent harness for ArchHypo Flow. The initial graph wraps 
 ```text
 src/archhypo_flow_agent/
 ├── agents/          # ReAct agent assembly
-├── backend/         # Local HTTP adapter (next increment)
+├── backend/         # Local FastAPI chat and conversation-history API
 ├── cli/             # Graph utilities
 ├── config/          # Environment-backed settings
 ├── core/            # Shared graph state and contracts
@@ -29,7 +29,9 @@ uv run pytest
 uv run ruff check .
 ```
 
-Set `OPENROUTER_API_KEY` to use the configured provider. A sample environment file is available as `.env.example`.
+The local API exposes `POST /api/chat`, `GET /api/threads`, and `GET /api/threads/{thread_id}`. LangGraph checkpoints and conversation metadata share one SQLite database, defaulting to `~/.local/share/archhypo-flow/runtime/checkpoints.sqlite`; override the storage root with `ARCHHYPO_FLOW_STORAGE_ROOT`.
+
+The desktop API uses `ChatOpenRouter` from the configured provider factory. Set `OPENROUTER_API_KEY` and optionally `OPENROUTER_MODEL` in this package's `.env`; the development launcher starts the backend with this directory as its working directory. Without a key, conversation history remains available, but chat requests return a configuration error instead of a fake reply.
 
 ## Draw the graph
 

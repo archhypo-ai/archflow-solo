@@ -1,6 +1,8 @@
 """Validated contracts for the local chat boundary."""
 
-from pydantic import BaseModel, ConfigDict, Field
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class ChatRequest(BaseModel):
@@ -10,6 +12,14 @@ class ChatRequest(BaseModel):
 
     thread_id: str = Field(min_length=1)
     message: str = Field(min_length=1)
+    language: Literal["en", "pt-BR"] = "en"
+
+    @field_validator("thread_id", "message")
+    @classmethod
+    def reject_blank_values(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("value must not be blank")
+        return value
 
 
 class ChatResponse(BaseModel):
@@ -18,6 +28,7 @@ class ChatResponse(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     thread_id: str = Field(min_length=1)
+    title: str = Field(min_length=1)
     message: str = Field(min_length=1)
 
 

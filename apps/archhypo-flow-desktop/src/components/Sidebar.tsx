@@ -12,14 +12,17 @@ import { useCallback, useEffect, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../i18n";
 import { ProjectIcon, type Project } from "../features/projects";
+import type { ConversationSummary } from "../features/chat/types";
 import { Menu, MenuContent, MenuItem, MenuRadioItem } from "./overlay";
 import "./Sidebar.css";
 
 type SidebarProps = {
   accountTriggerRef: RefObject<HTMLButtonElement | null>;
-  activeConversationTitle: string;
+  activeConversationId: string | null;
+  conversations: ConversationSummary[];
   language: AppLanguage;
   projects: Project[];
+  onConversationSelect: (threadId: string) => void;
   onNewChat: () => void;
   onNewProject: () => void;
   onLanguageChange: (language: AppLanguage) => void;
@@ -28,9 +31,11 @@ type SidebarProps = {
 
 export function Sidebar({
   accountTriggerRef,
-  activeConversationTitle,
+  activeConversationId,
+  conversations,
   language,
   projects,
+  onConversationSelect,
   onNewChat,
   onNewProject,
   onLanguageChange,
@@ -43,8 +48,8 @@ export function Sidebar({
   const [conversationsExpanded, setConversationsExpanded] = useState(false);
 
   useEffect(() => {
-    if (activeConversationTitle) setConversationsExpanded(true);
-  }, [activeConversationTitle]);
+    if (conversations.length > 0) setConversationsExpanded(true);
+  }, [conversations.length]);
   useEffect(() => {
     if (projects.length > 0) setProjectsExpanded(true);
   }, [projects.length]);
@@ -132,12 +137,24 @@ export function Sidebar({
             />
             <span>{t("sidebar.conversations")}</span>
           </button>
-          {conversationsExpanded && activeConversationTitle && (
+          {conversationsExpanded && conversations.length > 0 && (
             <div className="sidebar-section-items">
-              <div className="sidebar-conversation" title={activeConversationTitle}>
-                <MessageSquareText size={14} aria-hidden="true" />
-                <span>{activeConversationTitle}</span>
-              </div>
+              {conversations.map((conversation) => {
+                const isActive = conversation.threadId === activeConversationId;
+                return (
+                  <button
+                    className={`sidebar-conversation${isActive ? " is-active" : ""}`}
+                    key={conversation.threadId}
+                    type="button"
+                    title={conversation.title}
+                    aria-current={isActive ? "page" : undefined}
+                    onClick={() => onConversationSelect(conversation.threadId)}
+                  >
+                    <MessageSquareText size={14} aria-hidden="true" />
+                    <span>{conversation.title}</span>
+                  </button>
+                );
+              })}
             </div>
           )}
         </section>

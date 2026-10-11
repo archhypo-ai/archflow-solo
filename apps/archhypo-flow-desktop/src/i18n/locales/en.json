@@ -22,7 +22,9 @@
     "messageLabel": "Message",
     "sendMessage": "Send message",
     "stopResponse": "Stop response",
-    "demoReply": "Understood. Let's explore this architectural decision."
+    "loading": "Loading conversation…",
+    "loadError": "Could not load this conversation from the local chat service.",
+    "retry": "Retry"
   },
   "projects": {
     "createTitle": "Create project",

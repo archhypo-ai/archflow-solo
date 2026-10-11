@@ -37,6 +37,9 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/archhypo_flow_agent"]
 
+[tool.fastapi]
+entrypoint = "archhypo_flow_agent.backend.app:app"
+
 [tool.pytest.ini_options]
 addopts = "-ra --import-mode=importlib"
 pythonpath = ["src", "."]

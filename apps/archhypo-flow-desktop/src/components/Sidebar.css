@@ -103,8 +103,21 @@
   font-size: 11px;
 }
 
-.sidebar-conversation:hover {
+.sidebar-conversation {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-conversation:hover,
+.sidebar-conversation.is-active {
   background: var(--color-hover);
+}
+
+.sidebar-conversation.is-active {
+  color: var(--color-accent);
 }
 
 .sidebar-project svg,

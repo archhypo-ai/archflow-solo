@@ -22,7 +22,9 @@
     "messageLabel": "Mensagem",
     "sendMessage": "Enviar mensagem",
     "stopResponse": "Interromper resposta",
-    "demoReply": "Entendi. Vamos explorar essa decisão arquitetural."
+    "loading": "Carregando conversa…",
+    "loadError": "Não foi possível carregar esta conversa do serviço local de chat.",
+    "retry": "Tentar novamente"
   },
   "projects": {
     "createTitle": "Criar projeto",

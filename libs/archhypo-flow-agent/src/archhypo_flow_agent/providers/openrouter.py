@@ -11,9 +11,10 @@ def create_openrouter_model(
     """Create the native LangChain OpenRouter integration."""
 
     resolved = configuration or settings
+    model = resolved.openrouter_model.removeprefix("openrouter:")
     return ChatOpenRouter(
         api_key=resolved.require_openrouter_api_key(),
-        model=resolved.openrouter_model,
+        model=model,
         temperature=0,
     )
 
