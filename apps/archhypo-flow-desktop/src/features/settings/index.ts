@@ -1,3 +1,3 @@
-export { AgentSettings } from "./AgentSettings";
-export { GeneralSettings } from "./GeneralSettings";
-export { SettingsDialog } from "./SettingsDialog";
+export { AgentSettings } from "./components/AgentSettings";
+export { GeneralSettings } from "./components/GeneralSettings";
+export { SettingsDialog } from "./components/SettingsDialog";

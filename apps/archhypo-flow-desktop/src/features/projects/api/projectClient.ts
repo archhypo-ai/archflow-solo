@@ -1,4 +1,4 @@
-import type { Project } from "./types";
+import type { Project } from "../types";
 
 const API_BASE_URL = "http://127.0.0.1:8765";
 

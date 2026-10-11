@@ -1,5 +1,5 @@
-import { getProjectIcon, type ProjectIconId } from "./projectIcons";
-import type { ProjectColor } from "./types";
+import { getProjectIcon, type ProjectIconId } from "../projectIcons";
+import type { ProjectColor } from "../types";
 
 type ProjectIconProps = {
   icon: ProjectIconId;

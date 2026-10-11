@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next";
-import appPackage from "../../../package.json";
-import { SelectMenu } from "../../components/overlay";
-import type { AppLanguage } from "../../i18n";
-import type { ThemePreference } from "../../theme/types";
+import appPackage from "../../../../package.json";
+import { SelectMenu } from "../../../components/overlay";
+import type { AppLanguage } from "../../../i18n";
+import type { ThemePreference } from "../../../theme/types";
 
 type GeneralSettingsProps = {
   theme: ThemePreference;

@@ -1,8 +1,8 @@
 import { Bot, Settings2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { AppLanguage } from "../../i18n";
-import type { ThemePreference } from "../../theme/types";
+import type { AppLanguage } from "../../../i18n";
+import type { ThemePreference } from "../../../theme/types";
 import { AgentSettings } from "./AgentSettings";
 import { GeneralSettings } from "./GeneralSettings";
 import "./SettingsDialog.css";

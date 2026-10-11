@@ -7,9 +7,9 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import type { AppLanguage } from "../../i18n";
-import { Menu, MenuContent, MenuItem } from "../../components/overlay";
-import type { ConversationSummary } from "../chat/types";
+import type { AppLanguage } from "../../../i18n";
+import { Menu, MenuContent, MenuItem } from "../../../components/overlay";
+import type { ConversationSummary } from "../../conversations/types";
 import "./ProjectDetail.css";
 
 type ProjectDetailProps = {

@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { ProjectIcon } from "../../projects/ProjectIcon";
+import { ProjectIcon } from "../../projects";
 import type { Project } from "../../projects/types";
 
 type ChatWelcomeProps = {

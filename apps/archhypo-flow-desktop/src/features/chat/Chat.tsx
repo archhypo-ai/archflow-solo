@@ -6,11 +6,10 @@ import {
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../i18n";
+import { getConversation, type StoredChatMessage } from "../conversations";
 import type { Project } from "../projects/types";
-import { getConversation } from "./api/chatClient";
 import { createChatModelAdapter } from "./adapters/chatModelAdapter";
 import { ChatThread } from "./components/ChatThread";
-import type { StoredChatMessage } from "./types";
 
 type ChatProps = {
   threadId: string;

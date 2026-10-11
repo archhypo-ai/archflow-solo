@@ -17,7 +17,7 @@ import { useCallback, useEffect, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../i18n";
 import { ProjectIcon, type Project } from "../features/projects";
-import type { ConversationSummary } from "../features/chat/types";
+import type { ConversationSummary } from "../features/conversations/types";
 import { Menu, MenuContent, MenuItem, MenuRadioItem } from "./overlay";
 import "./Sidebar.css";
 

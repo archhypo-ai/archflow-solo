@@ -1,10 +1,10 @@
 import { FolderPlus, Settings2, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { Menu, MenuContent } from "../../components/overlay";
-import { PROJECT_ICONS, type ProjectIconId } from "./projectIcons";
+import { Menu, MenuContent } from "../../../components/overlay";
+import { PROJECT_ICONS, type ProjectIconId } from "../projectIcons";
 import { ProjectIcon } from "./ProjectIcon";
-import { PROJECT_COLORS, type Project, type ProjectColor } from "./types";
+import { PROJECT_COLORS, type Project, type ProjectColor } from "../types";
 import "./CreateProjectDialog.css";
 
 type CreateProjectDialogProps = {

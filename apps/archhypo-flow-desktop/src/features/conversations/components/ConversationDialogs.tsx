@@ -1,7 +1,7 @@
 import { AlertTriangle, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import type { ConversationSummary } from "../chat/types";
+import type { ConversationSummary } from "../types";
 import "./ConversationDialogs.css";
 
 type RenameConversationDialogProps = {
