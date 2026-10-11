@@ -36,8 +36,14 @@
   color: var(--color-muted);
 }
 
-.sidebar-action-button:hover {
+.sidebar-action-button:hover,
+.sidebar-action-button.is-active {
   background: var(--color-hover);
+}
+
+.sidebar-action-button.is-active,
+.sidebar-action-button.is-active svg {
+  color: var(--color-accent);
 }
 
 .sidebar-sections {
@@ -90,8 +96,7 @@
   padding-left: 12px;
 }
 
-.sidebar-project,
-.sidebar-conversation {
+.sidebar-project {
   display: flex;
   min-width: 0;
   min-height: 34px;
@@ -103,34 +108,103 @@
   font-size: 11px;
 }
 
-.sidebar-conversation {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  text-align: left;
-  cursor: pointer;
-}
-
-.sidebar-conversation:hover,
-.sidebar-conversation.is-active {
-  background: var(--color-hover);
-}
-
-.sidebar-conversation.is-active {
-  color: var(--color-accent);
-}
-
-.sidebar-project svg,
-.sidebar-conversation svg {
+.sidebar-project svg {
   flex: 0 0 15px;
   color: var(--color-muted);
 }
 
-.sidebar-project span,
+.sidebar-project span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-conversation-items {
+  gap: 2px;
+  padding-left: 0;
+}
+
+.sidebar-conversation-row {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 34px;
+  align-items: center;
+  border-radius: 7px;
+  color: var(--color-foreground);
+}
+
+.sidebar-conversation-row:hover,
+.sidebar-conversation-row.is-active {
+  background: var(--color-hover);
+}
+
+.sidebar-conversation-row.is-active {
+  color: var(--color-accent);
+}
+
+.sidebar-conversation {
+  display: flex;
+  min-width: 0;
+  min-height: 34px;
+  flex: 1 1 auto;
+  align-items: center;
+  overflow: hidden;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  padding: 6px 9px;
+  text-align: left;
+  font-size: 11px;
+  cursor: pointer;
+}
+
 .sidebar-conversation span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.sidebar-conversation-actions {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.sidebar-conversation-row:hover .sidebar-conversation-actions,
+.sidebar-conversation-row:focus-within .sidebar-conversation-actions,
+.sidebar-conversation-row:has(.sidebar-conversation-menu-trigger[aria-expanded="true"]) .sidebar-conversation-actions {
+  opacity: 1;
+}
+
+.sidebar-conversation-menu-trigger {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-muted);
+  padding: 0;
+  cursor: pointer;
+}
+
+.sidebar-conversation-menu-trigger:hover,
+.sidebar-conversation-menu-trigger[aria-expanded="true"] {
+  background: var(--color-hover);
+  color: var(--color-foreground);
+}
+
+.sidebar-conversation-menu {
+  position: absolute;
+  z-index: 50;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 164px;
 }
 
 .sidebar-account-menu-root {

@@ -15,6 +15,7 @@
   --color-muted: #8b93b7;
   --color-subtle: #7982a8;
   --color-accent: #7aa2f7;
+  --color-error: #f7768e;
   --color-brand: #7aa2f7;
   --color-brand-foreground: #15161e;
   --color-user-message: #252836;
@@ -44,6 +45,7 @@
   --color-muted: #4c505e;
   --color-subtle: #505969;
   --color-accent: #365aaa;
+  --color-error: #b7445d;
   --color-brand: #365aaa;
   --color-brand-foreground: #ffffff;
   --color-user-message: #c4c7da;

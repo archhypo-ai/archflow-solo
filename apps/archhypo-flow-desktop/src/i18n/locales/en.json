@@ -1,19 +1,30 @@
 {
-  "app": {
-    "workspace": "WORKSPACE",
-    "chat": "Chat"
-  },
   "sidebar": {
     "navigationLabel": "Main navigation",
     "newConversation": "New conversation",
     "newProject": "New project",
     "projects": "Projects",
+    "pins": "Pins",
     "conversations": "Conversations",
     "accountMenu": "Account menu",
     "settings": "Settings",
     "language": "Language",
     "logout": "Log out",
     "logoutUnavailable": "Sign-in is not enabled in this desktop app yet."
+  },
+  "conversations": {
+    "actions": "Conversation actions",
+    "rename": "Rename",
+    "renameTitle": "Rename conversation",
+    "titleLabel": "Conversation title",
+    "pin": "Pin",
+    "unpin": "Unpin",
+    "delete": "Delete",
+    "deleteTitle": "Delete conversation?",
+    "deleteDescription": "Delete \"{{title}}\" and all its messages? This action cannot be undone.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "actionError": "Could not update this conversation. Please try again."
   },
   "chat": {
     "welcomeTitle": "What architectural uncertainty would you like to explore?",

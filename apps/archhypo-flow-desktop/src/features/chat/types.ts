@@ -8,6 +8,7 @@ export type ConversationSummary = {
   title: string;
   messageCount: number;
   updatedAt: string;
+  pinned: boolean;
 };
 
 export type StoredConversation = ConversationSummary & {

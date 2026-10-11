@@ -60,6 +60,42 @@ def test_chat_transcript_survives_service_restart(tmp_path) -> None:
     ]
 
 
+def test_conversation_update_and_delete_remove_checkpoint_state(tmp_path) -> None:
+    database_path = tmp_path / "runtime" / "conversations.sqlite"
+    service = AgentService(database_path=database_path)
+    try:
+        service.respond(
+            ChatRequest(thread_id="managed-thread", message="Keep this briefly")
+        )
+        updated = service.update_conversation(
+            "managed-thread",
+            title="Renamed conversation",
+            pinned=True,
+        )
+        assert updated is not None
+        assert updated.title == "Renamed conversation"
+        assert updated.pinned is True
+        assert service.delete_conversation("managed-thread") is True
+        assert service.delete_conversation("managed-thread") is False
+        assert service.list_conversations() == []
+        assert service.get_conversation("managed-thread") is None
+    finally:
+        service.close()
+
+    with sqlite3.connect(database_path) as connection:
+        checkpoint_count = connection.execute(
+            "SELECT COUNT(*) FROM checkpoints WHERE thread_id = ?",
+            ("managed-thread",),
+        ).fetchone()[0]
+        write_count = connection.execute(
+            "SELECT COUNT(*) FROM writes WHERE thread_id = ?",
+            ("managed-thread",),
+        ).fetchone()[0]
+
+    assert checkpoint_count == 0
+    assert write_count == 0
+
+
 def test_sqlite_stores_graph_checkpoints_and_conversation_metadata(tmp_path) -> None:
     database_path = tmp_path / "runtime" / "conversations.sqlite"
     service = AgentService(database_path=database_path)

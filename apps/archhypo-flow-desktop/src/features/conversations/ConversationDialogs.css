@@ -1,0 +1,137 @@
+.conversation-dialog-backdrop {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--color-backdrop);
+  padding: 20px;
+}
+
+.conversation-dialog {
+  width: min(100%, 420px);
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: 0 16px 48px var(--color-shadow);
+  color: var(--color-foreground);
+  padding: 20px;
+}
+
+.conversation-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 18px;
+}
+
+.conversation-dialog-header > svg {
+  flex: 0 0 auto;
+  color: var(--color-accent);
+}
+
+.conversation-dialog-header.is-danger,
+.conversation-dialog-header.is-danger > svg {
+  color: var(--color-error);
+}
+
+.conversation-dialog-header h2 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.conversation-dialog-label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.conversation-dialog-input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  outline: none;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.conversation-dialog-input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 22%, transparent);
+}
+
+.conversation-dialog-description {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.conversation-dialog-error {
+  margin: 10px 0 0;
+  color: var(--color-error);
+  font-size: 12px;
+}
+
+.conversation-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.conversation-dialog-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.conversation-dialog-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.conversation-dialog-button.is-secondary {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+}
+
+.conversation-dialog-button.is-secondary:hover:not(:disabled) {
+  background: var(--color-hover);
+}
+
+.conversation-dialog-button.is-primary {
+  background: var(--color-accent);
+  color: var(--color-brand-foreground);
+}
+
+.conversation-dialog-button.is-primary:hover:not(:disabled) {
+  filter: brightness(0.94);
+}
+
+.conversation-dialog-button.is-danger {
+  border-color: color-mix(in srgb, var(--color-error) 35%, var(--color-border));
+  background: color-mix(in srgb, var(--color-error) 11%, var(--color-surface));
+  color: var(--color-error);
+}
+
+.conversation-dialog-button.is-danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--color-error) 18%, var(--color-surface));
+}

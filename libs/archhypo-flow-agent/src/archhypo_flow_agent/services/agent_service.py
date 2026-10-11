@@ -102,6 +102,7 @@ class AgentService:
                         title=metadata.title,
                         message_count=len(messages),
                         updated_at=metadata.updated_at,
+                        pinned=metadata.pinned,
                     )
                 )
             return summaries
@@ -121,8 +122,44 @@ class AgentService:
                 title=metadata.title,
                 message_count=len(messages),
                 updated_at=metadata.updated_at,
+                pinned=metadata.pinned,
                 messages=messages,
             )
+
+    def update_conversation(
+        self,
+        thread_id: str,
+        *,
+        title: str | None = None,
+        pinned: bool | None = None,
+    ) -> ConversationSummary | None:
+        """Update the title or pinned state of a saved conversation."""
+
+        if not thread_id.strip() or self._conversations is None:
+            return None
+        with self._lock:
+            metadata = self._conversations.update(
+                thread_id,
+                title=title,
+                pinned=pinned,
+            )
+            if metadata is None:
+                return None
+            return ConversationSummary(
+                thread_id=thread_id,
+                title=metadata.title,
+                message_count=len(self._load_messages(thread_id)),
+                updated_at=metadata.updated_at,
+                pinned=metadata.pinned,
+            )
+
+    def delete_conversation(self, thread_id: str) -> bool:
+        """Remove the saved checkpoint and conversation metadata."""
+
+        if not thread_id.strip() or self._persistence is None:
+            return False
+        with self._lock:
+            return self._persistence.delete_thread(thread_id)
 
     def close(self) -> None:
         """Close SQLite resources owned by this service."""

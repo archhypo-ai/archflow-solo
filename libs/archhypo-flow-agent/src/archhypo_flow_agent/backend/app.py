@@ -53,7 +53,7 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
             "http://tauri.localhost",
         ],
         allow_credentials=False,
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE"],
         allow_headers=["Content-Type"],
     )
     application.include_router(health_router)

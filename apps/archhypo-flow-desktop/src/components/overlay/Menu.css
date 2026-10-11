@@ -41,6 +41,22 @@
   color: var(--color-brand);
 }
 
+.menu-item-danger,
+.menu-item-danger svg {
+  color: var(--color-error);
+}
+
+.menu-item-danger:hover,
+.menu-item-danger:focus-visible {
+  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+  color: var(--color-error);
+}
+
+.menu-item-danger:hover svg,
+.menu-item-danger:focus-visible svg {
+  color: var(--color-error);
+}
+
 .menu-item > span:first-of-type {
   flex: 1;
 }

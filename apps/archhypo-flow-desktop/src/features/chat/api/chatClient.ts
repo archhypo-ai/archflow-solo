@@ -12,6 +12,7 @@ type BackendConversationSummary = {
   title: string;
   message_count: number;
   updated_at: string;
+  pinned: boolean;
 };
 
 type BackendConversation = BackendConversationSummary & {
@@ -38,6 +39,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(`Chat API error (${response.status}): ${detail}`);
   }
 
+  if (response.status === 204) return undefined as T;
   return (await response.json()) as T;
 }
 
@@ -47,6 +49,7 @@ function toConversation(summary: BackendConversationSummary): ConversationSummar
     title: summary.title,
     messageCount: summary.message_count,
     updatedAt: summary.updated_at,
+    pinned: summary.pinned,
   };
 }
 
@@ -70,6 +73,26 @@ export async function getConversation(
     ...toConversation(conversation),
     messages: conversation.messages,
   };
+}
+
+export async function updateConversation(
+  threadId: string,
+  update: { title?: string; pinned?: boolean },
+): Promise<ConversationSummary> {
+  const summary = await request<BackendConversationSummary>(
+    `/api/threads/${encodeURIComponent(threadId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ title: update.title, pinned: update.pinned }),
+    },
+  );
+  return toConversation(summary);
+}
+
+export function deleteConversation(threadId: string): Promise<void> {
+  return request<void>(`/api/threads/${encodeURIComponent(threadId)}`, {
+    method: "DELETE",
+  });
 }
 
 export function sendChatMessage(

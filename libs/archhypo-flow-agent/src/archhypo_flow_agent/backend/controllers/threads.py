@@ -2,13 +2,14 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Response
 
 from archhypo_flow_agent.backend.dependencies import AgentServiceDependency
 from archhypo_flow_agent.backend.schemas import (
     ThreadMessageResponse,
     ThreadResponse,
     ThreadSummaryResponse,
+    ThreadUpdateRequest,
 )
 
 router = APIRouter(prefix="/api", tags=["threads"])
@@ -24,6 +25,7 @@ def list_threads(
             title=conversation.title,
             message_count=conversation.message_count,
             updated_at=conversation.updated_at,
+            pinned=conversation.pinned,
         )
         for conversation in agent_service.list_conversations()
     ]
@@ -43,11 +45,44 @@ def get_thread(
         title=conversation.title,
         message_count=conversation.message_count,
         updated_at=conversation.updated_at,
+        pinned=conversation.pinned,
         messages=[
             ThreadMessageResponse(role=message.role, content=message.content)
             for message in conversation.messages
         ],
     )
+
+
+@router.patch("/threads/{thread_id}", response_model=ThreadSummaryResponse)
+def update_thread(
+    thread_id: Annotated[str, Path(min_length=1)],
+    payload: ThreadUpdateRequest,
+    agent_service: AgentServiceDependency,
+) -> ThreadSummaryResponse:
+    conversation = agent_service.update_conversation(
+        thread_id,
+        title=payload.title,
+        pinned=payload.pinned,
+    )
+    if conversation is None:
+        raise HTTPException(status_code=404, detail="Conversation not found.")
+    return ThreadSummaryResponse(
+        thread_id=conversation.thread_id,
+        title=conversation.title,
+        message_count=conversation.message_count,
+        updated_at=conversation.updated_at,
+        pinned=conversation.pinned,
+    )
+
+
+@router.delete("/threads/{thread_id}", status_code=204)
+def delete_thread(
+    thread_id: Annotated[str, Path(min_length=1)],
+    agent_service: AgentServiceDependency,
+) -> Response:
+    if not agent_service.delete_conversation(thread_id):
+        raise HTTPException(status_code=404, detail="Conversation not found.")
+    return Response(status_code=204)
 
 
 __all__ = ["router"]

@@ -1,19 +1,30 @@
 {
-  "app": {
-    "workspace": "ESPAÇO DE TRABALHO",
-    "chat": "Chat"
-  },
   "sidebar": {
     "navigationLabel": "Navegação principal",
     "newConversation": "Nova conversa",
     "newProject": "Novo projeto",
     "projects": "Projetos",
+    "pins": "Fixadas",
     "conversations": "Conversas",
     "accountMenu": "Menu da conta",
     "settings": "Configurações",
     "language": "Idioma",
     "logout": "Sair",
     "logoutUnavailable": "O login ainda não está habilitado neste aplicativo desktop."
+  },
+  "conversations": {
+    "actions": "Ações da conversa",
+    "rename": "Renomear",
+    "renameTitle": "Renomear conversa",
+    "titleLabel": "Título da conversa",
+    "pin": "Fixar",
+    "unpin": "Desafixar",
+    "delete": "Excluir",
+    "deleteTitle": "Excluir conversa?",
+    "deleteDescription": "Excluir \"{{title}}\" e todas as mensagens? Esta ação não pode ser desfeita.",
+    "cancel": "Cancelar",
+    "save": "Salvar",
+    "actionError": "Não foi possível atualizar esta conversa. Tente novamente."
   },
   "chat": {
     "welcomeTitle": "Qual incerteza arquitetural você quer explorar?",

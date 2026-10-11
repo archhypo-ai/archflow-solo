@@ -16,6 +16,7 @@ class ConversationSummary:
     title: str
     message_count: int
     updated_at: str
+    pinned: bool
 
 
 @dataclass(frozen=True, slots=True)
@@ -24,6 +25,7 @@ class Conversation:
     title: str
     message_count: int
     updated_at: str
+    pinned: bool
     messages: list[ConversationMessage]
 
 

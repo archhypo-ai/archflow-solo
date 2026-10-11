@@ -21,6 +21,21 @@ class SQLitePersistence:
     checkpointer: SqliteSaver
     conversations: SQLiteConversationRepository
 
+    def delete_thread(self, thread_id: str) -> bool:
+        """Delete checkpoint state and metadata in one SQLite transaction."""
+
+        with self.connection:
+            with self.checkpointer.cursor(transaction=False) as cursor:
+                cursor.execute(
+                    "DELETE FROM checkpoints WHERE thread_id = ?",
+                    (thread_id,),
+                )
+                cursor.execute(
+                    "DELETE FROM writes WHERE thread_id = ?",
+                    (thread_id,),
+                )
+            return self.conversations.delete(thread_id, commit=False)
+
     def close(self) -> None:
         self.connection.close()
 

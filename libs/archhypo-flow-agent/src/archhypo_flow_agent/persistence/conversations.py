@@ -30,6 +30,16 @@ class ConversationRepository(Protocol):
         title: str | None = None,
     ) -> ConversationMetadata: ...
 
+    def update(
+        self,
+        thread_id: str,
+        *,
+        title: str | None = None,
+        pinned: bool | None = None,
+    ) -> ConversationMetadata | None: ...
+
+    def delete(self, thread_id: str, *, commit: bool = True) -> bool: ...
+
 
 class SQLiteConversationRepository:
     """Persist conversation titles and activity in the shared SQLite database."""
@@ -93,6 +103,47 @@ class SQLiteConversationRepository:
         if metadata is None:
             raise RuntimeError("Conversation metadata was not created")
         return metadata
+
+    def update(
+        self,
+        thread_id: str,
+        *,
+        title: str | None = None,
+        pinned: bool | None = None,
+    ) -> ConversationMetadata | None:
+        current = self.get(thread_id)
+        if current is None:
+            return None
+
+        assignments: list[str] = []
+        values: list[object] = []
+        if title is not None:
+            clean_title = _clean_title(title)
+            assignments.append("title = ?")
+            values.append(clean_title)
+        if pinned is not None:
+            assignments.append("pinned = ?")
+            values.append(int(pinned))
+        if not assignments:
+            return current
+
+        assignments.append("updated_at = ?")
+        values.extend((_now(), thread_id))
+        self._connection.execute(
+            f"UPDATE conversations SET {', '.join(assignments)} WHERE thread_id = ?",
+            values,
+        )
+        self._connection.commit()
+        return self.get(thread_id)
+
+    def delete(self, thread_id: str, *, commit: bool = True) -> bool:
+        cursor = self._connection.execute(
+            "DELETE FROM conversations WHERE thread_id = ?",
+            (thread_id,),
+        )
+        if commit:
+            self._connection.commit()
+        return cursor.rowcount > 0
 
 
 def _metadata_from_row(row: sqlite3.Row | tuple[object, ...]) -> ConversationMetadata:
