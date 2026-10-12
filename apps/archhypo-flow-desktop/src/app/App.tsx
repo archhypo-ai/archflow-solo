@@ -38,6 +38,7 @@ function initialTheme(): ThemePreference {
 
 function App() {
   const [theme, setTheme] = useState<ThemePreference>(initialTheme);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [renameTarget, setRenameTarget] = useState<ConversationSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ConversationSummary | null>(null);
   const [renameProjectTarget, setRenameProjectTarget] = useState<Project | null>(null);
@@ -177,9 +178,11 @@ function App() {
   }, [globalAgentInstructions]);
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${sidebarCollapsed ? " is-sidebar-collapsed" : ""}`}>
       <Sidebar
         accountTriggerRef={accountTriggerRef}
+        collapsed={sidebarCollapsed}
+        onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)}
         activeConversationId={activeConversationId}
         activeProjectId={activeProjectId}
         isNewConversationActive={isNewConversationActive}

@@ -1,6 +1,9 @@
 {
   "sidebar": {
     "navigationLabel": "Main navigation",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar",
+    "anonymous": "Anonymous",
     "newConversation": "New conversation",
     "newProject": "New project",
     "projects": "Projects",

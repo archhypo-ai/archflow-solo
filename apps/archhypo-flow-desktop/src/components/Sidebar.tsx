@@ -6,6 +6,7 @@ import {
   Languages,
   LogOut,
   MoreHorizontal,
+  PanelLeft,
   Pencil,
   Pin,
   PinOff,
@@ -23,6 +24,8 @@ import "./Sidebar.css";
 
 type SidebarProps = {
   accountTriggerRef: RefObject<HTMLButtonElement | null>;
+  collapsed: boolean;
+  onToggle: () => void;
   activeConversationId: string | null;
   activeProjectId: string | null;
   isNewConversationActive: boolean;
@@ -45,6 +48,8 @@ type SidebarProps = {
 
 export function Sidebar({
   accountTriggerRef,
+  collapsed,
+  onToggle,
   activeConversationId,
   activeProjectId,
   isNewConversationActive,
@@ -201,13 +206,30 @@ export function Sidebar({
   );
 
   return (
-    <aside className="sidebar" aria-label={t("sidebar.navigationLabel")}>
+    <aside
+      className={`sidebar${collapsed ? " is-collapsed" : ""}`}
+      aria-label={t("sidebar.navigationLabel")}
+    >
+      <div className="sidebar-header">
+        <strong className="sidebar-brand">ArchHypo Flow</strong>
+        <button
+          className="sidebar-toggle"
+          type="button"
+          aria-label={t(collapsed ? "sidebar.expandSidebar" : "sidebar.collapseSidebar")}
+          title={t(collapsed ? "sidebar.expandSidebar" : "sidebar.collapseSidebar")}
+          onClick={onToggle}
+        >
+          <PanelLeft size={17} aria-hidden="true" />
+        </button>
+      </div>
       <div className="sidebar-primary-actions">
         <button
           className={`sidebar-action-button${isNewConversationActive ? " is-active" : ""}`}
           onClick={onNewChat}
           type="button"
           aria-pressed={isNewConversationActive}
+          aria-label={t("sidebar.newConversation")}
+          title={t("sidebar.newConversation")}
         >
           <SquarePen size={17} aria-hidden="true" />
           <span>{t("sidebar.newConversation")}</span>
@@ -216,6 +238,8 @@ export function Sidebar({
           className="sidebar-action-button"
           onClick={onNewProject}
           type="button"
+          aria-label={t("sidebar.newProject")}
+          title={t("sidebar.newProject")}
         >
           <FolderPlus size={17} aria-hidden="true" />
           <span>{t("sidebar.newProject")}</span>
@@ -475,10 +499,12 @@ export function Sidebar({
           aria-expanded={accountMenuOpen}
           aria-haspopup="menu"
           aria-label={t("sidebar.accountMenu")}
+          title={t("sidebar.accountMenu")}
           onClick={() => handleMenuOpenChange(!accountMenuOpen)}
           type="button"
         >
-          <span className="sidebar-profile-text">ArchHypo Flow</span>
+          <span className="sidebar-avatar" aria-hidden="true">A</span>
+          <span className="sidebar-profile-text">{t("sidebar.anonymous")}</span>
           <ChevronDown
             className={`sidebar-chevron${accountMenuOpen ? " is-open" : ""}`}
             aria-hidden="true"
