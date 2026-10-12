@@ -6,6 +6,12 @@ type ChatModelAdapterOptions = {
   threadId: string;
   language: AppLanguage;
   projectId: string | null;
+  onConversationStarted: (
+    threadId: string,
+    title: string,
+    userMessage: string,
+    projectId: string | null,
+  ) => void;
   onConversationUpdated: (
     threadId: string,
     title: string,
@@ -42,6 +48,7 @@ export function createChatModelAdapter({
   threadId,
   language,
   projectId,
+  onConversationStarted,
   onConversationUpdated,
 }: ChatModelAdapterOptions): ChatModelAdapter {
   return {
@@ -69,6 +76,14 @@ export function createChatModelAdapter({
         abortSignal,
       )) {
         switch (event.type) {
+          case "conversation_started":
+            onConversationStarted(
+              event.thread_id,
+              event.title,
+              event.user_message,
+              event.project_id,
+            );
+            continue;
           case "phase":
             phase = event.phase;
             break;

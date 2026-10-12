@@ -3,6 +3,7 @@ import sqlite3
 from archhypo_flow_agent.core import ChatRequest
 from archhypo_flow_agent.persistence.schema import initialize_schema
 from archhypo_flow_agent.services import AgentService
+from tests.fakes import stub_chat_model
 
 
 def test_initial_schema_is_idempotent_without_migrations(tmp_path) -> None:
@@ -26,21 +27,18 @@ def test_initial_schema_is_idempotent_without_migrations(tmp_path) -> None:
     assert "checkpoints" not in tables
     with sqlite3.connect(database_path) as connection:
         columns = {
-            row[1]
-            for row in connection.execute("PRAGMA table_info(conversations)")
+            row[1] for row in connection.execute("PRAGMA table_info(conversations)")
         }
     assert "project_id" in columns
 
 
 def test_chat_transcript_survives_service_restart(tmp_path) -> None:
     database_path = tmp_path / "runtime" / "conversations.sqlite"
-    first_service = AgentService(database_path=database_path)
+    first_service = AgentService(model=stub_chat_model(), database_path=database_path)
     first_service.respond(
         ChatRequest(thread_id="persisted-thread", message="Remember this")
     )
-    first_service.respond(
-        ChatRequest(thread_id="persisted-thread", message="Continue")
-    )
+    first_service.respond(ChatRequest(thread_id="persisted-thread", message="Continue"))
     first_service.close()
 
     second_service = AgentService(database_path=database_path)
@@ -63,11 +61,11 @@ def test_chat_transcript_survives_service_restart(tmp_path) -> None:
 
 
 def test_project_delete_cascades_to_conversations_and_checkpoints(tmp_path) -> None:
-    service = AgentService(database_path=tmp_path / "projects.sqlite")
+    service = AgentService(
+        model=stub_chat_model(), database_path=tmp_path / "projects.sqlite"
+    )
     try:
-        service.respond(
-            ChatRequest(thread_id="project-thread", message="Hello")
-        )
+        service.respond(ChatRequest(thread_id="project-thread", message="Hello"))
         initial = service.get_conversation("project-thread")
         assert initial is not None
         assert initial.project_id is None
@@ -105,7 +103,7 @@ def test_project_delete_cascades_to_conversations_and_checkpoints(tmp_path) -> N
 
 def test_conversation_update_and_delete_remove_checkpoint_state(tmp_path) -> None:
     database_path = tmp_path / "runtime" / "conversations.sqlite"
-    service = AgentService(database_path=database_path)
+    service = AgentService(model=stub_chat_model(), database_path=database_path)
     try:
         service.respond(
             ChatRequest(thread_id="managed-thread", message="Keep this briefly")
@@ -141,7 +139,7 @@ def test_conversation_update_and_delete_remove_checkpoint_state(tmp_path) -> Non
 
 def test_sqlite_stores_graph_checkpoints_and_conversation_metadata(tmp_path) -> None:
     database_path = tmp_path / "runtime" / "conversations.sqlite"
-    service = AgentService(database_path=database_path)
+    service = AgentService(model=stub_chat_model(), database_path=database_path)
     try:
         service.respond(
             ChatRequest(thread_id="visible-thread", message="A visible message")

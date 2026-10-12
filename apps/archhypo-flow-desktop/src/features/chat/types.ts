@@ -6,6 +6,12 @@ type ChatStreamEventBase = {
 
 export type ChatStreamEvent =
   | (ChatStreamEventBase & {
+      type: "conversation_started";
+      title: string;
+      user_message: string;
+      project_id: string | null;
+    })
+  | (ChatStreamEventBase & {
       type: "phase";
       phase: "thinking" | "answering";
     })

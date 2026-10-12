@@ -40,13 +40,15 @@ export function useConversations() {
       title: string,
       preview: string,
       projectId: string | null,
+      messageCountDelta?: number,
     ) => {
       setConversations((current) => {
         const existing = current.find((conversation) => conversation.threadId === threadId);
         const updated: ConversationSummary = {
           threadId,
           title,
-          messageCount: (existing?.messageCount ?? 0) + 2,
+          messageCount:
+            (existing?.messageCount ?? 0) + (messageCountDelta ?? 2),
           updatedAt: new Date().toISOString(),
           pinned: existing?.pinned ?? false,
           projectId: projectId ?? existing?.projectId ?? null,

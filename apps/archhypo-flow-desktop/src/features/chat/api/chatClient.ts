@@ -95,6 +95,7 @@ function parseStreamEvent(data: string): ChatStreamEvent {
   if (event.type === "error") throw new Error(event.message);
   if (
     ![
+      "conversation_started",
       "phase",
       "tool_call_start",
       "tool_call_delta",

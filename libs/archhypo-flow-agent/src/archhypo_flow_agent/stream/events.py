@@ -15,6 +15,13 @@ class EventBase(BaseModel):
     thread_id: str = Field(min_length=1)
 
 
+class ConversationStartedEvent(EventBase):
+    type: Literal["conversation_started"] = "conversation_started"
+    title: str
+    user_message: str
+    project_id: str | None
+
+
 class PhaseEvent(EventBase):
     type: Literal["phase"] = "phase"
     phase: str = Field(min_length=1)
@@ -67,7 +74,8 @@ class InterruptEvent(EventBase):
 
 
 AgentEvent: TypeAlias = Annotated[
-    PhaseEvent
+    ConversationStartedEvent
+    | PhaseEvent
     | TextDeltaEvent
     | DoneEvent
     | CancelledEvent

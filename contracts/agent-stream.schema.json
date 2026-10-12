@@ -20,6 +20,20 @@
       "allOf": [
         {"$ref": "#/$defs/base"},
         {
+          "properties": {
+            "type": {"const": "conversation_started"},
+            "title": {"type": "string"},
+            "user_message": {"type": "string"},
+            "project_id": {"type": ["string", "null"]}
+          },
+          "required": ["title", "user_message", "project_id"]
+        }
+      ]
+    },
+    {
+      "allOf": [
+        {"$ref": "#/$defs/base"},
+        {
           "properties": {"type": {"const": "phase"}, "phase": {"type": "string", "minLength": 1}},
           "required": ["phase"]
         }

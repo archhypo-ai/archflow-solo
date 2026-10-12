@@ -3,6 +3,7 @@
 from .events import (
     AgentEvent,
     CancelledEvent,
+    ConversationStartedEvent,
     DoneEvent,
     ErrorEvent,
     EventBase,
@@ -23,6 +24,7 @@ from .events import (
 __all__ = [
     "AgentEvent",
     "CancelledEvent",
+    "ConversationStartedEvent",
     "DoneEvent",
     "ErrorEvent",
     "EventBase",

@@ -4,10 +4,13 @@ from fastapi.testclient import TestClient
 
 from archhypo_flow_agent.backend.app import create_app
 from archhypo_flow_agent.services import AgentService
+from tests.fakes import stub_chat_model
 
 
 def test_chat_endpoint_saves_and_returns_conversation(tmp_path) -> None:
-    service = AgentService(database_path=tmp_path / "chat.sqlite")
+    service = AgentService(
+        model=stub_chat_model(), database_path=tmp_path / "chat.sqlite"
+    )
     app = create_app(service)
 
     try:
@@ -44,8 +47,27 @@ def test_chat_endpoint_saves_and_returns_conversation(tmp_path) -> None:
         service.close()
 
 
+def test_chat_requires_an_explicitly_configured_model(tmp_path) -> None:
+    service = AgentService(database_path=tmp_path / "unconfigured.sqlite")
+    try:
+        with TestClient(create_app(service)) as client:
+            health = client.get("/health")
+            response = client.post(
+                "/api/chat",
+                json={"thread_id": "offline-thread", "message": "Hello"},
+            )
+    finally:
+        service.close()
+
+    assert health.json()["agent_ready"] is False
+    assert response.status_code == 503
+    assert "OPENROUTER_API_KEY" in response.json()["detail"]
+
+
 def test_chat_stream_endpoint_emits_sse_progress_and_final_reply(tmp_path) -> None:
-    service = AgentService(database_path=tmp_path / "stream.sqlite")
+    service = AgentService(
+        model=stub_chat_model(), database_path=tmp_path / "stream.sqlite"
+    )
     try:
         with TestClient(create_app(service)) as client:
             with client.stream(
@@ -66,17 +88,20 @@ def test_chat_stream_endpoint_emits_sse_progress_and_final_reply(tmp_path) -> No
                 ]
 
             assert [event["type"] for event in events] == [
+                "conversation_started",
                 "phase",
                 "phase",
                 "text_delta",
                 "done",
             ]
+            assert events[0]["user_message"] == "Explore a database decision"
+            assert events[0]["project_id"] is None
             assert all(event["protocol_version"] == 1 for event in events)
             assert all(event["thread_id"] == "stream-thread" for event in events)
             assert len({event["run_id"] for event in events}) == 1
             assert events[-1]["status"] == "completed"
             assert events[-1]["title"] == "Explore a database decision"
-            assert events[2]["text"] == (
+            assert events[3]["text"] == (
                 "Understood. Let's explore this architectural decision."
             )
             assert client.get("/api/threads/stream-thread").status_code == 200
@@ -84,8 +109,11 @@ def test_chat_stream_endpoint_emits_sse_progress_and_final_reply(tmp_path) -> No
         service.close()
 
 
-def test_chat_endpoint_supports_portuguese_demo_reply(tmp_path) -> None:
-    service = AgentService(database_path=tmp_path / "chat.sqlite")
+def test_chat_endpoint_uses_configured_model_response(tmp_path) -> None:
+    service = AgentService(
+        model=stub_chat_model("Resposta configurada pelo modelo."),
+        database_path=tmp_path / "chat.sqlite",
+    )
     try:
         with TestClient(create_app(service)) as client:
             response = client.post(
@@ -100,13 +128,13 @@ def test_chat_endpoint_supports_portuguese_demo_reply(tmp_path) -> None:
         service.close()
 
     assert response.status_code == 200
-    assert response.json()["message"] == (
-        "Entendi. Vamos explorar essa decisão arquitetural."
-    )
+    assert response.json()["message"] == "Resposta configurada pelo modelo."
 
 
 def test_tauri_webview_origin_can_call_local_api(tmp_path) -> None:
-    service = AgentService(database_path=tmp_path / "chat.sqlite")
+    service = AgentService(
+        model=stub_chat_model(), database_path=tmp_path / "chat.sqlite"
+    )
     try:
         with TestClient(create_app(service)) as client:
             response = client.get("/health", headers={"Origin": "tauri://localhost"})
@@ -128,7 +156,9 @@ def test_tauri_webview_origin_can_call_local_api(tmp_path) -> None:
 
 
 def test_projects_can_be_persisted_and_linked_to_conversations(tmp_path) -> None:
-    service = AgentService(database_path=tmp_path / "projects.sqlite")
+    service = AgentService(
+        model=stub_chat_model(), database_path=tmp_path / "projects.sqlite"
+    )
     try:
         with TestClient(create_app(service)) as client:
             created = client.post(
@@ -202,7 +232,9 @@ def test_projects_can_be_persisted_and_linked_to_conversations(tmp_path) -> None
 
 
 def test_thread_metadata_can_be_renamed_pinned_and_deleted(tmp_path) -> None:
-    service = AgentService(database_path=tmp_path / "chat.sqlite")
+    service = AgentService(
+        model=stub_chat_model(), database_path=tmp_path / "chat.sqlite"
+    )
     try:
         with TestClient(create_app(service)) as client:
             client.post(
@@ -234,7 +266,9 @@ def test_thread_metadata_can_be_renamed_pinned_and_deleted(tmp_path) -> None:
 
 
 def test_thread_update_rejects_blank_titles_and_empty_updates(tmp_path) -> None:
-    service = AgentService(database_path=tmp_path / "chat.sqlite")
+    service = AgentService(
+        model=stub_chat_model(), database_path=tmp_path / "chat.sqlite"
+    )
     try:
         with TestClient(create_app(service)) as client:
             client.post(
@@ -257,7 +291,9 @@ def test_thread_update_rejects_blank_titles_and_empty_updates(tmp_path) -> None:
 
 
 def test_unknown_thread_returns_not_found(tmp_path) -> None:
-    service = AgentService(database_path=tmp_path / "chat.sqlite")
+    service = AgentService(
+        model=stub_chat_model(), database_path=tmp_path / "chat.sqlite"
+    )
     try:
         with TestClient(create_app(service)) as client:
             response = client.get("/api/threads/missing")

@@ -33,7 +33,11 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
                 application.state.chat_configuration_error = str(error)
         else:
             application.state.agent_service = agent_service
-            application.state.chat_configuration_error = None
+            application.state.chat_configuration_error = (
+                None
+                if agent_service.chat_ready
+                else "Configure OPENROUTER_API_KEY in libs/archhypo-flow-agent/.env."
+            )
         try:
             yield
         finally:

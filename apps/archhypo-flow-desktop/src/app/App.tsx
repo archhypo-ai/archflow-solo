@@ -86,11 +86,21 @@ function App() {
     startNewConversation,
     openProjectHome,
     selectConversation,
-    selectConversationAfterUpdate,
     handleConversationDeleted,
     handleProjectDeleted,
   } = navigation;
 
+  const handleConversationStarted = useCallback(
+    (
+      threadId: string,
+      title: string,
+      userMessage: string,
+      projectId: string | null,
+    ) => {
+      updateFromChat(threadId, title, userMessage, projectId, 1);
+    },
+    [updateFromChat],
+  );
   const handleConversationUpdated = useCallback(
     (
       threadId: string,
@@ -98,10 +108,9 @@ function App() {
       preview: string,
       projectId: string | null,
     ) => {
-      updateFromChat(threadId, title, preview, projectId);
-      selectConversationAfterUpdate(threadId);
+      updateFromChat(threadId, title, preview, projectId, 1);
     },
-    [selectConversationAfterUpdate, updateFromChat],
+    [updateFromChat],
   );
   const openCreateProject = useCallback(() => setCreateProjectOpen(true), []);
   const closeCreateProject = useCallback(() => {
@@ -272,6 +281,7 @@ function App() {
                 />
               ) : undefined
             }
+            onConversationStarted={handleConversationStarted}
             onConversationUpdated={handleConversationUpdated}
           />
         )}

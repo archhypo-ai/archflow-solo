@@ -1,0 +1,223 @@
+"""Execute ReAct chat turns and stream their visible progress."""
+
+import json
+from collections.abc import Iterator
+from threading import Lock
+from typing import Any, cast
+from uuid import uuid4
+
+from langchain_core.messages import BaseMessage, HumanMessage
+
+from archhypo_flow_agent.core import ChatRequest, ChatResponse
+
+from .chat_context import ChatContextResolver
+from .chat_projection import (
+    message_text,
+    messages_from_update,
+    stream_event_data,
+    title_from_message,
+    tool_calls_from_messages,
+    tool_result_value,
+)
+
+
+class ChatExecutionService:
+    """Run one graph turn while serializing access to shared persistence."""
+
+    def __init__(
+        self,
+        graph: Any,
+        context_resolver: ChatContextResolver,
+        lock: Lock,
+    ) -> None:
+        self._graph = graph
+        self._context_resolver = context_resolver
+        self._lock = lock
+
+    def respond(self, request: ChatRequest) -> ChatResponse:
+        with self._lock:
+            metadata, run_context = self._context_resolver.resolve(request)
+            config = {"configurable": {"thread_id": request.thread_id}}
+            previous_messages = self._messages_from_state(config)
+            self._persist_user_message(request, config)
+            result = self._graph.invoke(
+                {},
+                config=config,
+                context=run_context,
+            )
+            messages = result.get("messages", [])
+            if not messages:
+                raise RuntimeError("The chat graph returned no messages")
+
+            turn_messages = messages[len(previous_messages) :]
+            last_message = cast(BaseMessage, messages[-1])
+            return ChatResponse(
+                thread_id=request.thread_id,
+                title=(
+                    metadata.title if metadata else title_from_message(request.message)
+                ),
+                message=message_text(last_message),
+                tool_calls=tool_calls_from_messages(turn_messages),
+            )
+
+    def stream(
+        self,
+        request: ChatRequest,
+        *,
+        run_id: str | None = None,
+    ) -> Iterator[dict[str, object]]:
+        active_run_id = run_id or uuid4().hex
+        with self._lock:
+            metadata, run_context = self._context_resolver.resolve(request)
+            config = {"configurable": {"thread_id": request.thread_id}}
+            previous_tool_ids = {
+                call.id
+                for call in tool_calls_from_messages(self._messages_from_state(config))
+            }
+            self._persist_user_message(request, config)
+            yield stream_event_data(
+                active_run_id,
+                request.thread_id,
+                "conversation_started",
+                title=(
+                    metadata.title if metadata else title_from_message(request.message)
+                ),
+                user_message=request.message,
+                project_id=(metadata.project_id if metadata else request.project_id),
+            )
+            yield stream_event_data(
+                active_run_id,
+                request.thread_id,
+                "phase",
+                phase="thinking",
+            )
+            emitted_calls = set(previous_tool_ids)
+            emitted_results = set(previous_tool_ids)
+            pending_calls: set[str] = set()
+
+            for _, mode, update in self._graph.stream(
+                {},
+                config=config,
+                context=run_context,
+                stream_mode=["updates"],
+                subgraphs=True,
+            ):
+                if mode != "updates":
+                    continue
+                yield from self._tool_events_from_update(
+                    update,
+                    run_id=active_run_id,
+                    thread_id=request.thread_id,
+                    emitted_calls=emitted_calls,
+                    emitted_results=emitted_results,
+                    pending_calls=pending_calls,
+                )
+
+            messages = self._messages_from_state(config)
+            if not messages:
+                raise RuntimeError("The chat graph returned no messages")
+            message = message_text(cast(BaseMessage, messages[-1]))
+            if not message:
+                raise RuntimeError("The chat graph returned an empty reply")
+
+            yield stream_event_data(
+                active_run_id,
+                request.thread_id,
+                "phase",
+                phase="answering",
+            )
+            yield stream_event_data(
+                active_run_id,
+                request.thread_id,
+                "text_delta",
+                text=message,
+            )
+            yield stream_event_data(
+                active_run_id,
+                request.thread_id,
+                "done",
+                status="completed",
+                title=(
+                    metadata.title if metadata else title_from_message(request.message)
+                ),
+                message=message,
+            )
+
+    def _persist_user_message(
+        self,
+        request: ChatRequest,
+        config: dict[str, object],
+    ) -> None:
+        self._graph.update_state(
+            config,
+            {"messages": [HumanMessage(content=request.message)]},
+            as_node="__start__",
+        )
+
+    def _messages_from_state(self, config: dict[str, object]) -> list[BaseMessage]:
+        state = self._graph.get_state(config)
+        values = state.values if isinstance(state.values, dict) else {}
+        raw_messages = values.get("messages", [])
+        return [message for message in raw_messages if isinstance(message, BaseMessage)]
+
+    def _tool_events_from_update(
+        self,
+        update: object,
+        *,
+        run_id: str,
+        thread_id: str,
+        emitted_calls: set[str],
+        emitted_results: set[str],
+        pending_calls: set[str],
+    ) -> Iterator[dict[str, object]]:
+        for message in messages_from_update(update):
+            if message.type == "ai":
+                for index, call in enumerate(getattr(message, "tool_calls", [])):
+                    call_id = str(call.get("id") or f"tool-call-{index}")
+                    if call_id in emitted_calls:
+                        continue
+                    emitted_calls.add(call_id)
+                    pending_calls.add(call_id)
+                    yield stream_event_data(
+                        run_id,
+                        thread_id,
+                        "tool_call_start",
+                        tool_call_id=call_id,
+                        name=str(call.get("name") or "unknown_tool"),
+                    )
+                    args = call.get("args")
+                    yield stream_event_data(
+                        run_id,
+                        thread_id,
+                        "tool_call_delta",
+                        tool_call_id=call_id,
+                        text=json.dumps(
+                            args if isinstance(args, dict) else {},
+                            ensure_ascii=False,
+                            default=str,
+                        ),
+                    )
+            elif message.type == "tool":
+                call_id = str(getattr(message, "tool_call_id", ""))
+                if not call_id or call_id in emitted_results:
+                    continue
+                emitted_results.add(call_id)
+                pending_calls.discard(call_id)
+                yield stream_event_data(
+                    run_id,
+                    thread_id,
+                    "tool_result",
+                    tool_call_id=call_id,
+                    output=tool_result_value(message.content),
+                    is_error=getattr(message, "status", "success") == "error",
+                )
+                if not pending_calls:
+                    yield stream_event_data(
+                        run_id,
+                        thread_id,
+                        "phase",
+                        phase="thinking",
+                    )
+
+
+__all__ = ["ChatExecutionService"]

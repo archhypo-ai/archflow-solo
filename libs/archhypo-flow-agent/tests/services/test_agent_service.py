@@ -1,5 +1,6 @@
 import importlib
 
+import pytest
 from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage
 from pydantic import PrivateAttr, SecretStr
@@ -7,16 +8,23 @@ from pydantic import PrivateAttr, SecretStr
 from archhypo_flow_agent.config import settings
 from archhypo_flow_agent.core import ChatRequest
 from archhypo_flow_agent.services import AgentService
+from tests.fakes import stub_chat_model
 
-tavily_module = importlib.import_module(
-    "archhypo_flow_agent.tools.search.tavily"
-)
+tavily_module = importlib.import_module("archhypo_flow_agent.tools.search.tavily")
 
 
 class ToolCallingModel(FakeMessagesListChatModel):
     def bind_tools(self, tools, **kwargs):
         assert any(tool.name == "tavily_search" for tool in tools)
         return self
+
+
+class FailingChatModel(FakeMessagesListChatModel):
+    def bind_tools(self, tools, **kwargs):
+        return self
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        raise RuntimeError("model unavailable")
 
 
 class ContextRecordingModel(FakeMessagesListChatModel):
@@ -37,6 +45,50 @@ class ContextRecordingModel(FakeMessagesListChatModel):
             run_manager=run_manager,
             **kwargs,
         )
+
+
+def test_stream_persists_and_announces_user_message_before_generation(tmp_path) -> None:
+    database_path = tmp_path / "early-message.sqlite"
+    service = AgentService(model=stub_chat_model(), database_path=database_path)
+    history_reader = AgentService(database_path=database_path)
+    stream = service.stream(
+        ChatRequest(thread_id="early-thread", message="Persist immediately")
+    )
+    try:
+        event = next(stream)
+        saved_conversation = history_reader.get_conversation("early-thread")
+        remaining_events = list(stream)
+    finally:
+        history_reader.close()
+        service.close()
+
+    assert event["type"] == "conversation_started"
+    assert event["title"] == "Persist immediately"
+    assert saved_conversation is not None
+    assert saved_conversation.message_count == 1
+    assert [message.content for message in saved_conversation.messages] == [
+        "Persist immediately"
+    ]
+    assert remaining_events[-1]["type"] == "done"
+
+
+def test_user_message_is_checkpointed_before_model_generation(tmp_path) -> None:
+    service = AgentService(
+        model=FailingChatModel(responses=[]),
+        database_path=tmp_path / "failed-run.sqlite",
+        tools=[],
+    )
+    try:
+        with pytest.raises(RuntimeError, match="model unavailable"):
+            service.respond(ChatRequest(thread_id="failed-thread", message="Save me"))
+        conversation = service.get_conversation("failed-thread")
+        summary = service.list_conversations()[0]
+    finally:
+        service.close()
+
+    assert conversation is not None
+    assert summary.message_count == 1
+    assert [message.content for message in conversation.messages] == ["Save me"]
 
 
 def test_run_context_isolated_by_conversation_and_refreshed_per_turn(tmp_path) -> None:
@@ -286,8 +338,7 @@ def test_stream_emits_tool_calls_and_results_before_the_final_reply(
     first_result = next(
         index
         for index, event in enumerate(events)
-        if event.get("tool_call_id") == "lookup-1"
-        and event["type"] == "tool_result"
+        if event.get("tool_call_id") == "lookup-1" and event["type"] == "tool_result"
     )
     second_call = next(
         index
@@ -298,8 +349,7 @@ def test_stream_emits_tool_calls_and_results_before_the_final_reply(
     second_result = next(
         index
         for index, event in enumerate(events)
-        if event.get("tool_call_id") == "lookup-2"
-        and event["type"] == "tool_result"
+        if event.get("tool_call_id") == "lookup-2" and event["type"] == "tool_result"
     )
     final_reply = next(
         index for index, event in enumerate(events) if event["type"] == "text_delta"

@@ -73,12 +73,6 @@ export function useWorkspaceNavigation({
     [conversations],
   );
 
-  const selectConversationAfterUpdate = useCallback((threadId: string) => {
-    setActiveConversationId(threadId);
-    setActiveProjectId(null);
-    setPendingProjectId(null);
-  }, []);
-
   const handleConversationDeleted = useCallback((threadId: string) => {
     setActiveConversationId((current) =>
       current === threadId ? newConversationId() : current,
@@ -113,7 +107,6 @@ export function useWorkspaceNavigation({
     startNewConversation,
     openProjectHome,
     selectConversation,
-    selectConversationAfterUpdate,
     handleConversationDeleted,
     handleProjectDeleted,
   };

@@ -18,6 +18,12 @@ type ChatProps = {
   project: Project | null;
   projectLanding: boolean;
   projectLandingContent?: ReactNode;
+  onConversationStarted: (
+    threadId: string,
+    title: string,
+    userMessage: string,
+    projectId: string | null,
+  ) => void;
   onConversationUpdated: (
     threadId: string,
     title: string,
@@ -112,6 +118,7 @@ function LoadedChat({
   project,
   projectLanding,
   projectLandingContent,
+  onConversationStarted,
   onConversationUpdated,
   initialMessages,
 }: LoadedChatProps) {
@@ -121,9 +128,16 @@ function LoadedChat({
         threadId,
         language,
         projectId,
+        onConversationStarted,
         onConversationUpdated,
       }),
-    [threadId, language, projectId, onConversationUpdated],
+    [
+      threadId,
+      language,
+      projectId,
+      onConversationStarted,
+      onConversationUpdated,
+    ],
   );
   const runtime = useLocalRuntime(chatModel, { initialMessages });
 
