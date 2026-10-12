@@ -75,6 +75,14 @@
   text-align: center;
 }
 
+.chat-welcome-image {
+  width: clamp(88px, 12vw, 128px);
+  height: auto;
+  max-height: 128px;
+  object-fit: contain;
+  margin-bottom: 16px;
+}
+
 .chat-welcome h2 {
   max-width: 600px;
   margin: 0;

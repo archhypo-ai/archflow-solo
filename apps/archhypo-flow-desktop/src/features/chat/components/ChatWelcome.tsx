@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import welcomeImage from "../assets/archhypo-flow-image.png";
 import { ProjectIcon } from "../../projects";
 import type { Project } from "../../projects/types";
 
@@ -23,7 +24,15 @@ export function ChatWelcome({
           <h2 id="welcome-title">{project.name}</h2>
         </div>
       ) : (
-        <h2 id="welcome-title">{title ?? t("chat.welcomeTitle")}</h2>
+        <>
+          <img
+            className="chat-welcome-image"
+            src={welcomeImage}
+            alt=""
+            aria-hidden="true"
+          />
+          <h2 id="welcome-title">{title ?? t("chat.welcomeTitle")}</h2>
+        </>
       )}
       {project ? (
         project.instructions.trim() && (
