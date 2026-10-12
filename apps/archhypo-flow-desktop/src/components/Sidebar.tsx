@@ -211,7 +211,6 @@ export function Sidebar({
       aria-label={t("sidebar.navigationLabel")}
     >
       <div className="sidebar-header">
-        <strong className="sidebar-brand">ArchHypo Flow</strong>
         <button
           className="sidebar-toggle"
           type="button"
@@ -221,6 +220,7 @@ export function Sidebar({
         >
           <PanelLeft size={17} aria-hidden="true" />
         </button>
+        <strong className="sidebar-brand">ArchHypo Flow</strong>
       </div>
       <div className="sidebar-primary-actions">
         <button

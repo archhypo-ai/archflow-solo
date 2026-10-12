@@ -12,9 +12,8 @@
   display: flex;
   min-height: 36px;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
-  padding-inline: 8px;
 }
 
 .sidebar-brand {
@@ -28,16 +27,18 @@
 }
 
 .sidebar-toggle {
-  display: grid;
-  width: 30px;
-  height: 30px;
-  flex: 0 0 30px;
-  place-items: center;
+  display: flex;
+  width: 42px;
+  height: 36px;
+  flex: 0 0 42px;
+  align-items: center;
+  justify-content: flex-start;
   border: 0;
   border-radius: 7px;
   background: transparent;
   color: var(--color-muted);
-  padding: 0;
+  padding: 0 8px;
+  transition: background 140ms ease;
   cursor: pointer;
 }
 
@@ -48,6 +49,7 @@
 
 .sidebar-primary-actions {
   display: flex;
+  width: 100%;
   flex-direction: column;
   gap: 8px;
   margin-top: 8px;
@@ -444,7 +446,7 @@
 
 .sidebar.is-collapsed .sidebar-header {
   width: 100%;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 0;
 }
 
@@ -454,13 +456,6 @@
 .sidebar.is-collapsed .sidebar-profile-text,
 .sidebar.is-collapsed .sidebar-chevron {
   display: none;
-}
-
-.sidebar.is-collapsed .sidebar-action-button,
-.sidebar.is-collapsed .sidebar-profile {
-  width: 42px;
-  justify-content: center;
-  padding: 0;
 }
 
 .sidebar.is-collapsed .sidebar-account-menu-root {
@@ -474,6 +469,14 @@
   width: 200px;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-action-button,
+  .sidebar-profile,
+  .sidebar-toggle {
+    transition: none;
+  }
+}
+
 @media (max-width: 720px) {
   .sidebar {
     align-items: center;
@@ -481,7 +484,8 @@
   }
 
   .sidebar-header {
-    justify-content: center;
+    width: 100%;
+    justify-content: flex-start;
     padding: 0;
   }
 
@@ -494,15 +498,10 @@
   }
 
   .sidebar-action-button,
-  .sidebar-section-trigger,
   .sidebar-profile {
-    width: 42px;
-    justify-content: center;
-    padding: 0;
-  }
-
-  .sidebar-primary-actions {
-    align-items: center;
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0 8px;
   }
 
   .sidebar-account-menu-root {

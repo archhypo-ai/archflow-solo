@@ -8,6 +8,7 @@
   min-height: 0;
   overflow: hidden;
   background: var(--color-surface);
+  transition: grid-template-columns 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .app-shell.is-sidebar-collapsed {
@@ -90,6 +91,12 @@
   letter-spacing: -0.02em;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell {
+    transition: none;
+  }
 }
 
 @media (max-width: 720px) {
