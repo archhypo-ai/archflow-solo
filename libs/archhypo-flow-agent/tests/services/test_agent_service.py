@@ -2,7 +2,7 @@ import importlib
 
 from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage
-from pydantic import SecretStr
+from pydantic import PrivateAttr, SecretStr
 
 from archhypo_flow_agent.config import settings
 from archhypo_flow_agent.core import ChatRequest
@@ -17,6 +17,108 @@ class ToolCallingModel(FakeMessagesListChatModel):
     def bind_tools(self, tools, **kwargs):
         assert any(tool.name == "tavily_search" for tool in tools)
         return self
+
+
+class ContextRecordingModel(FakeMessagesListChatModel):
+    _system_prompts: list[str] = PrivateAttr(default_factory=list)
+
+    def bind_tools(self, tools, **kwargs):
+        return self
+
+    def _generate(self, messages, stop=None, run_manager=None, **kwargs):
+        self._system_prompts.append(
+            "\n".join(
+                str(message.content) for message in messages if message.type == "system"
+            )
+        )
+        return super()._generate(
+            messages,
+            stop=stop,
+            run_manager=run_manager,
+            **kwargs,
+        )
+
+
+def test_run_context_isolated_by_conversation_and_refreshed_per_turn(tmp_path) -> None:
+    model = ContextRecordingModel(responses=[AIMessage(content="Understood")])
+    service = AgentService(
+        model=model,
+        database_path=tmp_path / "context.sqlite",
+        tools=[],
+    )
+    try:
+        service.create_project(
+            project_id="project-alpha",
+            name="Alpha",
+            icon="folder",
+            color="blue",
+            instructions="PROJECT_CONTEXT_ALPHA",
+        )
+        service.create_project(
+            project_id="project-beta",
+            name="Beta",
+            icon="folder",
+            color="green",
+            instructions="PROJECT_CONTEXT_BETA",
+        )
+
+        service.respond(
+            ChatRequest(
+                thread_id="alpha-thread",
+                message="First turn",
+                project_id="project-alpha",
+                global_context="GLOBAL_CONTEXT_ALPHA",
+            )
+        )
+        service.respond(
+            ChatRequest(
+                thread_id="beta-thread",
+                message="First turn",
+                project_id="project-beta",
+                global_context="GLOBAL_CONTEXT_ALPHA",
+            )
+        )
+        service.respond(
+            ChatRequest(
+                thread_id="loose-thread",
+                message="First turn",
+                global_context="GLOBAL_CONTEXT_ALPHA",
+            )
+        )
+
+        service.update_project_settings(
+            "project-alpha",
+            name="Alpha",
+            icon="folder",
+            color="blue",
+            instructions="PROJECT_CONTEXT_UPDATED",
+        )
+        streamed_events = list(
+            service.stream(
+                ChatRequest(
+                    thread_id="alpha-thread",
+                    message="Follow up",
+                    global_context="GLOBAL_CONTEXT_UPDATED",
+                )
+            )
+        )
+    finally:
+        service.close()
+
+    alpha_prompt, beta_prompt, loose_prompt, updated_prompt = model._system_prompts
+    assert streamed_events[-1]["type"] == "done"
+    assert "GLOBAL_CONTEXT_ALPHA" in alpha_prompt
+    assert "PROJECT_CONTEXT_ALPHA" in alpha_prompt
+    assert "PROJECT_CONTEXT_BETA" not in alpha_prompt
+    assert "GLOBAL_CONTEXT_ALPHA" in beta_prompt
+    assert "PROJECT_CONTEXT_BETA" in beta_prompt
+    assert "PROJECT_CONTEXT_ALPHA" not in beta_prompt
+    assert "GLOBAL_CONTEXT_ALPHA" in loose_prompt
+    assert "PROJECT_CONTEXT_" not in loose_prompt
+    assert "GLOBAL_CONTEXT_UPDATED" in updated_prompt
+    assert "PROJECT_CONTEXT_UPDATED" in updated_prompt
+    assert "GLOBAL_CONTEXT_ALPHA" not in updated_prompt
+    assert "PROJECT_CONTEXT_ALPHA" not in updated_prompt
 
 
 def test_configured_tavily_calls_are_returned_and_restored(

@@ -15,7 +15,12 @@ from langchain_core.tools import BaseTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
 from archhypo_flow_agent.config import settings
-from archhypo_flow_agent.core import ChatRequest, ChatResponse, ToolCallRecord
+from archhypo_flow_agent.core import (
+    AgentRunContext,
+    ChatRequest,
+    ChatResponse,
+    ToolCallRecord,
+)
 from archhypo_flow_agent.graph import build_graph
 from archhypo_flow_agent.persistence.conversations import ConversationMetadata
 from archhypo_flow_agent.persistence.paths import DATABASE_PATH
@@ -84,24 +89,7 @@ class AgentService:
             if self._demo_model is not None:
                 self._demo_model.set_language(request.language)
 
-            metadata = None
-            if self._conversations is not None:
-                metadata = self._conversations.ensure(
-                    request.thread_id,
-                    request.message,
-                )
-                if request.project_id is not None:
-                    if self._persistence is None:
-                        raise LookupError("Project not found.")
-                    if self._persistence.projects.get(request.project_id) is None:
-                        raise LookupError("Project not found.")
-                    metadata = self._conversations.set_project(
-                        request.thread_id,
-                        request.project_id,
-                    )
-            elif request.project_id is not None:
-                raise LookupError("Project persistence is not available.")
-
+            metadata, run_context = self._prepare_run_context(request)
             config = {"configurable": {"thread_id": request.thread_id}}
             previous_state = self._graph.get_state(config)
             previous_values = (
@@ -113,6 +101,7 @@ class AgentService:
             result = self._graph.invoke(
                 {"messages": [HumanMessage(content=request.message)]},
                 config=config,
+                context=run_context,
             )
             messages = result.get("messages", [])
             if not messages:
@@ -120,10 +109,11 @@ class AgentService:
 
             turn_messages = messages[previous_message_count:]
             last_message = cast(BaseMessage, messages[-1])
-            if metadata is None:
-                title = _title_from_message(request.message)
-            else:
-                title = metadata.title
+            title = (
+                metadata.title
+                if metadata is not None
+                else _title_from_message(request.message)
+            )
 
             return ChatResponse(
                 thread_id=request.thread_id,
@@ -151,24 +141,7 @@ class AgentService:
             if self._demo_model is not None:
                 self._demo_model.set_language(request.language)
 
-            metadata = None
-            if self._conversations is not None:
-                metadata = self._conversations.ensure(
-                    request.thread_id,
-                    request.message,
-                )
-                if request.project_id is not None:
-                    if self._persistence is None:
-                        raise LookupError("Project not found.")
-                    if self._persistence.projects.get(request.project_id) is None:
-                        raise LookupError("Project not found.")
-                    metadata = self._conversations.set_project(
-                        request.thread_id,
-                        request.project_id,
-                    )
-            elif request.project_id is not None:
-                raise LookupError("Project persistence is not available.")
-
+            metadata, run_context = self._prepare_run_context(request)
             config = {"configurable": {"thread_id": request.thread_id}}
             previous_state = self._graph.get_state(config)
             previous_values = (
@@ -188,6 +161,7 @@ class AgentService:
             for _, mode, update in self._graph.stream(
                 {"messages": [HumanMessage(content=request.message)]},
                 config=config,
+                context=run_context,
                 stream_mode=["updates"],
                 subgraphs=True,
             ):
@@ -283,6 +257,47 @@ class AgentService:
                 title=title,
                 message=message_text,
             )
+
+    def _prepare_run_context(
+        self,
+        request: ChatRequest,
+    ) -> tuple[ConversationMetadata | None, AgentRunContext]:
+        metadata = None
+        if self._conversations is not None:
+            existing = self._conversations.get(request.thread_id)
+            if request.project_id is not None and (
+                existing is None or existing.project_id is None
+            ):
+                if self._persistence is None:
+                    raise LookupError("Project not found.")
+                if self._persistence.projects.get(request.project_id) is None:
+                    raise LookupError("Project not found.")
+
+            metadata = self._conversations.ensure(
+                request.thread_id,
+                request.message,
+            )
+            if metadata.project_id is None and request.project_id is not None:
+                metadata = self._conversations.set_project(
+                    request.thread_id,
+                    request.project_id,
+                )
+
+        elif request.project_id is not None:
+            raise LookupError("Project persistence is not available.")
+
+        project_context = ""
+        if self._persistence is not None:
+            project_id = metadata.project_id if metadata is not None else None
+            if project_id is not None:
+                project = self._persistence.projects.get(project_id)
+                if project is not None:
+                    project_context = project.instructions
+
+        return metadata, {
+            "global_context": request.global_context,
+            "project_context": project_context,
+        }
 
     def list_conversations(self) -> list[ConversationSummary]:
         """List saved threads newest-first with visible message counts."""

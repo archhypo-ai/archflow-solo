@@ -1,23 +1,17 @@
 import sqlite3
 
 from archhypo_flow_agent.core import ChatRequest
-from archhypo_flow_agent.persistence.migrations import (
-    CURRENT_SCHEMA_VERSION,
-    migrate_connection,
-)
+from archhypo_flow_agent.persistence.schema import initialize_schema
 from archhypo_flow_agent.services import AgentService
 
 
-def test_schema_migration_is_idempotent(tmp_path) -> None:
+def test_initial_schema_is_idempotent_without_migrations(tmp_path) -> None:
     database_path = tmp_path / "runtime" / "conversations.sqlite"
     database_path.parent.mkdir(parents=True)
 
     with sqlite3.connect(database_path) as connection:
-        migrate_connection(connection)
-        migrate_connection(connection)
-        version = connection.execute(
-            "SELECT MAX(version) FROM archhypo_flow_schema_migrations"
-        ).fetchone()[0]
+        initialize_schema(connection)
+        initialize_schema(connection)
         tables = {
             row[0]
             for row in connection.execute(
@@ -25,9 +19,10 @@ def test_schema_migration_is_idempotent(tmp_path) -> None:
             )
         }
 
-    assert version == CURRENT_SCHEMA_VERSION
     assert "projects" in tables
     assert "conversations" in tables
+    assert "global_context" not in tables
+    assert "archhypo_flow_schema_migrations" not in tables
     assert "checkpoints" not in tables
     with sqlite3.connect(database_path) as connection:
         columns = {

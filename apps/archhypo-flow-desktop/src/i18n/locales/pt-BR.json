@@ -63,8 +63,8 @@
     "colorBlue": "Azul",
     "colorPurple": "Roxa",
     "colorPink": "Rosa",
-    "instructionsLabel": "System prompt do projeto",
-    "instructionsDescription": "Salvo no projeto; estas instruções ainda não são enviadas ao agente de chat.",
+    "instructionsLabel": "Contexto do projeto",
+    "instructionsDescription": "Adicionado ao system prompt das conversas deste projeto.",
     "instructionsPlaceholder": "Adicione contexto e orientações para este projeto...",
     "cancel": "Cancelar",
     "create": "Criar projeto",
@@ -89,9 +89,13 @@
     "close": "Fechar diálogo"
   },
   "agents": {
-    "instructionsTitle": "Instruções para o ArchHypo Flow",
-    "subtitle": "Adicione instruções globais para complementar o system prompt do ArchHypo Flow.",
-    "instructionsPlaceholder": "Escreva instruções adicionais para o ArchHypo Flow..."
+    "contextTitle": "Contexto global",
+    "contextDescription": "Adicionado ao system prompt de todas as conversas. O contexto do projeto prevalece quando for mais específico.",
+    "contextPlaceholder": "Descreva sua organização, domínio, requisitos recorrentes e restrições...",
+    "save": "Salvar contexto",
+    "saving": "Salvando...",
+    "loadError": "Não foi possível carregar o contexto global salvo. Você ainda pode editá-lo e salvá-lo.",
+    "saveError": "Não foi possível salvar o contexto global. Tente novamente."
   },
   "settings": {
     "title": "Configurações",

@@ -173,6 +173,40 @@
   outline-offset: 1px;
 }
 
+.agent-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.agent-settings-save {
+  min-height: 36px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--color-brand);
+  color: var(--color-brand-foreground);
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.agent-settings-save:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.agent-settings-save:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.settings-inline-error {
+  margin: 10px 0 0;
+  color: var(--color-error);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;

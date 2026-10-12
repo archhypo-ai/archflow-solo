@@ -1,3 +1,4 @@
+import { getGlobalContext } from "../../settings";
 import type { ChatStreamEvent } from "../types";
 
 const API_BASE_URL = "http://127.0.0.1:8765";
@@ -9,6 +10,7 @@ export async function* streamChatMessage(
   projectId: string | null,
   signal: AbortSignal,
 ): AsyncGenerator<ChatStreamEvent> {
+  const global_context = await getGlobalContext();
   const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
     method: "POST",
     signal,
@@ -21,6 +23,7 @@ export async function* streamChatMessage(
       message,
       language,
       project_id: projectId,
+      global_context,
     }),
   });
 

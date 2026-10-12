@@ -8,7 +8,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
 
 from archhypo_flow_agent.agents import build_response_generation_agent
-from archhypo_flow_agent.core import AgentState
+from archhypo_flow_agent.core import AgentRunContext, AgentState
 
 
 def build_graph(
@@ -27,7 +27,7 @@ def build_graph(
         model,
         tools=tools,
     )
-    workflow = StateGraph(AgentState)
+    workflow = StateGraph(AgentState, context_schema=AgentRunContext)
     workflow.add_node("response_generation", response_agent)
     workflow.add_edge(START, "response_generation")
     workflow.add_edge("response_generation", END)

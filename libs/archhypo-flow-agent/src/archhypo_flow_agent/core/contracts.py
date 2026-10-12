@@ -14,6 +14,7 @@ class ChatRequest(BaseModel):
     message: str = Field(min_length=1)
     language: Literal["en", "pt-BR"] = "en"
     project_id: str | None = None
+    global_context: str = Field(default="", max_length=50_000)
 
     @field_validator("thread_id", "message")
     @classmethod

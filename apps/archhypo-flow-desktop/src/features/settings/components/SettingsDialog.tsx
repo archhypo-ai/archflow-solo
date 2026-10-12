@@ -13,22 +13,28 @@ type SettingsDialogProps = {
   open: boolean;
   theme: ThemePreference;
   language: AppLanguage;
-  globalAgentInstructions: string;
+  globalContext: string;
+  globalContextLoading: boolean;
+  globalContextSaving: boolean;
+  globalContextLoadError: boolean;
   onClose: () => void;
   onThemeChange: (theme: ThemePreference) => void;
   onLanguageChange: (language: AppLanguage) => void;
-  onGlobalAgentInstructionsChange: (instructions: string) => void;
+  onGlobalContextSave: (context: string) => Promise<void>;
 };
 
 export function SettingsDialog({
   open,
   theme,
   language,
-  globalAgentInstructions,
+  globalContext,
+  globalContextLoading,
+  globalContextSaving,
+  globalContextLoadError,
   onClose,
   onThemeChange,
   onLanguageChange,
-  onGlobalAgentInstructionsChange,
+  onGlobalContextSave,
 }: SettingsDialogProps) {
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState<SettingsSection>("general");
@@ -121,8 +127,11 @@ export function SettingsDialog({
               </>
             ) : (
               <AgentSettings
-                instructions={globalAgentInstructions}
-                onInstructionsChange={onGlobalAgentInstructionsChange}
+                globalContext={globalContext}
+                isLoading={globalContextLoading}
+                isSaving={globalContextSaving}
+                loadError={globalContextLoadError}
+                onSave={onGlobalContextSave}
               />
             )}
           </div>

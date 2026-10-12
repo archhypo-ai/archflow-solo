@@ -63,8 +63,8 @@
     "colorBlue": "Blue",
     "colorPurple": "Purple",
     "colorPink": "Pink",
-    "instructionsLabel": "Project system prompt",
-    "instructionsDescription": "Saved with the project; these instructions are not yet sent to the chat agent.",
+    "instructionsLabel": "Project context",
+    "instructionsDescription": "Added to the system prompt for conversations in this project.",
     "instructionsPlaceholder": "Add context and guidance for this project...",
     "cancel": "Cancel",
     "create": "Create project",
@@ -89,9 +89,13 @@
     "close": "Close dialog"
   },
   "agents": {
-    "instructionsTitle": "Instructions for ArchHypo Flow",
-    "subtitle": "Add global instructions to supplement the ArchHypo Flow system prompt.",
-    "instructionsPlaceholder": "Write additional instructions for ArchHypo Flow..."
+    "contextTitle": "Global context",
+    "contextDescription": "Added to the system prompt for every conversation. Project context takes precedence when more specific.",
+    "contextPlaceholder": "Describe your organization, domain, recurring requirements, and constraints...",
+    "save": "Save context",
+    "saving": "Saving...",
+    "loadError": "Could not load the saved global context. You can still edit and save it.",
+    "saveError": "Could not save the global context. Please try again."
   },
   "settings": {
     "title": "Settings",

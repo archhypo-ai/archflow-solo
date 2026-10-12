@@ -9,9 +9,9 @@ from pathlib import Path
 from langgraph.checkpoint.sqlite import SqliteSaver
 
 from archhypo_flow_agent.persistence.conversations import SQLiteConversationRepository
-from archhypo_flow_agent.persistence.migrations import migrate_connection
 from archhypo_flow_agent.persistence.paths import DATABASE_PATH
 from archhypo_flow_agent.persistence.projects import SQLiteProjectRepository
+from archhypo_flow_agent.persistence.schema import initialize_schema
 
 
 @dataclass(slots=True)
@@ -70,7 +70,7 @@ def open_sqlite_persistence(path: Path = DATABASE_PATH) -> SQLitePersistence:
     connection = sqlite3.connect(path, timeout=30, check_same_thread=False)
     connection.row_factory = sqlite3.Row
     try:
-        migrate_connection(connection)
+        initialize_schema(connection)
         checkpointer = SqliteSaver(connection)
         checkpointer.setup()
         conversations = SQLiteConversationRepository(connection)

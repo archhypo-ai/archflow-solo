@@ -18,16 +18,14 @@ import {
   useProjects,
   type Project,
 } from "../features/projects";
-import { SettingsDialog } from "../features/settings";
+import {
+  getGlobalContext,
+  saveGlobalContext,
+  SettingsDialog,
+} from "../features/settings";
 import { LANGUAGE_STORAGE_KEY, toAppLanguage } from "../i18n";
 import type { ThemePreference } from "../theme/types";
 import "./App.css";
-
-const GLOBAL_AGENT_INSTRUCTIONS_STORAGE_KEY = "archhypo-flow-global-agent-instructions";
-
-function initialGlobalAgentInstructions(): string {
-  return localStorage.getItem(GLOBAL_AGENT_INSTRUCTIONS_STORAGE_KEY) ?? "";
-}
 
 function initialTheme(): ThemePreference {
   const storedTheme = localStorage.getItem("archhypo-flow-theme");
@@ -46,9 +44,10 @@ function App() {
   const [deleteProjectTarget, setDeleteProjectTarget] = useState<Project | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
-  const [globalAgentInstructions, setGlobalAgentInstructions] = useState(
-    initialGlobalAgentInstructions,
-  );
+  const [globalContext, setGlobalContext] = useState("");
+  const [globalContextLoaded, setGlobalContextLoaded] = useState(false);
+  const [globalContextSaving, setGlobalContextSaving] = useState(false);
+  const [globalContextLoadError, setGlobalContextLoadError] = useState(false);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
   const { i18n } = useTranslation();
   const language = toAppLanguage(i18n.resolvedLanguage);
@@ -147,6 +146,16 @@ function App() {
     },
     [deleteProject, handleProjectDeleted, removeProjectConversations],
   );
+  const handleSaveGlobalContext = useCallback(async (context: string) => {
+    setGlobalContextSaving(true);
+    try {
+      const saved = await saveGlobalContext(context);
+      setGlobalContext(saved);
+      setGlobalContextLoadError(false);
+    } finally {
+      setGlobalContextSaving(false);
+    }
+  }, []);
   const closeSettings = useCallback(() => {
     setSettingsOpen(false);
     requestAnimationFrame(() => accountTriggerRef.current?.focus());
@@ -171,11 +180,26 @@ function App() {
   }, [theme, language]);
 
   useEffect(() => {
-    localStorage.setItem(
-      GLOBAL_AGENT_INSTRUCTIONS_STORAGE_KEY,
-      globalAgentInstructions,
-    );
-  }, [globalAgentInstructions]);
+    let cancelled = false;
+
+    const loadGlobalContext = async () => {
+      try {
+        const saved = await getGlobalContext();
+        if (cancelled) return;
+        setGlobalContext(saved);
+        setGlobalContextLoadError(false);
+      } catch {
+        if (!cancelled) setGlobalContextLoadError(true);
+      } finally {
+        if (!cancelled) setGlobalContextLoaded(true);
+      }
+    };
+
+    void loadGlobalContext();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className={`app-shell${sidebarCollapsed ? " is-sidebar-collapsed" : ""}`}>
@@ -286,13 +310,16 @@ function App() {
         open={settingsOpen}
         theme={theme}
         language={language}
-        globalAgentInstructions={globalAgentInstructions}
+        globalContext={globalContext}
+        globalContextLoading={!globalContextLoaded}
+        globalContextSaving={globalContextSaving}
+        globalContextLoadError={globalContextLoadError}
         onClose={closeSettings}
         onThemeChange={setTheme}
         onLanguageChange={(nextLanguage) =>
           void i18n.changeLanguage(nextLanguage)
         }
-        onGlobalAgentInstructionsChange={setGlobalAgentInstructions}
+        onGlobalContextSave={handleSaveGlobalContext}
       />
     </div>
   );

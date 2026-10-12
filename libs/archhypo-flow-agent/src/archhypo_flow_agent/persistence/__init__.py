@@ -1,17 +1,16 @@
-"""Conversation metadata and LangGraph SQLite checkpoint persistence."""
+"""Conversation and project metadata with LangGraph SQLite checkpoints."""
 
 from .conversations import (
     ConversationMetadata,
     ConversationRepository,
     SQLiteConversationRepository,
 )
-from .migrations import CURRENT_SCHEMA_VERSION, migrate_connection
 from .paths import DATABASE_PATH, RUNTIME_ROOT, STORAGE_ROOT
 from .projects import ProjectMetadata, ProjectRepository, SQLiteProjectRepository
+from .schema import initialize_schema
 from .sqlite import SQLitePersistence, open_sqlite_persistence
 
 __all__ = [
-    "CURRENT_SCHEMA_VERSION",
     "DATABASE_PATH",
     "RUNTIME_ROOT",
     "STORAGE_ROOT",
@@ -22,6 +21,6 @@ __all__ = [
     "ProjectRepository",
     "SQLiteProjectRepository",
     "SQLitePersistence",
-    "migrate_connection",
+    "initialize_schema",
     "open_sqlite_persistence",
 ]
