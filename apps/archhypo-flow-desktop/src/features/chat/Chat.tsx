@@ -10,6 +10,7 @@ import { getConversation, type StoredChatMessage } from "../conversations";
 import type { Project } from "../projects/types";
 import { createChatModelAdapter } from "./adapters/chatModelAdapter";
 import { ChatThread } from "./components/ChatThread";
+import type { PendingHypothesisReview } from "./types";
 
 type ChatProps = {
   threadId: string;
@@ -35,8 +36,9 @@ type ChatProps = {
 function toInitialMessages(
   threadId: string,
   messages: StoredChatMessage[],
+  pendingReview: PendingHypothesisReview | null | undefined,
 ): ThreadMessageLike[] {
-  return messages.map((message, index) => ({
+  const initialMessages: ThreadMessageLike[] = messages.map((message, index) => ({
     id: `${threadId}-${index}`,
     role: message.role,
     content: [
@@ -55,6 +57,16 @@ function toInitialMessages(
     ],
     createdAt: new Date(),
   }));
+  if (pendingReview) {
+    initialMessages.push({
+      id: `${threadId}-pending-hypothesis-review`,
+      role: "assistant",
+      content: [],
+      metadata: { custom: { hypothesisReview: pendingReview } },
+      createdAt: new Date(),
+    });
+  }
+  return initialMessages;
 }
 
 export function Chat(props: ChatProps) {
@@ -74,7 +86,11 @@ export function Chat(props: ChatProps) {
         if (!active) return;
         setInitialMessages(
           conversation
-            ? toInitialMessages(props.threadId, conversation.messages)
+            ? toInitialMessages(
+                props.threadId,
+                conversation.messages,
+                conversation.pendingHypothesisReview,
+              )
             : [],
         );
       })

@@ -4,6 +4,21 @@ type ChatStreamEventBase = {
   thread_id: string;
 };
 
+export type HypothesisReviewDecision = {
+  decision: "approved" | "rejected";
+  reason?: string;
+};
+
+export type PendingHypothesisReview = {
+  kind: "hypothesis_review";
+  hypothesis: {
+    uncertainty: string;
+    title: string;
+    statement: string;
+    justification: string;
+  };
+};
+
 export type ChatStreamEvent =
   | (ChatStreamEventBase & {
       type: "conversation_started";
@@ -32,6 +47,12 @@ export type ChatStreamEvent =
       is_error: boolean;
     })
   | (ChatStreamEventBase & { type: "text_delta"; text: string })
+  | (ChatStreamEventBase & {
+      type: "interrupt";
+      interrupt_id: string;
+      message: string;
+      payload: PendingHypothesisReview | null;
+    })
   | (ChatStreamEventBase & {
       type: "done";
       status: "completed";

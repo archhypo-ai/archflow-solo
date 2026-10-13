@@ -62,6 +62,27 @@ class Hypothesis(_Contract):
     justification: str = Field(min_length=1)
 
 
+class HypothesisReview(_Contract):
+    """Human decision on a formulated hypothesis."""
+
+    decision: Literal["approved", "rejected"]
+    reason: str | None = None
+
+    @field_validator("reason")
+    @classmethod
+    def normalize_reason(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        compact = " ".join(value.split())
+        return compact or None
+
+    @model_validator(mode="after")
+    def rejected_hypothesis_requires_reason(self) -> HypothesisReview:
+        if self.decision == "rejected" and self.reason is None:
+            raise ValueError("a reason is required when rejecting a hypothesis")
+        return self
+
+
 class HypothesisAssessment(_Contract):
     """Single NFR plus separate impact and uncertainty ratings."""
 
@@ -132,6 +153,7 @@ __all__ = [
     "CatalogPatternSelection",
     "DiscoveryStatus",
     "Hypothesis",
+    "HypothesisReview",
     "HypothesisAssessment",
     "NFR",
     "RequestRoute",

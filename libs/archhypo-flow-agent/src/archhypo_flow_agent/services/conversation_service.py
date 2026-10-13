@@ -47,7 +47,10 @@ class ConversationService:
             metadata = self._conversations.get(thread_id)
             if metadata is None:
                 return None
-            messages = self._load_messages(thread_id)
+            snapshot = self._graph.get_state(
+                {"configurable": {"thread_id": thread_id}}
+            )
+            messages = self._messages_from_snapshot(snapshot)
             return Conversation(
                 thread_id=thread_id,
                 title=metadata.title,
@@ -57,6 +60,7 @@ class ConversationService:
                 project_id=metadata.project_id,
                 preview=messages[-1].content if messages else "",
                 messages=messages,
+                pending_hypothesis_review=_pending_hypothesis_review(snapshot),
             )
 
     def update(
@@ -111,12 +115,27 @@ class ConversationService:
 
     def _load_messages(self, thread_id: str) -> list[ConversationMessage]:
         state = self._graph.get_state({"configurable": {"thread_id": thread_id}})
+        return self._messages_from_snapshot(state)
+
+    def _messages_from_snapshot(self, state: Any) -> list[ConversationMessage]:
         values = state.values if isinstance(state.values, dict) else {}
         raw_messages = values.get("messages", [])
         messages = [
             message for message in raw_messages if isinstance(message, BaseMessage)
         ]
         return project_messages(messages)
+
+
+def _pending_hypothesis_review(snapshot: Any) -> dict[str, object] | None:
+    for task in getattr(snapshot, "tasks", ()):
+        for pending_interrupt in task.interrupts:
+            payload = pending_interrupt.value
+            if (
+                isinstance(payload, dict)
+                and payload.get("kind") == "hypothesis_review"
+            ):
+                return payload
+    return None
 
 
 __all__ = ["ConversationService"]

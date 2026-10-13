@@ -59,6 +59,7 @@ def get_thread(
             )
             for message in conversation.messages
         ],
+        pending_hypothesis_review=conversation.pending_hypothesis_review,
     )
 
 

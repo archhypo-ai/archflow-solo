@@ -3,7 +3,7 @@ import sqlite3
 from archhypo_flow_agent.core import ChatRequest
 from archhypo_flow_agent.persistence.schema import initialize_schema
 from archhypo_flow_agent.services import AgentService
-from tests.fakes import stub_chat_model
+from tests.fakes import approved_hypothesis_request, stub_chat_model
 
 
 def test_initial_schema_is_idempotent_without_migrations(tmp_path) -> None:
@@ -38,24 +38,38 @@ def test_chat_transcript_survives_service_restart(tmp_path) -> None:
     first_service.respond(
         ChatRequest(thread_id="persisted-thread", message="Remember this")
     )
-    first_service.respond(ChatRequest(thread_id="persisted-thread", message="Continue"))
     first_service.close()
 
-    second_service = AgentService(database_path=database_path)
+    second_service = AgentService(model=stub_chat_model(), database_path=database_path)
     try:
-        conversations = second_service.list_conversations()
-        conversation = second_service.get_conversation("persisted-thread")
+        paused = second_service.get_conversation("persisted-thread")
+        assert paused is not None
+        assert paused.pending_hypothesis_review is not None
+        second_service.respond(approved_hypothesis_request("persisted-thread"))
+        second_service.respond(
+            ChatRequest(thread_id="persisted-thread", message="Continue")
+        )
+        second_service.respond(approved_hypothesis_request("persisted-thread"))
     finally:
         second_service.close()
 
+    history_service = AgentService(database_path=database_path)
+    try:
+        conversations = history_service.list_conversations()
+        conversation = history_service.get_conversation("persisted-thread")
+    finally:
+        history_service.close()
+
     assert len(conversations) == 1
     assert conversations[0].title == "Remember this"
-    assert conversations[0].message_count == 4
+    assert conversations[0].message_count == 6
     assert conversation is not None
     assert [message.content for message in conversation.messages] == [
         "Remember this",
+        "I approve this hypothesis.",
         "Understood. Let's explore this architectural decision.",
         "Continue",
+        "I approve this hypothesis.",
         "Understood. Let's explore this architectural decision.",
     ]
 

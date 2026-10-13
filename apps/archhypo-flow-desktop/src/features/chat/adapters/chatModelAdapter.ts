@@ -1,6 +1,7 @@
 import type { ChatModelAdapter, ThreadMessage } from "@assistant-ui/react";
 import type { AppLanguage } from "../../../i18n";
 import { streamChatMessage } from "../api/chatClient";
+import type { HypothesisReviewDecision, PendingHypothesisReview } from "../types";
 
 type ChatModelAdapterOptions = {
   threadId: string;
@@ -58,14 +59,23 @@ export function createChatModelAdapter({
         .find((message): message is UserMessage => message.role === "user");
       const text = latestUserMessage ? textFromMessage(latestUserMessage) : "";
       if (!text) return;
+      const reviewDecision = latestUserMessage
+        ? hypothesisReviewFromMessage(latestUserMessage)
+        : undefined;
 
       const content: AssistantPart[] = [];
       let phase = "thinking";
       let completed = false;
+      let pendingReview: PendingHypothesisReview | undefined;
 
       const publish = () => ({
         content: [...content],
-        metadata: { custom: { phase } },
+        metadata: {
+          custom: {
+            phase,
+            ...(pendingReview ? { hypothesisReview: pendingReview } : {}),
+          },
+        },
       });
 
       for await (const event of streamChatMessage(
@@ -74,6 +84,7 @@ export function createChatModelAdapter({
         language,
         projectId,
         abortSignal,
+        reviewDecision,
       )) {
         switch (event.type) {
           case "conversation_started":
@@ -136,6 +147,11 @@ export function createChatModelAdapter({
             }
             break;
           }
+          case "interrupt":
+            phase = "reviewing_hypothesis";
+            pendingReview = event.payload ?? undefined;
+            completed = true;
+            break;
           case "done":
             completed = true;
             onConversationUpdated(
@@ -157,4 +173,24 @@ export function createChatModelAdapter({
       }
     },
   };
+}
+
+function hypothesisReviewFromMessage(
+  message: UserMessage,
+): HypothesisReviewDecision | undefined {
+  const value = message.metadata.custom.hypothesisReview;
+  if (!value || typeof value !== "object" || !("decision" in value)) {
+    return undefined;
+  }
+  const decision = value.decision;
+  if (decision === "approved") return { decision };
+  if (
+    decision === "rejected" &&
+    "reason" in value &&
+    typeof value.reason === "string" &&
+    value.reason.trim()
+  ) {
+    return { decision, reason: value.reason.trim() };
+  }
+  return undefined;
 }

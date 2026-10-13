@@ -9,6 +9,7 @@ from fastapi.sse import EventSourceResponse, ServerSentEvent
 
 from archhypo_flow_agent.backend.dependencies import AgentServiceDependency
 from archhypo_flow_agent.core import ChatRequest, ChatResponse
+from archhypo_flow_agent.services.chat_execution import ReviewStateError
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -30,6 +31,8 @@ def send_message(
 
     try:
         return agent_service.respond(payload)
+    except ReviewStateError as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
     except LookupError as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except Exception as error:
@@ -67,6 +70,11 @@ def stream_message(
         try:
             for event in agent_service.stream(payload, run_id=run_id):
                 yield ServerSentEvent(event="chat", data=event)
+        except ReviewStateError as error:
+            yield ServerSentEvent(
+                event="chat",
+                data=_stream_error_data(run_id, payload.thread_id, str(error)),
+            )
         except LookupError as error:
             yield ServerSentEvent(
                 event="chat",

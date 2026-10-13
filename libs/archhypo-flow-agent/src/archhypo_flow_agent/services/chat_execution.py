@@ -7,8 +7,9 @@ from typing import Any, cast
 from uuid import uuid4
 
 from langchain_core.messages import BaseMessage, HumanMessage
+from langgraph.types import Command
 
-from archhypo_flow_agent.core import ChatRequest, ChatResponse
+from archhypo_flow_agent.core import ChatRequest, ChatResponse, Hypothesis
 from archhypo_flow_agent.observability import Observability
 
 from .chat_context import ChatContextResolver
@@ -20,6 +21,10 @@ from .chat_projection import (
     tool_calls_from_messages,
     tool_result_value,
 )
+
+
+class ReviewStateError(ValueError):
+    """Raised when a hypothesis decision does not match the graph checkpoint."""
 
 
 class ChatExecutionService:
@@ -46,12 +51,39 @@ class ChatExecutionService:
                 run_id=uuid4().hex,
             )
             previous_messages = self._messages_from_state(config)
-            self._persist_user_message(request, config)
+            pending = self._pending_hypothesis_review(config)
+            graph_input: dict[str, object] | Command = {}
+            if request.hypothesis_review is not None:
+                if pending is None:
+                    raise ReviewStateError("There is no pending hypothesis review.")
+                graph_input = Command(
+                    resume=request.hypothesis_review.model_dump(mode="json"),
+                    update={"messages": [HumanMessage(content=request.message)]},
+                )
+            else:
+                if pending is not None:
+                    raise ReviewStateError(
+                        "Approve or reject the pending hypothesis before continuing."
+                    )
+                self._persist_user_message(request, config)
             result = self._graph.invoke(
-                {},
+                graph_input,
                 config=config,
                 context=run_context,
             )
+            pending = self._pending_hypothesis_review(config)
+            if pending is not None:
+                hypothesis = _hypothesis_from_payload(pending[1])
+                return ChatResponse(
+                    thread_id=request.thread_id,
+                    title=(
+                        metadata.title
+                        if metadata
+                        else title_from_message(request.message)
+                    ),
+                    message=f"Review the proposed hypothesis: {hypothesis.title}",
+                    pending_hypothesis_review=hypothesis,
+                )
             messages = result.get("messages", [])
             if not messages:
                 raise RuntimeError("The chat graph returned no messages")
@@ -85,7 +117,21 @@ class ChatExecutionService:
                 call.id
                 for call in tool_calls_from_messages(self._messages_from_state(config))
             }
-            self._persist_user_message(request, config)
+            pending = self._pending_hypothesis_review(config)
+            graph_input: dict[str, object] | Command = {}
+            if request.hypothesis_review is not None:
+                if pending is None:
+                    raise ReviewStateError("There is no pending hypothesis review.")
+                graph_input = Command(
+                    resume=request.hypothesis_review.model_dump(mode="json"),
+                    update={"messages": [HumanMessage(content=request.message)]},
+                )
+            else:
+                if pending is not None:
+                    raise ReviewStateError(
+                        "Approve or reject the pending hypothesis before continuing."
+                    )
+                self._persist_user_message(request, config)
             yield stream_event_data(
                 active_run_id,
                 request.thread_id,
@@ -107,7 +153,7 @@ class ChatExecutionService:
             pending_calls: set[str] = set()
 
             for _, mode, update in self._graph.stream(
-                {},
+                graph_input,
                 config=config,
                 context=run_context,
                 stream_mode=["updates"],
@@ -123,6 +169,19 @@ class ChatExecutionService:
                     emitted_results=emitted_results,
                     pending_calls=pending_calls,
                 )
+
+            review_interrupt = self._pending_hypothesis_review(config)
+            if review_interrupt is not None:
+                interrupt_id, payload = review_interrupt
+                yield stream_event_data(
+                    active_run_id,
+                    request.thread_id,
+                    "interrupt",
+                    interrupt_id=interrupt_id,
+                    message=_review_prompt(request.language),
+                    payload=payload,
+                )
+                return
 
             messages = self._messages_from_state(config)
             if not messages:
@@ -186,6 +245,21 @@ class ChatExecutionService:
         raw_messages = values.get("messages", [])
         return [message for message in raw_messages if isinstance(message, BaseMessage)]
 
+    def _pending_hypothesis_review(
+        self,
+        config: dict[str, object],
+    ) -> tuple[str, dict[str, object]] | None:
+        snapshot = self._graph.get_state(config)
+        for task in getattr(snapshot, "tasks", ()):
+            for pending_interrupt in task.interrupts:
+                payload = pending_interrupt.value
+                if (
+                    isinstance(payload, dict)
+                    and payload.get("kind") == "hypothesis_review"
+                ):
+                    return pending_interrupt.id, payload
+        return None
+
     def _tool_events_from_update(
         self,
         update: object,
@@ -244,6 +318,19 @@ class ChatExecutionService:
                         "phase",
                         phase="thinking",
                     )
+
+
+def _hypothesis_from_payload(payload: dict[str, object]) -> Hypothesis:
+    value = payload.get("hypothesis")
+    if not isinstance(value, dict):
+        raise RuntimeError("The pending hypothesis review has no hypothesis payload")
+    return Hypothesis.model_validate(value)
+
+
+def _review_prompt(language: str) -> str:
+    if language == "pt-BR":
+        return "Revise a hipótese proposta antes de continuar."
+    return "Review the proposed hypothesis before continuing."
 
 
 __all__ = ["ChatExecutionService"]

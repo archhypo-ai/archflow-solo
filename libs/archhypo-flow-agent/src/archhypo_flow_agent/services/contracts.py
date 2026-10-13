@@ -34,6 +34,7 @@ class Conversation:
     project_id: str | None
     preview: str
     messages: list[ConversationMessage]
+    pending_hypothesis_review: dict[str, object] | None = None
 
 
 __all__ = ["Conversation", "ConversationMessage", "ConversationSummary"]

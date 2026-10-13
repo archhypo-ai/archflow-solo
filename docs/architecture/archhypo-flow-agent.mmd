@@ -9,12 +9,15 @@ graph TD;
 	architectural_uncertainty_discovery(architectural_uncertainty_discovery)
 	hypothesis_formulation(hypothesis_formulation)
 	hypothesis_assessment(hypothesis_assessment)
+	hypothesis_review(hypothesis_review)
 	technical_plan_generation(technical_plan_generation)
 	__end__([<p>__end__</p>]):::last
 	__start__ --> request_routing;
 	architectural_uncertainty_discovery --> hypothesis_formulation;
 	hypothesis_assessment --> technical_plan_generation;
-	hypothesis_formulation --> hypothesis_assessment;
+	hypothesis_formulation --> hypothesis_review;
+	hypothesis_review -.-> hypothesis_assessment;
+	hypothesis_review -.-> hypothesis_formulation;
 	request_routing --> architectural_uncertainty_discovery;
 	technical_plan_generation --> response_generation\3amodel;
 	response_generation\3amodel --> __end__;

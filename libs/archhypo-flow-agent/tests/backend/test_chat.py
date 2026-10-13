@@ -25,24 +25,38 @@ def test_chat_endpoint_saves_and_returns_conversation(tmp_path) -> None:
             )
 
             assert response.status_code == 200
-            assert response.json() == {
-                "thread_id": "api-thread",
-                "title": "Explore a database decision",
-                "message": "Understood. Let's explore this architectural decision.",
-                "tool_calls": [],
-            }
+            assert response.json()["thread_id"] == "api-thread"
+            assert response.json()["pending_hypothesis_review"]["statement"]
+            assert "Review the proposed hypothesis" in response.json()["message"]
+
+            approved = client.post(
+                "/api/chat",
+                json={
+                    "thread_id": "api-thread",
+                    "message": "I approve this hypothesis.",
+                    "language": "en",
+                    "hypothesis_review": {"decision": "approved"},
+                },
+            )
+            assert approved.status_code == 200
+            assert approved.json()["message"] == (
+                "Understood. Let's explore this architectural decision."
+            )
+            assert approved.json()["pending_hypothesis_review"] is None
 
             listed = client.get("/api/threads")
             assert listed.status_code == 200
             assert listed.json()[0]["thread_id"] == "api-thread"
-            assert listed.json()[0]["message_count"] == 2
+            assert listed.json()[0]["message_count"] == 3
 
             loaded = client.get("/api/threads/api-thread")
             assert loaded.status_code == 200
             assert [message["role"] for message in loaded.json()["messages"]] == [
                 "user",
+                "user",
                 "assistant",
             ]
+            assert loaded.json()["pending_hypothesis_review"] is None
     finally:
         service.close()
 
@@ -64,47 +78,88 @@ def test_chat_requires_an_explicitly_configured_model(tmp_path) -> None:
     assert "OPENROUTER_API_KEY" in response.json()["detail"]
 
 
-def test_chat_stream_endpoint_emits_sse_progress_and_final_reply(tmp_path) -> None:
+def test_chat_stream_pauses_and_resumes_the_hypothesis_review(tmp_path) -> None:
     service = AgentService(
         model=stub_chat_model(), database_path=tmp_path / "stream.sqlite"
     )
     try:
         with TestClient(create_app(service)) as client:
-            with client.stream(
-                "POST",
-                "/api/chat/stream",
-                json={
+            pending_events = _stream_events(
+                client,
+                {
                     "thread_id": "stream-thread",
                     "message": "Explore a database decision",
                     "language": "en",
                 },
-            ) as response:
-                assert response.status_code == 200
-                assert response.headers["content-type"].startswith("text/event-stream")
-                events = [
-                    json.loads(line.removeprefix("data: "))
-                    for line in response.iter_lines()
-                    if line.startswith("data: ")
-                ]
-
-            assert [event["type"] for event in events] == [
+            )
+            assert [event["type"] for event in pending_events] == [
                 "conversation_started",
                 "phase",
-                "phase",
-                "text_delta",
-                "done",
+                "interrupt",
             ]
-            assert events[0]["user_message"] == "Explore a database decision"
-            assert events[0]["project_id"] is None
-            assert all(event["protocol_version"] == 1 for event in events)
-            assert all(event["thread_id"] == "stream-thread" for event in events)
-            assert len({event["run_id"] for event in events}) == 1
-            assert events[-1]["status"] == "completed"
-            assert events[-1]["title"] == "Explore a database decision"
-            assert events[3]["text"] == (
+            assert pending_events[0]["user_message"] == "Explore a database decision"
+            assert pending_events[0]["project_id"] is None
+            assert pending_events[-1]["payload"]["kind"] == "hypothesis_review"
+            assert pending_events[-1]["payload"]["hypothesis"]["statement"]
+            assert all(event["protocol_version"] == 1 for event in pending_events)
+            assert all(
+                event["thread_id"] == "stream-thread" for event in pending_events
+            )
+            assert len({event["run_id"] for event in pending_events}) == 1
+            paused_conversation = client.get("/api/threads/stream-thread")
+            assert paused_conversation.json()["pending_hypothesis_review"]["kind"] == (
+                "hypothesis_review"
+            )
+            blocked_message = client.post(
+                "/api/chat",
+                json={"thread_id": "stream-thread", "message": "Skip review"},
+            )
+            assert blocked_message.status_code == 409
+
+            rejected_events = _stream_events(
+                client,
+                {
+                    "thread_id": "stream-thread",
+                    "message": "Make it directly testable.",
+                    "language": "en",
+                    "hypothesis_review": {
+                        "decision": "rejected",
+                        "reason": "Make it directly testable.",
+                    },
+                },
+            )
+            revised = rejected_events[-1]["payload"]["hypothesis"]
+            assert rejected_events[-1]["type"] == "interrupt"
+            assert "Make it directly testable." in revised["statement"]
+
+            approved_events = _stream_events(
+                client,
+                {
+                    "thread_id": "stream-thread",
+                    "message": "I approve this hypothesis.",
+                    "language": "en",
+                    "hypothesis_review": {"decision": "approved"},
+                },
+            )
+            assert approved_events[-1]["type"] == "done"
+            assert approved_events[-1]["status"] == "completed"
+            assert approved_events[-1]["title"] == "Explore a database decision"
+            text_events = [
+                event for event in approved_events if event["type"] == "text_delta"
+            ]
+            assert text_events[0]["text"] == (
                 "Understood. Let's explore this architectural decision."
             )
-            assert client.get("/api/threads/stream-thread").status_code == 200
+            loaded = client.get("/api/threads/stream-thread")
+            assert loaded.status_code == 200
+            assert loaded.json()["pending_hypothesis_review"] is None
+            assert [
+                message["content"] for message in loaded.json()["messages"][:3]
+            ] == [
+                "Explore a database decision",
+                "Make it directly testable.",
+                "I approve this hypothesis.",
+            ]
     finally:
         service.close()
 
@@ -116,7 +171,7 @@ def test_chat_endpoint_uses_configured_model_response(tmp_path) -> None:
     )
     try:
         with TestClient(create_app(service)) as client:
-            response = client.post(
+            pending = client.post(
                 "/api/chat",
                 json={
                     "thread_id": "pt-thread",
@@ -124,11 +179,56 @@ def test_chat_endpoint_uses_configured_model_response(tmp_path) -> None:
                     "language": "pt-BR",
                 },
             )
+            response = client.post(
+                "/api/chat",
+                json={
+                    "thread_id": "pt-thread",
+                    "message": "Aprovo esta hipótese.",
+                    "language": "pt-BR",
+                    "hypothesis_review": {"decision": "approved"},
+                },
+            )
     finally:
         service.close()
 
     assert response.status_code == 200
     assert response.json()["message"] == "Resposta configurada pelo modelo."
+    assert pending.json()["pending_hypothesis_review"] is not None
+
+
+def test_rejected_hypothesis_requires_a_reason_in_the_api(tmp_path) -> None:
+    service = AgentService(
+        model=stub_chat_model(), database_path=tmp_path / "review-validation.sqlite"
+    )
+    try:
+        with TestClient(create_app(service)) as client:
+            client.post(
+                "/api/chat",
+                json={"thread_id": "review-thread", "message": "Review this"},
+            )
+            response = client.post(
+                "/api/chat",
+                json={
+                    "thread_id": "review-thread",
+                    "message": "Reject",
+                    "hypothesis_review": {"decision": "rejected"},
+                },
+            )
+    finally:
+        service.close()
+
+    assert response.status_code == 422
+
+
+def _stream_events(client: TestClient, payload: dict[str, object]) -> list[dict]:
+    with client.stream("POST", "/api/chat/stream", json=payload) as response:
+        assert response.status_code == 200
+        assert response.headers["content-type"].startswith("text/event-stream")
+        return [
+            json.loads(line.removeprefix("data: "))
+            for line in response.iter_lines()
+            if line.startswith("data: ")
+        ]
 
 
 def test_tauri_webview_origin_can_call_local_api(tmp_path) -> None:

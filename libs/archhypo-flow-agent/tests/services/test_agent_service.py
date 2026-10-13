@@ -8,7 +8,11 @@ from pydantic import PrivateAttr, SecretStr
 from archhypo_flow_agent.config import settings
 from archhypo_flow_agent.core import ChatRequest
 from archhypo_flow_agent.services import AgentService
-from tests.fakes import StructuredOutputStub, stub_chat_model
+from tests.fakes import (
+    StructuredOutputStub,
+    approved_hypothesis_request,
+    stub_chat_model,
+)
 
 tavily_module = importlib.import_module("archhypo_flow_agent.tools.search.tavily")
 
@@ -69,7 +73,7 @@ def test_stream_persists_and_announces_user_message_before_generation(tmp_path) 
     assert [message.content for message in saved_conversation.messages] == [
         "Persist immediately"
     ]
-    assert remaining_events[-1]["type"] == "done"
+    assert remaining_events[-1]["type"] == "interrupt"
 
 
 def test_user_message_is_checkpointed_before_model_generation(tmp_path) -> None:
@@ -79,16 +83,20 @@ def test_user_message_is_checkpointed_before_model_generation(tmp_path) -> None:
         tools=[],
     )
     try:
+        service.respond(ChatRequest(thread_id="failed-thread", message="Save me"))
         with pytest.raises(RuntimeError, match="model unavailable"):
-            service.respond(ChatRequest(thread_id="failed-thread", message="Save me"))
+            service.respond(approved_hypothesis_request("failed-thread"))
         conversation = service.get_conversation("failed-thread")
         summary = service.list_conversations()[0]
     finally:
         service.close()
 
     assert conversation is not None
-    assert summary.message_count == 1
-    assert [message.content for message in conversation.messages] == ["Save me"]
+    assert summary.message_count == 2
+    assert [message.content for message in conversation.messages] == [
+        "Save me",
+        "I approve this hypothesis.",
+    ]
 
 
 def test_run_context_isolated_by_conversation_and_refreshed_per_turn(tmp_path) -> None:
@@ -116,29 +124,26 @@ def test_run_context_isolated_by_conversation_and_refreshed_per_turn(tmp_path) -
             instructions="PROJECT_CONTEXT_BETA",
         )
 
-        service.respond(
-            ChatRequest(
-                thread_id="alpha-thread",
-                message="First turn",
-                project_id="project-alpha",
-                global_context="GLOBAL_CONTEXT_ALPHA",
+        for thread_id, project_id in (
+            ("alpha-thread", "project-alpha"),
+            ("beta-thread", "project-beta"),
+            ("loose-thread", None),
+        ):
+            service.respond(
+                ChatRequest(
+                    thread_id=thread_id,
+                    message="First turn",
+                    project_id=project_id,
+                    global_context="GLOBAL_CONTEXT_ALPHA",
+                )
             )
-        )
-        service.respond(
-            ChatRequest(
-                thread_id="beta-thread",
-                message="First turn",
-                project_id="project-beta",
-                global_context="GLOBAL_CONTEXT_ALPHA",
+            service.respond(
+                approved_hypothesis_request(
+                    thread_id,
+                    project_id=project_id,
+                    global_context="GLOBAL_CONTEXT_ALPHA",
+                )
             )
-        )
-        service.respond(
-            ChatRequest(
-                thread_id="loose-thread",
-                message="First turn",
-                global_context="GLOBAL_CONTEXT_ALPHA",
-            )
-        )
 
         service.update_project_settings(
             "project-alpha",
@@ -147,11 +152,19 @@ def test_run_context_isolated_by_conversation_and_refreshed_per_turn(tmp_path) -
             color="blue",
             instructions="PROJECT_CONTEXT_UPDATED",
         )
-        streamed_events = list(
+        pending_events = list(
             service.stream(
                 ChatRequest(
                     thread_id="alpha-thread",
                     message="Follow up",
+                    global_context="GLOBAL_CONTEXT_UPDATED",
+                )
+            )
+        )
+        streamed_events = list(
+            service.stream(
+                approved_hypothesis_request(
+                    "alpha-thread",
                     global_context="GLOBAL_CONTEXT_UPDATED",
                 )
             )
@@ -161,6 +174,7 @@ def test_run_context_isolated_by_conversation_and_refreshed_per_turn(tmp_path) -
 
     alpha_prompt, beta_prompt, loose_prompt, updated_prompt = model._system_prompts
     assert streamed_events[-1]["type"] == "done"
+    assert pending_events[-1]["type"] == "interrupt"
     assert "GLOBAL_CONTEXT_ALPHA" in alpha_prompt
     assert "PROJECT_CONTEXT_ALPHA" in alpha_prompt
     assert "PROJECT_CONTEXT_BETA" not in alpha_prompt
@@ -219,12 +233,14 @@ def test_configured_tavily_calls_are_returned_and_restored(
     service = AgentService(model=model, database_path=tmp_path / "tool-calls.sqlite")
 
     try:
-        response = service.respond(
+        service.respond(
             ChatRequest(thread_id="tool-thread", message="Find Python release notes")
         )
-        follow_up = service.respond(
+        response = service.respond(approved_hypothesis_request("tool-thread"))
+        service.respond(
             ChatRequest(thread_id="tool-thread", message="Thanks")
         )
+        follow_up = service.respond(approved_hypothesis_request("tool-thread"))
         conversation = service.get_conversation("tool-thread")
     finally:
         service.close()
@@ -254,12 +270,14 @@ def test_configured_tavily_calls_are_returned_and_restored(
     ]
     assert follow_up.tool_calls == []
     assert conversation is not None
-    assert conversation.messages[-3].tool_calls == response.tool_calls
+    assert conversation.messages[-4].tool_calls == response.tool_calls
     assert conversation.messages[-1].tool_calls == []
     assert [message.content for message in conversation.messages] == [
         "Find Python release notes",
+        "I approve this hypothesis.",
         "Python release notes are available.",
         "Thanks",
+        "I approve this hypothesis.",
         "You're welcome.",
     ]
 
@@ -311,15 +329,21 @@ def test_stream_emits_tool_calls_and_results_before_the_final_reply(
     service = AgentService(model=model, database_path=tmp_path / "stream.sqlite")
 
     try:
-        events = list(
+        pending_events = list(
             service.stream(
                 ChatRequest(thread_id="stream-thread", message="Research both topics")
             )
         )
-        follow_up_events = list(
+        events = list(
+            service.stream(approved_hypothesis_request("stream-thread"))
+        )
+        follow_up_pending = list(
             service.stream(
                 ChatRequest(thread_id="stream-thread", message="Summarize that")
             )
+        )
+        follow_up_events = list(
+            service.stream(approved_hypothesis_request("stream-thread"))
         )
     finally:
         service.close()
@@ -329,6 +353,8 @@ def test_stream_emits_tool_calls_and_results_before_the_final_reply(
     assert all(event["thread_id"] == "stream-thread" for event in events)
     assert len({event["run_id"] for event in events}) == 1
     assert events[0]["run_id"] != follow_up_events[0]["run_id"]
+    assert pending_events[-1]["type"] == "interrupt"
+    assert follow_up_pending[-1]["type"] == "interrupt"
     assert event_types.count("tool_call_start") == 2
     assert event_types.count("tool_result") == 2
     first_call = next(

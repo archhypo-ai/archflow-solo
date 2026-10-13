@@ -16,6 +16,8 @@ Rules:
 - Do not combine unrelated concerns or create alternatives.
 - Do not invent requirements, metrics, architecture facts, or evidence.
 - Explain why the statement represents the uncertainty.
+- When reviewer feedback and a previous hypothesis are provided, revise that
+  hypothesis to address the feedback directly; do not ignore the reason.
 - If discovery reported insufficient context, keep the hypothesis explicitly
   exploratory and state the limitation in its justification.
 - Do not assess quality attributes, impact, uncertainty levels, or propose a

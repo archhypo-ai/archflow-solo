@@ -1,11 +1,15 @@
 import pytest
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langchain_core.messages import HumanMessage
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.types import Command
+from pydantic import ValidationError
 
 from archhypo_flow_agent.core import (
     ArchitecturalUncertaintyDiscovery,
     Hypothesis,
     HypothesisAssessment,
+    HypothesisReview,
     TechnicalPlan,
 )
 from archhypo_flow_agent.graph import build_graph
@@ -22,9 +26,24 @@ class StubModel(StructuredOutputStub, FakeListChatModel):
 
 
 def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
-    graph = build_graph(model=StubModel())
+    graph = build_graph(model=StubModel(), checkpointer=MemorySaver())
+    config = {"configurable": {"thread_id": "approved-hypothesis"}}
 
-    result = graph.invoke({"messages": [HumanMessage(content="Hello")]})
+    paused = graph.invoke(
+        {"messages": [HumanMessage(content="Hello")]},
+        config=config,
+    )
+
+    assert paused["hypothesis"].statement
+    assert paused.get("assessment") is None
+    assert graph.get_state(config).tasks[0].interrupts[0].value["kind"] == (
+        "hypothesis_review"
+    )
+
+    result = graph.invoke(
+        Command(resume={"decision": "approved"}),
+        config=config,
+    )
 
     assert result["messages"][-1].content == "Hello from the test agent."
     assert result["routing"].route == "architectural_uncertainty_discovery"
@@ -37,6 +56,7 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
         "request_routing",
         "architectural_uncertainty_discovery",
         "hypothesis_formulation",
+        "hypothesis_review",
         "hypothesis_assessment",
         "technical_plan_generation",
         "response_generation",
@@ -47,6 +67,39 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
         "__end__",
         *stages,
     }
+
+
+def test_rejected_hypothesis_is_reformulated_using_required_feedback() -> None:
+    graph = build_graph(model=StubModel(), checkpointer=MemorySaver())
+    config = {"configurable": {"thread_id": "rejected-hypothesis"}}
+    initial = graph.invoke(
+        {"messages": [HumanMessage(content="Hello")]},
+        config=config,
+    )
+    first_statement = initial["hypothesis"].statement
+
+    graph.invoke(
+        Command(
+            resume={
+                "decision": "rejected",
+                "reason": "Make the statement directly testable.",
+            }
+        ),
+        config=config,
+    )
+    revised = graph.get_state(config).values["hypothesis"]
+
+    assert revised.statement != first_statement
+    assert "Make the statement directly testable." in revised.statement
+    assert graph.get_state(config).values.get("assessment") is None
+
+    graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    assert graph.get_state(config).values["assessment"].impact == "Medium"
+
+
+def test_rejection_requires_a_reason() -> None:
+    with pytest.raises(ValidationError, match="reason is required"):
+        HypothesisReview(decision="rejected")
 
 
 def test_technical_plan_cannot_use_an_unread_catalog_pattern(monkeypatch) -> None:

@@ -1,5 +1,5 @@
 import { getGlobalContext } from "../../settings";
-import type { ChatStreamEvent } from "../types";
+import type { ChatStreamEvent, HypothesisReviewDecision } from "../types";
 
 const API_BASE_URL = "http://127.0.0.1:8765";
 
@@ -9,6 +9,7 @@ export async function* streamChatMessage(
   language: "en" | "pt-BR",
   projectId: string | null,
   signal: AbortSignal,
+  hypothesisReview?: HypothesisReviewDecision,
 ): AsyncGenerator<ChatStreamEvent> {
   const global_context = await getGlobalContext();
   const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
@@ -24,6 +25,7 @@ export async function* streamChatMessage(
       language,
       project_id: projectId,
       global_context,
+      ...(hypothesisReview ? { hypothesis_review: hypothesisReview } : {}),
     }),
   });
 
@@ -101,6 +103,7 @@ function parseStreamEvent(data: string): ChatStreamEvent {
       "tool_call_delta",
       "tool_result",
       "text_delta",
+      "interrupt",
       "done",
     ].includes(event.type)
   ) {

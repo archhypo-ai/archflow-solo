@@ -11,6 +11,7 @@ from .archhypo import (
     ArchitecturalUncertaintyDiscovery,
     Hypothesis,
     HypothesisAssessment,
+    HypothesisReview,
     RequestRouting,
     TechnicalPlan,
 )
@@ -24,6 +25,8 @@ class AgentState(TypedDict):
     discovery: NotRequired[ArchitecturalUncertaintyDiscovery | None]
     uncertainty: NotRequired[str | None]
     hypothesis: NotRequired[Hypothesis | None]
+    hypothesis_review: NotRequired[HypothesisReview | None]
+    hypothesis_feedback: NotRequired[str | None]
     assessment: NotRequired[HypothesisAssessment | None]
     technical_plan: NotRequired[TechnicalPlan | None]
     result: NotRequired[ArchHypoResult | None]

@@ -4,6 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .archhypo import Hypothesis, HypothesisReview
+
 
 class ChatRequest(BaseModel):
     """One user message addressed to a conversation thread."""
@@ -15,6 +17,7 @@ class ChatRequest(BaseModel):
     language: Literal["en", "pt-BR"] = "en"
     project_id: str | None = None
     global_context: str = Field(default="", max_length=50_000)
+    hypothesis_review: HypothesisReview | None = None
 
     @field_validator("thread_id", "message")
     @classmethod
@@ -45,6 +48,7 @@ class ChatResponse(BaseModel):
     title: str = Field(min_length=1)
     message: str = Field(min_length=1)
     tool_calls: list[ToolCallRecord] = Field(default_factory=list)
+    pending_hypothesis_review: Hypothesis | None = None
 
 
 __all__ = ["ChatRequest", "ChatResponse", "ToolCallRecord"]

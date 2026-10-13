@@ -7,8 +7,10 @@ from langchain_core.runnables import RunnableLambda
 from archhypo_flow_agent.core import (
     ArchitecturalUncertaintyDiscovery,
     CatalogPatternSelection,
+    ChatRequest,
     Hypothesis,
     HypothesisAssessment,
+    HypothesisReview,
     TechnicalPlan,
 )
 
@@ -30,6 +32,21 @@ def stub_chat_model(
         AIMessage(content=message, id=f"stub-response-{index}") for index in range(100)
     ]
     return StubChatModel(responses=responses)
+
+
+def approved_hypothesis_request(
+    thread_id: str,
+    *,
+    project_id: str | None = None,
+    global_context: str = "",
+) -> ChatRequest:
+    return ChatRequest(
+        thread_id=thread_id,
+        message="I approve this hypothesis.",
+        project_id=project_id,
+        global_context=global_context,
+        hypothesis_review=HypothesisReview(decision="approved"),
+    )
 
 
 def structured_output(schema, value):
@@ -58,6 +75,18 @@ def structured_output(schema, value):
             confidence=0.9,
         )
     if schema is Hypothesis:
+        material = _human_material(value)
+        marker = "Reviewer feedback (address this directly):\n"
+        if marker in material:
+            feedback = material.split(marker, maxsplit=1)[1].strip()
+            return schema(
+                uncertainty="The architectural behavior is not yet confirmed.",
+                title="Revised architectural behavior hypothesis",
+                statement=f"The system addresses the reviewer feedback: {feedback}",
+                justification=(
+                    "The hypothesis was revised to address the user's reason."
+                ),
+            )
         return schema(
             uncertainty="The architectural behavior is not yet confirmed.",
             title="Confirm the architectural behavior",
@@ -99,9 +128,18 @@ def structured_output(schema, value):
     raise AssertionError(f"Unsupported structured schema: {schema}")
 
 
+def _human_material(value) -> str:
+    messages = value.to_messages() if hasattr(value, "to_messages") else []
+    for message in reversed(messages):
+        if isinstance(message, HumanMessage) and isinstance(message.content, str):
+            return message.content
+    return ""
+
+
 __all__ = [
     "StructuredOutputStub",
     "StubChatModel",
+    "approved_hypothesis_request",
     "structured_output",
     "stub_chat_model",
 ]

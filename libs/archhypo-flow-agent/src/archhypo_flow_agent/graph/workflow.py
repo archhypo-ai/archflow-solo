@@ -1,4 +1,4 @@
-"""Linear LangGraph workflow for the ArchHypo validation slice."""
+"""LangGraph workflow for the ArchHypo validation slice."""
 
 from collections.abc import Sequence
 
@@ -15,7 +15,9 @@ from archhypo_flow_agent.graph.nodes import (
     create_hypothesis_formulation_node,
     create_response_generation_node,
     create_technical_plan_generation_node,
+    hypothesis_review_node,
     request_routing_node,
+    route_after_hypothesis_review,
 )
 
 
@@ -25,11 +27,11 @@ def build_graph(
     tools: Sequence[BaseTool] = (),
     checkpointer: BaseCheckpointSaver | None = None,
 ):
-    """Build the fixed routing, discovery, hypothesis, assessment, and plan flow.
+    """Build the routing, discovery, reviewed-hypothesis, assessment, and plan flow.
 
     The final response node reuses the existing LangChain ReAct agent. A
-    checkpointer may be injected by the application; graph construction owns
-    no storage.
+    checkpointer may be injected by the application; it is required to resume
+    the human review interruption. Graph construction owns no storage.
     """
 
     response_agent = build_response_generation_agent(
@@ -50,6 +52,7 @@ def build_graph(
         "hypothesis_assessment",
         create_hypothesis_assessment_node(model),
     )
+    workflow.add_node("hypothesis_review", hypothesis_review_node)
     workflow.add_node(
         "technical_plan_generation",
         create_technical_plan_generation_node(model),
@@ -61,7 +64,15 @@ def build_graph(
     workflow.add_edge(START, "request_routing")
     workflow.add_edge("request_routing", "architectural_uncertainty_discovery")
     workflow.add_edge("architectural_uncertainty_discovery", "hypothesis_formulation")
-    workflow.add_edge("hypothesis_formulation", "hypothesis_assessment")
+    workflow.add_edge("hypothesis_formulation", "hypothesis_review")
+    workflow.add_conditional_edges(
+        "hypothesis_review",
+        route_after_hypothesis_review,
+        {
+            "hypothesis_assessment": "hypothesis_assessment",
+            "hypothesis_formulation": "hypothesis_formulation",
+        },
+    )
     workflow.add_edge("hypothesis_assessment", "technical_plan_generation")
     workflow.add_edge("technical_plan_generation", "response_generation")
     workflow.add_edge("response_generation", END)
