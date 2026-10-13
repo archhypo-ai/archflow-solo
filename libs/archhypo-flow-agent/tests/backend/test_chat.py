@@ -33,30 +33,57 @@ def test_chat_endpoint_saves_and_returns_conversation(tmp_path) -> None:
                 "/api/chat",
                 json={
                     "thread_id": "api-thread",
-                    "message": "I approve this hypothesis.",
+                    "message": "",
                     "language": "en",
                     "hypothesis_review": {"decision": "approved"},
                 },
             )
             assert approved.status_code == 200
-            assert approved.json()["message"] == (
+            assert approved.json()["pending_hypothesis_review"] is None
+            assert approved.json()["pending_technical_plan_review"]["kind"] == (
+                "technical_plan_review"
+            )
+            assert "technical plan" in approved.json()["message"]
+
+            finalized = client.post(
+                "/api/chat",
+                json={
+                    "thread_id": "api-thread",
+                    "message": "",
+                    "language": "en",
+                    "technical_plan_review": {"decision": "approved"},
+                },
+            )
+            assert finalized.status_code == 200
+            assert finalized.json()["message"] == (
                 "Understood. Let's explore this architectural decision."
             )
-            assert approved.json()["pending_hypothesis_review"] is None
+            assert finalized.json()["pending_technical_plan_review"] is None
 
             listed = client.get("/api/threads")
             assert listed.status_code == 200
             assert listed.json()[0]["thread_id"] == "api-thread"
-            assert listed.json()[0]["message_count"] == 3
+            assert listed.json()[0]["message_count"] == 2
 
             loaded = client.get("/api/threads/api-thread")
             assert loaded.status_code == 200
             assert [message["role"] for message in loaded.json()["messages"]] == [
                 "user",
-                "user",
                 "assistant",
             ]
             assert loaded.json()["pending_hypothesis_review"] is None
+            assert loaded.json()["pending_technical_plan_review"] is None
+            completed_kinds = [
+                review["kind"] for review in loaded.json()["completed_reviews"]
+            ]
+            assert completed_kinds == [
+                "hypothesis_review",
+                "technical_plan_review",
+            ]
+            assert [
+                review["after_message_count"]
+                for review in loaded.json()["completed_reviews"]
+            ] == [1, 1]
     finally:
         service.close()
 
@@ -120,7 +147,7 @@ def test_chat_stream_pauses_and_resumes_the_hypothesis_review(tmp_path) -> None:
                 client,
                 {
                     "thread_id": "stream-thread",
-                    "message": "Make it directly testable.",
+                    "message": "",
                     "language": "en",
                     "hypothesis_review": {
                         "decision": "rejected",
@@ -130,15 +157,71 @@ def test_chat_stream_pauses_and_resumes_the_hypothesis_review(tmp_path) -> None:
             )
             revised = rejected_events[-1]["payload"]["hypothesis"]
             assert rejected_events[-1]["type"] == "interrupt"
+            assert rejected_events[0]["user_message"] == ""
             assert "Make it directly testable." in revised["statement"]
+
+            plan_pending_events = _stream_events(
+                client,
+                {
+                    "thread_id": "stream-thread",
+                    "message": "",
+                    "language": "en",
+                    "hypothesis_review": {"decision": "approved"},
+                },
+            )
+            assert plan_pending_events[-1]["type"] == "interrupt"
+            plan_payload = plan_pending_events[-1]["payload"]
+            assert plan_payload["kind"] == "technical_plan_review"
+            assert plan_payload["assessment"]["impact"] == "Medium"
+            assert plan_payload["assessment"]["uncertainty"] == "High"
+            assert plan_payload["technical_plan"]["items"][0]["title"]
+            paused_plan_conversation = client.get("/api/threads/stream-thread")
+            assert paused_plan_conversation.json()["pending_technical_plan_review"][
+                "kind"
+            ] == "technical_plan_review"
+
+            blocked_plan_message = client.post(
+                "/api/chat",
+                json={"thread_id": "stream-thread", "message": "Skip plan review"},
+            )
+            assert blocked_plan_message.status_code == 409
+            wrong_review_decision = client.post(
+                "/api/chat",
+                json={
+                    "thread_id": "stream-thread",
+                    "message": "Approve the wrong stage.",
+                    "hypothesis_review": {"decision": "approved"},
+                },
+            )
+            assert wrong_review_decision.status_code == 409
+
+            revised_plan_events = _stream_events(
+                client,
+                {
+                    "thread_id": "stream-thread",
+                    "message": "",
+                    "language": "en",
+                    "technical_plan_review": {
+                        "decision": "rejected",
+                        "reason": "Add a rollback action.",
+                    },
+                },
+            )
+            assert revised_plan_events[-1]["type"] == "interrupt"
+            assert revised_plan_events[-1]["payload"]["kind"] == (
+                "technical_plan_review"
+            )
+            assert "Add a rollback action." in revised_plan_events[-1]["payload"][
+                "technical_plan"
+            ]["items"][0]["description"]
 
             approved_events = _stream_events(
                 client,
                 {
                     "thread_id": "stream-thread",
-                    "message": "I approve this hypothesis.",
+                    "message": "",
                     "language": "en",
-                    "hypothesis_review": {"decision": "approved"},
+                    "technical_plan_review": {"decision": "approved"},
                 },
             )
             assert approved_events[-1]["type"] == "done"
@@ -153,12 +236,17 @@ def test_chat_stream_pauses_and_resumes_the_hypothesis_review(tmp_path) -> None:
             loaded = client.get("/api/threads/stream-thread")
             assert loaded.status_code == 200
             assert loaded.json()["pending_hypothesis_review"] is None
-            assert [
-                message["content"] for message in loaded.json()["messages"][:3]
-            ] == [
+            assert loaded.json()["pending_technical_plan_review"] is None
+            assert [message["content"] for message in loaded.json()["messages"]] == [
                 "Explore a database decision",
-                "Make it directly testable.",
-                "I approve this hypothesis.",
+                "Understood. Let's explore this architectural decision.",
+            ]
+            completed_kinds = [
+                review["kind"] for review in loaded.json()["completed_reviews"]
+            ]
+            assert completed_kinds == [
+                "hypothesis_review",
+                "technical_plan_review",
             ]
     finally:
         service.close()
@@ -183,9 +271,18 @@ def test_chat_endpoint_uses_configured_model_response(tmp_path) -> None:
                 "/api/chat",
                 json={
                     "thread_id": "pt-thread",
-                    "message": "Aprovo esta hipótese.",
+                    "message": "",
                     "language": "pt-BR",
                     "hypothesis_review": {"decision": "approved"},
+                },
+            )
+            response = client.post(
+                "/api/chat",
+                json={
+                    "thread_id": "pt-thread",
+                    "message": "",
+                    "language": "pt-BR",
+                    "technical_plan_review": {"decision": "approved"},
                 },
             )
     finally:
@@ -196,7 +293,7 @@ def test_chat_endpoint_uses_configured_model_response(tmp_path) -> None:
     assert pending.json()["pending_hypothesis_review"] is not None
 
 
-def test_rejected_hypothesis_requires_a_reason_in_the_api(tmp_path) -> None:
+def test_rejected_reviews_require_a_reason_in_the_api(tmp_path) -> None:
     service = AgentService(
         model=stub_chat_model(), database_path=tmp_path / "review-validation.sqlite"
     )
@@ -214,10 +311,27 @@ def test_rejected_hypothesis_requires_a_reason_in_the_api(tmp_path) -> None:
                     "hypothesis_review": {"decision": "rejected"},
                 },
             )
+            assert response.status_code == 422
+            client.post(
+                "/api/chat",
+                json={
+                    "thread_id": "review-thread",
+                    "message": "",
+                    "hypothesis_review": {"decision": "approved"},
+                },
+            )
+            plan_response = client.post(
+                "/api/chat",
+                json={
+                    "thread_id": "review-thread",
+                    "message": "",
+                    "technical_plan_review": {"decision": "rejected"},
+                },
+            )
     finally:
         service.close()
 
-    assert response.status_code == 422
+    assert plan_response.status_code == 422
 
 
 def _stream_events(client: TestClient, payload: dict[str, object]) -> list[dict]:

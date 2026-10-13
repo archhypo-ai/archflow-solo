@@ -1,5 +1,9 @@
 import { getGlobalContext } from "../../settings";
-import type { ChatStreamEvent, HypothesisReviewDecision } from "../types";
+import type {
+  ChatStreamEvent,
+  HypothesisReviewDecision,
+  TechnicalPlanReviewDecision,
+} from "../types";
 
 const API_BASE_URL = "http://127.0.0.1:8765";
 
@@ -10,6 +14,7 @@ export async function* streamChatMessage(
   projectId: string | null,
   signal: AbortSignal,
   hypothesisReview?: HypothesisReviewDecision,
+  technicalPlanReview?: TechnicalPlanReviewDecision,
 ): AsyncGenerator<ChatStreamEvent> {
   const global_context = await getGlobalContext();
   const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
@@ -26,6 +31,9 @@ export async function* streamChatMessage(
       project_id: projectId,
       global_context,
       ...(hypothesisReview ? { hypothesis_review: hypothesisReview } : {}),
+      ...(technicalPlanReview
+        ? { technical_plan_review: technicalPlanReview }
+        : {}),
     }),
   });
 

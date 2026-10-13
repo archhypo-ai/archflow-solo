@@ -1,7 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { PendingHypothesisReview } from "../types";
-import "./HypothesisReviewCard.css";
+import "./HumanReviewCard.css";
 
 type HypothesisReviewContentProps = {
   hypothesis: PendingHypothesisReview["hypothesis"];

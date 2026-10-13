@@ -10,7 +10,11 @@ import { getConversation, type StoredChatMessage } from "../conversations";
 import type { Project } from "../projects/types";
 import { createChatModelAdapter } from "./adapters/chatModelAdapter";
 import { ChatThread } from "./components/ChatThread";
-import type { PendingHypothesisReview } from "./types";
+import type {
+  CompletedHumanReview,
+  PendingHypothesisReview,
+  PendingTechnicalPlanReview,
+} from "./types";
 
 type ChatProps = {
   threadId: string;
@@ -36,33 +40,71 @@ type ChatProps = {
 function toInitialMessages(
   threadId: string,
   messages: StoredChatMessage[],
-  pendingReview: PendingHypothesisReview | null | undefined,
+  completedReviews: CompletedHumanReview[],
+  pendingHypothesisReview: PendingHypothesisReview | null | undefined,
+  pendingTechnicalPlanReview: PendingTechnicalPlanReview | null | undefined,
 ): ThreadMessageLike[] {
-  const initialMessages: ThreadMessageLike[] = messages.map((message, index) => ({
-    id: `${threadId}-${index}`,
-    role: message.role,
-    content: [
-      ...(message.role === "assistant"
-        ? (message.tool_calls ?? []).map((call) => ({
-            type: "tool-call" as const,
-            toolCallId: call.id,
-            toolName: call.name,
-            args: call.args,
-            argsText: JSON.stringify(call.args),
-            result: call.result,
-            isError: call.is_error,
-          }))
-        : []),
-      ...(message.content ? [{ type: "text" as const, text: message.content }] : []),
-    ],
-    createdAt: new Date(),
-  }));
-  if (pendingReview) {
+  const reviewsByMessageCount = new Map<number, CompletedHumanReview[]>();
+  for (const review of completedReviews) {
+    const position = Math.min(
+      Math.max(0, review.after_message_count),
+      messages.length,
+    );
+    const reviews = reviewsByMessageCount.get(position) ?? [];
+    reviews.push(review);
+    reviewsByMessageCount.set(position, reviews);
+  }
+
+  const initialMessages: ThreadMessageLike[] = [];
+  for (let index = 0; index <= messages.length; index += 1) {
+    for (const review of reviewsByMessageCount.get(index) ?? []) {
+      initialMessages.push({
+        id: `${threadId}-completed-review-${initialMessages.length}`,
+        role: "assistant",
+        content: [],
+        metadata: { custom: { completedHumanReview: review } },
+        createdAt: new Date(),
+      });
+    }
+    const message = messages[index];
+    if (!message) continue;
+    initialMessages.push({
+      id: `${threadId}-${index}`,
+      role: message.role,
+      content: [
+        ...(message.role === "assistant"
+          ? (message.tool_calls ?? []).map((call) => ({
+              type: "tool-call" as const,
+              toolCallId: call.id,
+              toolName: call.name,
+              args: call.args,
+              argsText: JSON.stringify(call.args),
+              result: call.result,
+              isError: call.is_error,
+            }))
+          : []),
+        ...(message.content
+          ? [{ type: "text" as const, text: message.content }]
+          : []),
+      ],
+      createdAt: new Date(),
+    });
+  }
+  if (pendingHypothesisReview) {
     initialMessages.push({
       id: `${threadId}-pending-hypothesis-review`,
       role: "assistant",
       content: [],
-      metadata: { custom: { hypothesisReview: pendingReview } },
+      metadata: { custom: { hypothesisReview: pendingHypothesisReview } },
+      createdAt: new Date(),
+    });
+  }
+  if (pendingTechnicalPlanReview) {
+    initialMessages.push({
+      id: `${threadId}-pending-technical-plan-review`,
+      role: "assistant",
+      content: [],
+      metadata: { custom: { technicalPlanReview: pendingTechnicalPlanReview } },
       createdAt: new Date(),
     });
   }
@@ -89,7 +131,9 @@ export function Chat(props: ChatProps) {
             ? toInitialMessages(
                 props.threadId,
                 conversation.messages,
+                conversation.completedReviews ?? [],
                 conversation.pendingHypothesisReview,
+                conversation.pendingTechnicalPlanReview,
               )
             : [],
         );

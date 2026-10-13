@@ -5,6 +5,7 @@ import type {
   HypothesisReviewDecision,
   PendingHypothesisReview,
 } from "../types";
+import { ApprovedReviewSummary } from "./ApprovedReviewSummary";
 import { HypothesisReviewContent } from "./HypothesisReviewContent";
 
 type HypothesisReviewCardProps = {
@@ -38,67 +39,69 @@ export function HypothesisReviewCard({ review }: HypothesisReviewCardProps) {
   const { t } = useTranslation();
   const reasonId = useId();
   const [note, setNote] = useState("");
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedDecision, setSubmittedDecision] =
+    useState<HypothesisReviewDecision | null>(null);
 
   const submit = (decision: HypothesisReviewDecision) => {
-    const text = decision.decision === "approved"
-      ? [t("chat.hypothesisApprovedMessage"), decision.reason]
-          .filter(Boolean)
-          .join("\n\n")
-      : decision.reason ?? "";
     aui.thread.append({
       role: "user",
-      content: [{ type: "text", text }],
-      metadata: { custom: { hypothesisReview: decision } },
+      content: [{ type: "text", text: "\u2063" }],
+      metadata: {
+        custom: { hypothesisReview: decision, isReviewAction: true },
+      },
       startRun: true,
     });
-    setSubmitted(true);
+    setSubmittedDecision(decision);
   };
+
+  if (submittedDecision?.decision === "approved") {
+    return <ApprovedReviewSummary review={review} />;
+  }
 
   return (
     <section
-      className="hypothesis-review-card"
+      className="human-review-card"
       aria-label={t("chat.hypothesisReviewTitle")}
     >
       <HypothesisReviewContent hypothesis={review.hypothesis} />
-      {submitted ? (
-        <p className="hypothesis-review-submitted" role="status">
-          {t("chat.hypothesisReviewSubmitted")}
+      {submittedDecision ? (
+        <p className="human-review-submitted" role="status">
+          {t("chat.reviewSubmitted")}
         </p>
       ) : (
         <>
-          <div className="hypothesis-review-note-section">
-            <div className="hypothesis-review-note-heading">
-              <label className="hypothesis-review-note-label" htmlFor={reasonId}>
+          <div className="human-review-note-section">
+            <div className="human-review-note-heading">
+              <label className="human-review-note-label" htmlFor={reasonId}>
                 {t("chat.reviewNoteLabel")}
               </label>
-              <span className="hypothesis-review-note-hint">
+              <span className="human-review-note-hint">
                 {t("chat.reviewNoteHint")}
               </span>
             </div>
             <textarea
               id={reasonId}
-              className="hypothesis-review-note"
+              className="human-review-note"
               value={note}
               onChange={(event) => setNote(event.target.value)}
-              placeholder={t("chat.rejectionReasonPlaceholder")}
+              placeholder={t("chat.reviewReasonPlaceholder")}
               rows={2}
             />
           </div>
-          <div className="hypothesis-review-footer">
-            <div className="hypothesis-review-actions">
+          <div className="human-review-footer">
+            <div className="human-review-actions">
               <button
-                className="hypothesis-review-reject"
+                className="human-review-reject"
                 type="button"
                 disabled={!note.trim()}
                 onClick={() =>
                   submit({ decision: "rejected", reason: note.trim() })
                 }
               >
-                {t("chat.rejectHypothesis")}
+                {t("chat.reviewReject")}
               </button>
               <button
-                className="hypothesis-review-approve"
+                className="human-review-approve"
                 type="button"
                 onClick={() =>
                   submit({
@@ -107,7 +110,7 @@ export function HypothesisReviewCard({ review }: HypothesisReviewCardProps) {
                   })
                 }
               >
-                {t("chat.approveHypothesis")}
+                {t("chat.reviewApprove")}
               </button>
             </div>
           </div>

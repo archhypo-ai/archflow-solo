@@ -16,8 +16,12 @@ def request_routing_node(
         "discovery": None,
         "uncertainty": None,
         "hypothesis": None,
+        "hypothesis_review": None,
+        "hypothesis_feedback": None,
         "assessment": None,
         "technical_plan": None,
+        "technical_plan_review": None,
+        "technical_plan_feedback": None,
         "result": None,
     }
 

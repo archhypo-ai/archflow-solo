@@ -62,8 +62,8 @@ class Hypothesis(_Contract):
     justification: str = Field(min_length=1)
 
 
-class HypothesisReview(_Contract):
-    """Human decision on a formulated hypothesis."""
+class _HumanReviewDecision(_Contract):
+    """Shared approve/reject decision with required rejection feedback."""
 
     decision: Literal["approved", "rejected"]
     reason: str | None = None
@@ -77,10 +77,18 @@ class HypothesisReview(_Contract):
         return compact or None
 
     @model_validator(mode="after")
-    def rejected_hypothesis_requires_reason(self) -> HypothesisReview:
+    def rejected_review_requires_reason(self) -> _HumanReviewDecision:
         if self.decision == "rejected" and self.reason is None:
-            raise ValueError("a reason is required when rejecting a hypothesis")
+            raise ValueError("a reason is required when rejecting a review")
         return self
+
+
+class HypothesisReview(_HumanReviewDecision):
+    """Human decision on a formulated hypothesis."""
+
+
+class TechnicalPlanReview(_HumanReviewDecision):
+    """Human decision on an assessed technical plan."""
 
 
 class HypothesisAssessment(_Contract):
@@ -160,4 +168,5 @@ __all__ = [
     "RequestRouting",
     "TechnicalPlan",
     "TechnicalPlanItem",
+    "TechnicalPlanReview",
 ]

@@ -11,6 +11,7 @@ from archhypo_flow_agent.services import AgentService
 from tests.fakes import (
     StructuredOutputStub,
     approved_hypothesis_request,
+    approved_technical_plan_request,
     stub_chat_model,
 )
 
@@ -84,18 +85,20 @@ def test_user_message_is_checkpointed_before_model_generation(tmp_path) -> None:
     )
     try:
         service.respond(ChatRequest(thread_id="failed-thread", message="Save me"))
+        service.respond(approved_hypothesis_request("failed-thread"))
         with pytest.raises(RuntimeError, match="model unavailable"):
-            service.respond(approved_hypothesis_request("failed-thread"))
+            service.respond(approved_technical_plan_request("failed-thread"))
         conversation = service.get_conversation("failed-thread")
         summary = service.list_conversations()[0]
     finally:
         service.close()
 
     assert conversation is not None
-    assert summary.message_count == 2
-    assert [message.content for message in conversation.messages] == [
-        "Save me",
-        "I approve this hypothesis.",
+    assert summary.message_count == 1
+    assert [message.content for message in conversation.messages] == ["Save me"]
+    assert [review["kind"] for review in conversation.completed_reviews] == [
+        "hypothesis_review",
+        "technical_plan_review",
     ]
 
 
@@ -144,6 +147,13 @@ def test_run_context_isolated_by_conversation_and_refreshed_per_turn(tmp_path) -
                     global_context="GLOBAL_CONTEXT_ALPHA",
                 )
             )
+            service.respond(
+                approved_technical_plan_request(
+                    thread_id,
+                    project_id=project_id,
+                    global_context="GLOBAL_CONTEXT_ALPHA",
+                )
+            )
 
         service.update_project_settings(
             "project-alpha",
@@ -165,6 +175,15 @@ def test_run_context_isolated_by_conversation_and_refreshed_per_turn(tmp_path) -
             service.stream(
                 approved_hypothesis_request(
                     "alpha-thread",
+                    global_context="GLOBAL_CONTEXT_UPDATED",
+                )
+            )
+        )
+        streamed_events = list(
+            service.stream(
+                approved_technical_plan_request(
+                    "alpha-thread",
+                    project_id="project-alpha",
                     global_context="GLOBAL_CONTEXT_UPDATED",
                 )
             )
@@ -237,10 +256,12 @@ def test_configured_tavily_calls_are_returned_and_restored(
             ChatRequest(thread_id="tool-thread", message="Find Python release notes")
         )
         response = service.respond(approved_hypothesis_request("tool-thread"))
+        response = service.respond(approved_technical_plan_request("tool-thread"))
         service.respond(
             ChatRequest(thread_id="tool-thread", message="Thanks")
         )
-        follow_up = service.respond(approved_hypothesis_request("tool-thread"))
+        service.respond(approved_hypothesis_request("tool-thread"))
+        follow_up = service.respond(approved_technical_plan_request("tool-thread"))
         conversation = service.get_conversation("tool-thread")
     finally:
         service.close()
@@ -270,14 +291,12 @@ def test_configured_tavily_calls_are_returned_and_restored(
     ]
     assert follow_up.tool_calls == []
     assert conversation is not None
-    assert conversation.messages[-4].tool_calls == response.tool_calls
+    assert conversation.messages[-3].tool_calls == response.tool_calls
     assert conversation.messages[-1].tool_calls == []
     assert [message.content for message in conversation.messages] == [
         "Find Python release notes",
-        "I approve this hypothesis.",
         "Python release notes are available.",
         "Thanks",
-        "I approve this hypothesis.",
         "You're welcome.",
     ]
 
@@ -337,6 +356,10 @@ def test_stream_emits_tool_calls_and_results_before_the_final_reply(
         events = list(
             service.stream(approved_hypothesis_request("stream-thread"))
         )
+        plan_pending = events
+        events = list(
+            service.stream(approved_technical_plan_request("stream-thread"))
+        )
         follow_up_pending = list(
             service.stream(
                 ChatRequest(thread_id="stream-thread", message="Summarize that")
@@ -344,6 +367,10 @@ def test_stream_emits_tool_calls_and_results_before_the_final_reply(
         )
         follow_up_events = list(
             service.stream(approved_hypothesis_request("stream-thread"))
+        )
+        follow_up_plan_pending = follow_up_events
+        follow_up_events = list(
+            service.stream(approved_technical_plan_request("stream-thread"))
         )
     finally:
         service.close()
@@ -355,6 +382,8 @@ def test_stream_emits_tool_calls_and_results_before_the_final_reply(
     assert events[0]["run_id"] != follow_up_events[0]["run_id"]
     assert pending_events[-1]["type"] == "interrupt"
     assert follow_up_pending[-1]["type"] == "interrupt"
+    assert plan_pending[-1]["type"] == "interrupt"
+    assert follow_up_plan_pending[-1]["type"] == "interrupt"
     assert event_types.count("tool_call_start") == 2
     assert event_types.count("tool_result") == 2
     first_call = next(

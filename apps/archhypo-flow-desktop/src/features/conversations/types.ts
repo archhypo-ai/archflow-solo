@@ -1,4 +1,8 @@
-import type { PendingHypothesisReview } from "../chat/types";
+import type {
+  PendingHypothesisReview,
+  PendingTechnicalPlanReview,
+  CompletedHumanReview,
+} from "../chat/types";
 
 export type JsonValue =
   | null
@@ -35,4 +39,6 @@ export type ConversationSummary = {
 export type StoredConversation = ConversationSummary & {
   messages: StoredChatMessage[];
   pendingHypothesisReview?: PendingHypothesisReview | null;
+  pendingTechnicalPlanReview?: PendingTechnicalPlanReview | null;
+  completedReviews?: CompletedHumanReview[];
 };

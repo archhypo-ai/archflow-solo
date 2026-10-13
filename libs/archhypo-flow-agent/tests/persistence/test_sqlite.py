@@ -3,7 +3,11 @@ import sqlite3
 from archhypo_flow_agent.core import ChatRequest
 from archhypo_flow_agent.persistence.schema import initialize_schema
 from archhypo_flow_agent.services import AgentService
-from tests.fakes import approved_hypothesis_request, stub_chat_model
+from tests.fakes import (
+    approved_hypothesis_request,
+    approved_technical_plan_request,
+    stub_chat_model,
+)
 
 
 def test_initial_schema_is_idempotent_without_migrations(tmp_path) -> None:
@@ -46,12 +50,25 @@ def test_chat_transcript_survives_service_restart(tmp_path) -> None:
         assert paused is not None
         assert paused.pending_hypothesis_review is not None
         second_service.respond(approved_hypothesis_request("persisted-thread"))
-        second_service.respond(
-            ChatRequest(thread_id="persisted-thread", message="Continue")
-        )
-        second_service.respond(approved_hypothesis_request("persisted-thread"))
+        pending_plan = second_service.get_conversation("persisted-thread")
+        assert pending_plan is not None
+        assert pending_plan.pending_technical_plan_review is not None
     finally:
         second_service.close()
+
+    third_service = AgentService(model=stub_chat_model(), database_path=database_path)
+    try:
+        restored_plan = third_service.get_conversation("persisted-thread")
+        assert restored_plan is not None
+        assert restored_plan.pending_technical_plan_review is not None
+        third_service.respond(approved_technical_plan_request("persisted-thread"))
+        third_service.respond(
+            ChatRequest(thread_id="persisted-thread", message="Continue")
+        )
+        third_service.respond(approved_hypothesis_request("persisted-thread"))
+        third_service.respond(approved_technical_plan_request("persisted-thread"))
+    finally:
+        third_service.close()
 
     history_service = AgentService(database_path=database_path)
     try:
@@ -62,16 +79,23 @@ def test_chat_transcript_survives_service_restart(tmp_path) -> None:
 
     assert len(conversations) == 1
     assert conversations[0].title == "Remember this"
-    assert conversations[0].message_count == 6
+    assert conversations[0].message_count == 4
     assert conversation is not None
     assert [message.content for message in conversation.messages] == [
         "Remember this",
-        "I approve this hypothesis.",
         "Understood. Let's explore this architectural decision.",
         "Continue",
-        "I approve this hypothesis.",
         "Understood. Let's explore this architectural decision.",
     ]
+    assert [review["kind"] for review in conversation.completed_reviews] == [
+        "hypothesis_review",
+        "technical_plan_review",
+        "hypothesis_review",
+        "technical_plan_review",
+    ]
+    assert [
+        review["after_message_count"] for review in conversation.completed_reviews
+    ] == [1, 1, 3, 3]
 
 
 def test_project_delete_cascades_to_conversations_and_checkpoints(tmp_path) -> None:

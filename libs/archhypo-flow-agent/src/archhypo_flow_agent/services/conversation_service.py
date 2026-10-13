@@ -12,7 +12,7 @@ from archhypo_flow_agent.persistence.conversations import (
 from archhypo_flow_agent.persistence.projects import ProjectRepository
 from archhypo_flow_agent.persistence.sqlite import SQLitePersistence
 
-from .chat_projection import project_messages
+from .chat_projection import legacy_review_approval_kind, message_text, project_messages
 from .contracts import Conversation, ConversationMessage, ConversationSummary
 
 
@@ -60,7 +60,15 @@ class ConversationService:
                 project_id=metadata.project_id,
                 preview=messages[-1].content if messages else "",
                 messages=messages,
-                pending_hypothesis_review=_pending_hypothesis_review(snapshot),
+                pending_hypothesis_review=_pending_review(
+                    snapshot,
+                    "hypothesis_review",
+                ),
+                pending_technical_plan_review=_pending_review(
+                    snapshot,
+                    "technical_plan_review",
+                ),
+                completed_reviews=_completed_reviews(snapshot),
             )
 
     def update(
@@ -126,16 +134,121 @@ class ConversationService:
         return project_messages(messages)
 
 
-def _pending_hypothesis_review(snapshot: Any) -> dict[str, object] | None:
+def _pending_review(snapshot: Any, kind: str) -> dict[str, object] | None:
     for task in getattr(snapshot, "tasks", ()):
         for pending_interrupt in task.interrupts:
             payload = pending_interrupt.value
             if (
                 isinstance(payload, dict)
-                and payload.get("kind") == "hypothesis_review"
+                and payload.get("kind") == kind
             ):
                 return payload
     return None
+
+
+def _completed_reviews(snapshot: Any) -> list[dict[str, object]]:
+    values = snapshot.values if isinstance(snapshot.values, dict) else {}
+    history = values.get("review_history", [])
+    completed = [
+        record for record in history if isinstance(record, dict)
+    ] if isinstance(history, list) else []
+    raw_messages = values.get("messages", [])
+    messages = [
+        message for message in raw_messages if isinstance(message, BaseMessage)
+    ] if isinstance(raw_messages, list) else []
+
+    if not completed:
+        completed = _legacy_completed_reviews(values, messages)
+
+    positioned: list[dict[str, object]] = []
+    for record in completed:
+        raw_position = record.get("after_message_count")
+        if isinstance(raw_position, int):
+            position = min(max(0, raw_position), len(messages))
+            record = {
+                **record,
+                "after_message_count": len(project_messages(messages[:position])),
+            }
+        positioned.append(record)
+    return sorted(
+        positioned,
+        key=lambda record: (
+            record.get("after_message_count", 0),
+            0 if record.get("kind") == "hypothesis_review" else 1,
+        ),
+    )
+
+
+def _legacy_completed_reviews(
+    values: dict[str, object],
+    messages: list[BaseMessage],
+) -> list[dict[str, object]]:
+    completed: list[dict[str, object]] = []
+    hypothesis = values.get("hypothesis")
+    hypothesis_decision = values.get("hypothesis_review")
+    hypothesis_payload = _model_payload(hypothesis)
+    decision_payload = _model_payload(hypothesis_decision)
+    if (
+        hypothesis_payload is not None
+        and decision_payload is not None
+        and decision_payload.get("decision") == "approved"
+    ):
+        raw_position = _legacy_approval_position(messages, "hypothesis_review")
+        completed.append(
+            {
+                "kind": "hypothesis_review",
+                "review": {
+                    "kind": "hypothesis_review",
+                    "hypothesis": hypothesis_payload,
+                },
+                "decision": decision_payload,
+                "after_message_count": raw_position,
+            }
+        )
+
+    assessment_payload = _model_payload(values.get("assessment"))
+    plan_payload = _model_payload(values.get("technical_plan"))
+    plan_decision = _model_payload(values.get("technical_plan_review"))
+    if (
+        assessment_payload is not None
+        and plan_payload is not None
+        and plan_decision is not None
+        and plan_decision.get("decision") == "approved"
+    ):
+        raw_position = _legacy_approval_position(messages, "technical_plan_review")
+        completed.append(
+            {
+                "kind": "technical_plan_review",
+                "review": {
+                    "kind": "technical_plan_review",
+                    "assessment": assessment_payload,
+                    "technical_plan": plan_payload,
+                },
+                "decision": plan_decision,
+                "after_message_count": raw_position,
+            }
+        )
+    return completed
+
+
+def _model_payload(value: object) -> dict[str, object] | None:
+    if isinstance(value, dict):
+        return value
+    model_dump = getattr(value, "model_dump", None)
+    if callable(model_dump):
+        payload = model_dump(mode="json")
+        return payload if isinstance(payload, dict) else None
+    return None
+
+
+def _legacy_approval_position(messages: list[BaseMessage], kind: str) -> int:
+    for index in range(len(messages) - 1, -1, -1):
+        message = messages[index]
+        if message.type == "human" and legacy_review_approval_kind(
+            message_text(message)
+        ) == kind:
+            return index
+    return len(messages)
 
 
 __all__ = ["ConversationService"]

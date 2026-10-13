@@ -3,7 +3,11 @@ import type {
   StoredChatMessage,
   StoredConversation,
 } from "../types";
-import type { PendingHypothesisReview } from "../../chat/types";
+import type {
+  PendingHypothesisReview,
+  PendingTechnicalPlanReview,
+  CompletedHumanReview,
+} from "../../chat/types";
 
 const API_BASE_URL = "http://127.0.0.1:8765";
 
@@ -20,6 +24,8 @@ type BackendConversationSummary = {
 type BackendConversation = BackendConversationSummary & {
   messages: StoredChatMessage[];
   pending_hypothesis_review?: PendingHypothesisReview | null;
+  pending_technical_plan_review?: PendingTechnicalPlanReview | null;
+  completed_reviews?: CompletedHumanReview[];
 };
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -80,6 +86,8 @@ export async function getConversation(
     ...toConversation(conversation),
     messages: conversation.messages,
     pendingHypothesisReview: conversation.pending_hypothesis_review,
+    pendingTechnicalPlanReview: conversation.pending_technical_plan_review,
+    completedReviews: conversation.completed_reviews ?? [],
   };
 }
 

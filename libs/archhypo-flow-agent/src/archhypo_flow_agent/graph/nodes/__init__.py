@@ -9,6 +9,10 @@ from .hypothesis_review import hypothesis_review_node, route_after_hypothesis_re
 from .request_routing import request_routing_node
 from .response_generation import create_response_generation_node
 from .technical_plan_generation import create_technical_plan_generation_node
+from .technical_plan_review import (
+    route_after_technical_plan_review,
+    technical_plan_review_node,
+)
 
 __all__ = [
     "create_architectural_uncertainty_discovery_node",
@@ -19,4 +23,6 @@ __all__ = [
     "create_response_generation_node",
     "create_technical_plan_generation_node",
     "request_routing_node",
+    "route_after_technical_plan_review",
+    "technical_plan_review_node",
 ]

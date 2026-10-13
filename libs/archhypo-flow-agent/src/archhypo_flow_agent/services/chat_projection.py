@@ -9,6 +9,14 @@ from archhypo_flow_agent.core import ToolCallRecord
 
 from .contracts import ConversationMessage
 
+_LEGACY_REVIEW_APPROVALS = {
+    "I approve this hypothesis.": "hypothesis_review",
+    "Aprovo esta hipótese.": "hypothesis_review",
+    "I approve this assessment and the technical plan.": "technical_plan_review",
+    "I approve this assessment and technical plan.": "technical_plan_review",
+    "Aprovo esta avaliação e o plano técnico.": "technical_plan_review",
+}
+
 
 def stream_event_data(
     run_id: str,
@@ -101,8 +109,11 @@ def project_messages(messages: Sequence[BaseMessage]) -> list[ConversationMessag
     for message in messages:
         if message.type == "human":
             turn_messages = []
+            content = message_text(message)
+            if _is_legacy_review_approval(content):
+                continue
             projected.append(
-                ConversationMessage(role="user", content=message_text(message))
+                ConversationMessage(role="user", content=content)
             )
             continue
 
@@ -123,12 +134,22 @@ def project_messages(messages: Sequence[BaseMessage]) -> list[ConversationMessag
     return projected
 
 
+def _is_legacy_review_approval(content: str) -> bool:
+    return legacy_review_approval_kind(content) is not None
+
+
+def legacy_review_approval_kind(content: str) -> str | None:
+    first_paragraph = content.split("\n\n", maxsplit=1)[0].strip()
+    return _LEGACY_REVIEW_APPROVALS.get(first_paragraph)
+
+
 def title_from_message(message: str) -> str:
     return " ".join(message.split())[:80].rstrip() or "Untitled conversation"
 
 
 __all__ = [
     "message_text",
+    "legacy_review_approval_kind",
     "messages_from_update",
     "project_messages",
     "stream_event_data",

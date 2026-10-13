@@ -1,4 +1,4 @@
-.hypothesis-review-card {
+.human-review-card {
   display: grid;
   width: min(100%, 680px);
   gap: 14px;
@@ -28,11 +28,72 @@
 .hypothesis-review-context p,
 .hypothesis-review-hypothesis p,
 .hypothesis-review-rationale p,
-.hypothesis-review-submitted {
+.human-review-submitted {
   margin: 0;
   font-size: 12px;
   line-height: 1.6;
   overflow-wrap: anywhere;
+}
+
+.human-review-completed-card {
+  width: min(100%, 540px);
+  gap: 8px;
+  padding: 11px 13px;
+}
+
+.human-review-completed-heading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-foreground);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.human-review-completed-heading > svg {
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+  color: var(--project-color-green);
+}
+
+.human-review-completed-status {
+  margin-left: auto;
+  color: var(--project-color-green);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.human-review-completed-summary {
+  margin: 0 0 0 22px;
+  color: var(--color-muted);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.human-review-completed-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-left: 22px;
+}
+
+.human-review-completed-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-muted);
+  font-size: 10px;
+}
+
+.human-review-completed-plan-items {
+  display: grid;
+  gap: 3px;
+  margin: 0 0 0 22px;
+  padding-left: 14px;
+  color: var(--color-muted);
+  font-size: 10px;
+  line-height: 1.45;
 }
 
 .hypothesis-review-context p {
@@ -106,26 +167,26 @@
   color: var(--color-muted);
 }
 
-.hypothesis-review-note-section {
+.human-review-note-section {
   display: grid;
   gap: 6px;
 }
 
-.hypothesis-review-note-heading {
+.human-review-note-heading {
   display: flex;
   align-items: baseline;
   justify-content: flex-start;
   gap: 6px;
 }
 
-.hypothesis-review-note-label {
+.human-review-note-label {
   color: var(--color-foreground);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
 
-.hypothesis-review-note {
+.human-review-note {
   width: 100%;
   height: 62px;
   min-height: 62px;
@@ -144,22 +205,22 @@
   transition: border-color 140ms ease, box-shadow 140ms ease;
 }
 
-.hypothesis-review-note::placeholder {
+.human-review-note::placeholder {
   color: var(--color-subtle);
 }
 
-.hypothesis-review-note:focus {
+.human-review-note:focus {
   border-color: var(--color-accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
 }
 
-.hypothesis-review-note-hint {
+.human-review-note-hint {
   color: var(--color-subtle);
   font-size: 10px;
   line-height: 1.45;
 }
 
-.hypothesis-review-footer {
+.human-review-footer {
   display: flex;
   min-height: 34px;
   align-items: center;
@@ -167,21 +228,20 @@
   gap: 12px;
 }
 
-.hypothesis-review-preview-hint,
-.hypothesis-review-feedback,
-.hypothesis-review-submitted {
+.human-review-feedback,
+.human-review-submitted {
   color: var(--color-subtle);
   font-size: 10px;
 }
 
-.hypothesis-review-feedback {
+.human-review-feedback {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   color: var(--color-accent);
 }
 
-.hypothesis-review-actions {
+.human-review-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -189,7 +249,7 @@
   margin-left: auto;
 }
 
-.hypothesis-review-actions button {
+.human-review-actions button {
   min-height: 32px;
   border: 1px solid transparent;
   border-radius: 8px;
@@ -201,46 +261,46 @@
   transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
 }
 
-.hypothesis-review-actions button:active:not(:disabled) {
+.human-review-actions button:active:not(:disabled) {
   transform: translateY(1px);
 }
 
-.hypothesis-review-actions button:disabled {
+.human-review-actions button:disabled {
   cursor: not-allowed;
   opacity: 0.45;
 }
 
-.hypothesis-review-reject {
+.human-review-reject {
   border-color: var(--color-border-strong) !important;
   background: transparent;
   color: var(--color-muted);
 }
 
-.hypothesis-review-reject:hover:not(:disabled) {
+.human-review-reject:hover:not(:disabled) {
   background: var(--color-hover);
   color: var(--color-foreground);
 }
 
-.hypothesis-review-approve {
+.human-review-approve {
   background: var(--color-brand);
   color: var(--color-brand-foreground);
 }
 
-.hypothesis-review-approve:hover {
+.human-review-approve:hover {
   filter: brightness(1.08);
 }
 
 @media (max-width: 620px) {
-  .hypothesis-review-card {
+  .human-review-card {
     padding: 13px;
   }
 
-  .hypothesis-review-footer {
+  .human-review-footer {
     align-items: flex-start;
     flex-direction: column;
   }
 
-  .hypothesis-review-actions {
+  .human-review-actions {
     align-self: flex-end;
   }
 }

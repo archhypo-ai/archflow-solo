@@ -40,6 +40,8 @@ Rules:
 - Do not present a technical solution or technology as a fact when it was not
   provided or justified by the input.
 - Include a practical objective, description, and trade-off for every action.
+- When human review feedback is provided, address it directly in the revised
+  plan and keep unaffected parts that remain valid.
 - Use the same language as the user input.
 """
 

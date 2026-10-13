@@ -11,6 +11,7 @@ from archhypo_flow_agent.core import (
     HypothesisAssessment,
     HypothesisReview,
     TechnicalPlan,
+    TechnicalPlanReview,
 )
 from archhypo_flow_agent.graph import build_graph
 from archhypo_flow_agent.graph.nodes import technical_plan_generation
@@ -40,6 +41,15 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
         "hypothesis_review"
     )
 
+    plan_review = graph.invoke(
+        Command(resume={"decision": "approved"}),
+        config=config,
+    )
+    assert plan_review["assessment"].impact == "Medium"
+    assert graph.get_state(config).tasks[0].interrupts[0].value["kind"] == (
+        "technical_plan_review"
+    )
+
     result = graph.invoke(
         Command(resume={"decision": "approved"}),
         config=config,
@@ -51,6 +61,10 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
     assert result["hypothesis"].statement
     assert result["assessment"].impact == "Medium"
     assert result["technical_plan"].items[0].pattern == "Architectural Spike"
+    assert [record["kind"] for record in result["review_history"]] == [
+        "hypothesis_review",
+        "technical_plan_review",
+    ]
     graph_diagram = graph.get_graph().draw_mermaid()
     stages = [
         "request_routing",
@@ -59,6 +73,7 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
         "hypothesis_review",
         "hypothesis_assessment",
         "technical_plan_generation",
+        "technical_plan_review",
         "response_generation",
     ]
     assert all(stage in graph_diagram for stage in stages)
@@ -92,14 +107,73 @@ def test_rejected_hypothesis_is_reformulated_using_required_feedback() -> None:
     assert revised.statement != first_statement
     assert "Make the statement directly testable." in revised.statement
     assert graph.get_state(config).values.get("assessment") is None
+    assert graph.get_state(config).values.get("review_history", []) == []
 
     graph.invoke(Command(resume={"decision": "approved"}), config=config)
     assert graph.get_state(config).values["assessment"].impact == "Medium"
+    assert graph.get_state(config).tasks[0].interrupts[0].value["kind"] == (
+        "technical_plan_review"
+    )
+    graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    assert graph.get_state(config).next == ()
+    assert [
+        record["kind"] for record in graph.get_state(config).values["review_history"]
+    ] == ["hypothesis_review", "technical_plan_review"]
+
+
+def test_rejected_technical_plan_is_regenerated_with_feedback() -> None:
+    graph = build_graph(model=StubModel(), checkpointer=MemorySaver())
+    config = {"configurable": {"thread_id": "rejected-technical-plan"}}
+    graph.invoke(
+        {"messages": [HumanMessage(content="Hello")]},
+        config=config,
+    )
+    graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    first_state = graph.get_state(config)
+    first_assessment = first_state.values["assessment"]
+    first_plan = first_state.values["technical_plan"]
+    assert first_state.tasks[0].interrupts[0].value["kind"] == (
+        "technical_plan_review"
+    )
+
+    graph.invoke(
+        Command(
+            resume={
+                "decision": "rejected",
+                "reason": "Add evidence that can trigger a rollback.",
+            }
+        ),
+        config=config,
+    )
+
+    revised_state = graph.get_state(config)
+    revised_plan = revised_state.values["technical_plan"]
+    assert revised_state.values["assessment"] == first_assessment
+    assert revised_plan != first_plan
+    assert "Add evidence that can trigger a rollback." in (
+        revised_plan.items[0].description
+    )
+    assert revised_state.tasks[0].interrupts[0].value["kind"] == (
+        "technical_plan_review"
+    )
+    reviewed_payload = revised_state.tasks[0].interrupts[0].value
+    assert "Add evidence that can trigger a rollback." in reviewed_payload[
+        "technical_plan"
+    ]["items"][0]["description"]
+
+    result = graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    assert result["messages"][-1].content == "Hello from the test agent."
+    assert [record["kind"] for record in result["review_history"]] == [
+        "hypothesis_review",
+        "technical_plan_review",
+    ]
 
 
 def test_rejection_requires_a_reason() -> None:
     with pytest.raises(ValidationError, match="reason is required"):
         HypothesisReview(decision="rejected")
+    with pytest.raises(ValidationError, match="reason is required"):
+        TechnicalPlanReview(decision="rejected")
 
 
 def test_technical_plan_cannot_use_an_unread_catalog_pattern(monkeypatch) -> None:

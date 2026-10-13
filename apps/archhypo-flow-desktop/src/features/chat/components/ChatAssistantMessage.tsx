@@ -8,16 +8,28 @@ import { useTranslation } from "react-i18next";
 import { ChatMarkdownText } from "./ChatMarkdownText";
 import { ChatMessageActions } from "./ChatMessageActions";
 import { ChatToolCall, ChatToolCallGroup } from "./ChatToolCalls";
+import { ApprovedReviewSummary } from "./ApprovedReviewSummary";
 import {
   HypothesisReviewCard,
   isPendingHypothesisReview,
 } from "./HypothesisReviewCard";
+import {
+  isPendingTechnicalPlanReview,
+  TechnicalPlanReviewCard,
+} from "./TechnicalPlanReviewCard";
+import type { CompletedHumanReview } from "../types";
 
 export function ChatAssistantMessage() {
   const { t } = useTranslation();
   const phase = useAuiState(({ message }) => message.metadata.custom.phase);
   const hypothesisReview = useAuiState(
     ({ message }) => message.metadata.custom.hypothesisReview,
+  );
+  const technicalPlanReview = useAuiState(
+    ({ message }) => message.metadata.custom.technicalPlanReview,
+  );
+  const completedHumanReview = useAuiState(
+    ({ message }) => message.metadata.custom.completedHumanReview,
   );
   const hasRunningTool = useAuiState(({ message }) =>
     message.parts.some(
@@ -43,6 +55,12 @@ export function ChatAssistantMessage() {
         {isPendingHypothesisReview(hypothesisReview) && (
           <HypothesisReviewCard review={hypothesisReview} />
         )}
+        {isPendingTechnicalPlanReview(technicalPlanReview) && (
+          <TechnicalPlanReviewCard review={technicalPlanReview} />
+        )}
+        {isCompletedHumanReview(completedHumanReview) && (
+          <ApprovedReviewSummary review={completedHumanReview.review} />
+        )}
         <AuiIf condition={(state) => state.message.status?.type === "running"}>
           <span className="chat-working-indicator" role="status">
             <span className="chat-working-indicator-dot" aria-hidden="true">
@@ -60,4 +78,27 @@ export function ChatAssistantMessage() {
       <ChatMessageActions />
     </MessagePrimitive.Root>
   );
+}
+
+function isCompletedHumanReview(value: unknown): value is CompletedHumanReview {
+  if (!value || typeof value !== "object" || !("kind" in value)) return false;
+  if (
+    !("review" in value) ||
+    !("decision" in value) ||
+    !("after_message_count" in value) ||
+    typeof value.after_message_count !== "number" ||
+    !value.decision ||
+    typeof value.decision !== "object" ||
+    !("decision" in value.decision) ||
+    value.decision.decision !== "approved"
+  ) {
+    return false;
+  }
+  if (value.kind === "hypothesis_review") {
+    return isPendingHypothesisReview(value.review);
+  }
+  if (value.kind === "technical_plan_review") {
+    return isPendingTechnicalPlanReview(value.review);
+  }
+  return false;
 }

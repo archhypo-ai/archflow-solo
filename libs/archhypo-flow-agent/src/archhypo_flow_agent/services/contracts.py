@@ -35,6 +35,8 @@ class Conversation:
     preview: str
     messages: list[ConversationMessage]
     pending_hypothesis_review: dict[str, object] | None = None
+    pending_technical_plan_review: dict[str, object] | None = None
+    completed_reviews: list[dict[str, object]] = field(default_factory=list)
 
 
 __all__ = ["Conversation", "ConversationMessage", "ConversationSummary"]

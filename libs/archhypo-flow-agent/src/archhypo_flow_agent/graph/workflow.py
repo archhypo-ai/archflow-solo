@@ -18,6 +18,8 @@ from archhypo_flow_agent.graph.nodes import (
     hypothesis_review_node,
     request_routing_node,
     route_after_hypothesis_review,
+    route_after_technical_plan_review,
+    technical_plan_review_node,
 )
 
 
@@ -57,6 +59,7 @@ def build_graph(
         "technical_plan_generation",
         create_technical_plan_generation_node(model),
     )
+    workflow.add_node("technical_plan_review", technical_plan_review_node)
     workflow.add_node(
         "response_generation",
         create_response_generation_node(response_agent),
@@ -74,7 +77,15 @@ def build_graph(
         },
     )
     workflow.add_edge("hypothesis_assessment", "technical_plan_generation")
-    workflow.add_edge("technical_plan_generation", "response_generation")
+    workflow.add_edge("technical_plan_generation", "technical_plan_review")
+    workflow.add_conditional_edges(
+        "technical_plan_review",
+        route_after_technical_plan_review,
+        {
+            "response_generation": "response_generation",
+            "technical_plan_generation": "technical_plan_generation",
+        },
+    )
     workflow.add_edge("response_generation", END)
     return workflow.compile(checkpointer=checkpointer)
 

@@ -12,6 +12,7 @@ from archhypo_flow_agent.core import (
     HypothesisAssessment,
     HypothesisReview,
     TechnicalPlan,
+    TechnicalPlanReview,
 )
 
 
@@ -42,10 +43,25 @@ def approved_hypothesis_request(
 ) -> ChatRequest:
     return ChatRequest(
         thread_id=thread_id,
-        message="I approve this hypothesis.",
+        message="",
         project_id=project_id,
         global_context=global_context,
         hypothesis_review=HypothesisReview(decision="approved"),
+    )
+
+
+def approved_technical_plan_request(
+    thread_id: str,
+    *,
+    project_id: str | None = None,
+    global_context: str = "",
+) -> ChatRequest:
+    return ChatRequest(
+        thread_id=thread_id,
+        message="",
+        project_id=project_id,
+        global_context=global_context,
+        technical_plan_review=TechnicalPlanReview(decision="approved"),
     )
 
 
@@ -113,17 +129,29 @@ def structured_output(schema, value):
             rationale="A bounded experiment best addresses the stated uncertainty.",
         )
     if schema is TechnicalPlan:
+        material = _human_material(value)
+        marker = "Human review feedback (address this directly):\n"
+        feedback = (
+            material.split(marker, maxsplit=1)[1].strip()
+            if marker in material
+            else ""
+        )
+        description = "Test the assumption with a small experiment."
+        rationale = "A small experiment can reduce uncertainty before commitment."
+        if feedback:
+            description += f" The revision addresses: {feedback}"
+            rationale += f" Reviewer feedback: {feedback}"
         return schema(
             items=[
                 {
                     "title": "Run a focused spike",
                     "objective": "Collect evidence about the hypothesis.",
-                    "description": "Test the assumption with a small experiment.",
+                    "description": description,
                     "pattern": "Architectural Spike",
                     "tradeoff": "Requires a short, bounded investment.",
                 }
             ],
-            rationale="A small experiment can reduce uncertainty before commitment.",
+            rationale=rationale,
         )
     raise AssertionError(f"Unsupported structured schema: {schema}")
 
@@ -140,6 +168,7 @@ __all__ = [
     "StructuredOutputStub",
     "StubChatModel",
     "approved_hypothesis_request",
+    "approved_technical_plan_request",
     "structured_output",
     "stub_chat_model",
 ]

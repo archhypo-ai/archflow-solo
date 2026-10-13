@@ -60,6 +60,8 @@ def get_thread(
             for message in conversation.messages
         ],
         pending_hypothesis_review=conversation.pending_hypothesis_review,
+        pending_technical_plan_review=conversation.pending_technical_plan_review,
+        completed_reviews=conversation.completed_reviews,
     )
 
 

@@ -1,7 +1,10 @@
 import type { ChatModelAdapter, ThreadMessage } from "@assistant-ui/react";
 import type { AppLanguage } from "../../../i18n";
 import { streamChatMessage } from "../api/chatClient";
-import type { HypothesisReviewDecision, PendingHypothesisReview } from "../types";
+import type {
+  HumanReviewDecision,
+  PendingHumanReview,
+} from "../types";
 
 type ChatModelAdapterOptions = {
   threadId: string;
@@ -58,42 +61,54 @@ export function createChatModelAdapter({
         .reverse()
         .find((message): message is UserMessage => message.role === "user");
       const text = latestUserMessage ? textFromMessage(latestUserMessage) : "";
-      if (!text) return;
-      const reviewDecision = latestUserMessage
-        ? hypothesisReviewFromMessage(latestUserMessage)
+      const hypothesisReview = latestUserMessage
+        ? reviewDecisionFromMessage(latestUserMessage, "hypothesisReview")
         : undefined;
+      const technicalPlanReview = latestUserMessage
+        ? reviewDecisionFromMessage(latestUserMessage, "technicalPlanReview")
+        : undefined;
+      const isReviewAction = Boolean(hypothesisReview || technicalPlanReview);
+      if (!text && !isReviewAction) return;
 
       const content: AssistantPart[] = [];
       let phase = "thinking";
       let completed = false;
-      let pendingReview: PendingHypothesisReview | undefined;
+      let pendingReview: PendingHumanReview | undefined;
 
       const publish = () => ({
         content: [...content],
         metadata: {
           custom: {
             phase,
-            ...(pendingReview ? { hypothesisReview: pendingReview } : {}),
+            ...(pendingReview?.kind === "hypothesis_review"
+              ? { hypothesisReview: pendingReview }
+              : {}),
+            ...(pendingReview?.kind === "technical_plan_review"
+              ? { technicalPlanReview: pendingReview }
+              : {}),
           },
         },
       });
 
       for await (const event of streamChatMessage(
         threadId,
-        text,
+        isReviewAction ? "" : text,
         language,
         projectId,
         abortSignal,
-        reviewDecision,
+        hypothesisReview,
+        technicalPlanReview,
       )) {
         switch (event.type) {
           case "conversation_started":
-            onConversationStarted(
-              event.thread_id,
-              event.title,
-              event.user_message,
-              event.project_id,
-            );
+            if (event.user_message.trim()) {
+              onConversationStarted(
+                event.thread_id,
+                event.title,
+                event.user_message,
+                event.project_id,
+              );
+            }
             continue;
           case "phase":
             phase = event.phase;
@@ -148,7 +163,9 @@ export function createChatModelAdapter({
             break;
           }
           case "interrupt":
-            phase = "reviewing_hypothesis";
+            phase = event.payload?.kind === "technical_plan_review"
+              ? "reviewing_technical_plan"
+              : "reviewing_hypothesis";
             pendingReview = event.payload ?? undefined;
             completed = true;
             break;
@@ -175,15 +192,20 @@ export function createChatModelAdapter({
   };
 }
 
-function hypothesisReviewFromMessage(
+function reviewDecisionFromMessage(
   message: UserMessage,
-): HypothesisReviewDecision | undefined {
-  const value = message.metadata.custom.hypothesisReview;
+  metadataKey: "hypothesisReview" | "technicalPlanReview",
+): HumanReviewDecision | undefined {
+  const value = message.metadata.custom[metadataKey];
   if (!value || typeof value !== "object" || !("decision" in value)) {
     return undefined;
   }
   const decision = value.decision;
-  if (decision === "approved") return { decision };
+  if (decision === "approved") {
+    return "reason" in value && typeof value.reason === "string" && value.reason.trim()
+      ? { decision, reason: value.reason.trim() }
+      : { decision };
+  }
   if (
     decision === "rejected" &&
     "reason" in value &&

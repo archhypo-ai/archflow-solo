@@ -14,6 +14,7 @@ from .archhypo import (
     HypothesisReview,
     RequestRouting,
     TechnicalPlan,
+    TechnicalPlanReview,
 )
 
 
@@ -29,6 +30,9 @@ class AgentState(TypedDict):
     hypothesis_feedback: NotRequired[str | None]
     assessment: NotRequired[HypothesisAssessment | None]
     technical_plan: NotRequired[TechnicalPlan | None]
+    technical_plan_review: NotRequired[TechnicalPlanReview | None]
+    technical_plan_feedback: NotRequired[str | None]
+    review_history: NotRequired[list[dict[str, object]]]
     result: NotRequired[ArchHypoResult | None]
 
 

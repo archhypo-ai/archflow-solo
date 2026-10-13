@@ -6,7 +6,8 @@ This document describes the central ArchHypo path in the agent at
 `libs/archhypo-flow-agent`. The user provides a natural-language input; the
 agent tries to identify an architectural uncertainty, formulate and assess a
 hypothesis, and propose a short technical plan. The user reviews the hypothesis
-before the workflow continues.
+before assessment, then reviews the assessment and technical plan before the
+workflow produces its final response.
 
 The workflow is implemented as LangGraph nodes with Pydantic contracts for the
 structured result of each stage.
@@ -22,7 +23,9 @@ flowchart TD
     REVIEW -->|Approved| ASSESSMENT[hypothesis_assessment]
     REVIEW -->|Rejected with reason| FORMULATION
     ASSESSMENT --> PLAN[technical_plan_generation]
-    PLAN --> RESPONSE[existing response_generation]
+    PLAN --> PLAN_REVIEW{technical_plan_review}
+    PLAN_REVIEW -->|Approved| RESPONSE[existing response_generation]
+    PLAN_REVIEW -->|Rejected with reason| PLAN
     RESPONSE --> END([End])
 ```
 
@@ -42,8 +45,15 @@ flowchart TD
    its assessment. It screens the catalog index, considers up to five pattern
    candidates, reads at most three selected pattern references, and only allows
    patterns from those references in the generated plan.
-7. **Response:** the existing conversational agent receives the structured
-   result and replies using the current response behavior.
+7. **Technical plan review:** pauses with the impact and uncertainty levels and
+   justifications, plus the plan rationale and actions. The initial NFR label is
+    not displayed as a quality tag. Approval continues to the response stage;
+    rejection requires a reason and regenerates the plan using that feedback.
+    The assessment remains unchanged, and the pause is checkpointed for later
+    resumption. Approved reviews are kept as compact, chronological history
+    cards; review decisions are structured actions, not chat messages.
+8. **Response:** the existing conversational agent receives the approved
+   structured result and replies using the current response behavior.
 
 The graph-generated diagram is available at
 [`docs/architecture/archhypo-flow-agent.mmd`](architecture/archhypo-flow-agent.mmd).
@@ -80,8 +90,9 @@ Technical Debt Management, and Tracer Bullets.
   documents.
 - If context is missing, the flow continues with an exploratory formulation
   whose limitations should be explicit. There is not yet a context interview or
-  clarification-question stage. Human review currently applies only to the
-  hypothesis; there is no review gate after technical-plan generation.
+  clarification-question stage. Human review covers the hypothesis and the
+  assessment/technical plan; assessment does not yet use multi-label quality
+  tags.
 - No Deep Agent, documentary research agent, multi-label quality tagging,
   semantic dossier, new database table, or artifact interface was added.
 - Structured outputs are intermediate graph state/checkpoint data. There is no
@@ -99,9 +110,10 @@ Uncertain Decisions**. The current graph covers them unevenly:
 |---|---|---|
 | `architectural_uncertainty_discovery` | Input-stage support; not one of the four patterns. | Extracts only from conversation/context; it does not gather documentary or implementation evidence. |
 | `hypothesis_formulation` | Partial implementation of **Architectural Hypotheses**. A rejected hypothesis is reformulated from the user's required reason. | Creates one hypothesis for the current turn, without a lifecycle for resolving it beyond the review loop. |
-| `hypothesis_review` | Human confirmation of the formulated hypothesis before impact and uncertainty are assessed. | Covers only the hypothesis stage; technical plans do not yet have an approval gate. |
+| `hypothesis_review` | Human confirmation of the formulated hypothesis before impact and uncertainty are assessed. | The review loop covers the hypothesis only; later-stage decisions are handled by the technical-plan review. |
 | `hypothesis_assessment` | Partial implementation of **Hypothesis Impact** and **Uncertainty Level**. | Scores are based only on supplied text; the contract does not explicitly model the affected decision, alternatives, or evidence behind a rating. |
 | `technical_plan_generation` | Initial implementation of **Postpone Uncertain Decisions**. It screens the catalog skill and grounds selected patterns in up to three Markdown references. | The plan has no structured outcome criteria, decision trigger, or reassessment cycle; consulted references are not yet preserved as plan provenance. |
+| `technical_plan_review` | Human approval gate for the assessment summary and technical plan before the final response. Rejection feedback regenerates the plan. | Assessment values are still text-based; quality tags and managed artifact lifecycle are not included. |
 
 The initial NFR selection is useful to this application, but it is not one of
 those four foundational patterns. Multi-label quality tagging is also an

@@ -13,6 +13,7 @@ from .archhypo import (
     RequestRouting,
     TechnicalPlan,
     TechnicalPlanItem,
+    TechnicalPlanReview,
 )
 from .context import AgentRunContext
 from .contracts import ChatRequest, ChatResponse, ToolCallRecord
@@ -35,5 +36,6 @@ __all__ = [
     "RequestRouting",
     "TechnicalPlan",
     "TechnicalPlanItem",
+    "TechnicalPlanReview",
     "ToolCallRecord",
 ]

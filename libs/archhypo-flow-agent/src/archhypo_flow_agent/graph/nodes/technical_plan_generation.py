@@ -30,6 +30,7 @@ def create_technical_plan_generation_node(model: BaseChatModel):
         hypothesis = state.get("hypothesis")
         assessment = state.get("assessment")
         uncertainty = state.get("uncertainty")
+        review_feedback = state.get("technical_plan_feedback")
         if (
             discovery is None
             or hypothesis is None
@@ -47,6 +48,11 @@ def create_technical_plan_generation_node(model: BaseChatModel):
             "Assessment:\n"
             f"{assessment.model_dump_json(indent=2)}"
         )
+        if review_feedback:
+            material += (
+                "\n\nHuman review feedback (address this directly):\n"
+                f"{review_feedback}"
+            )
         selection = selector.invoke(
             {
                 "system_prompt": contextual_system_prompt(
@@ -90,7 +96,12 @@ def create_technical_plan_generation_node(model: BaseChatModel):
             assessment=assessment,
             technical_plan=technical_plan,
         )
-        return {"technical_plan": technical_plan, "result": result}
+        return {
+            "technical_plan": technical_plan,
+            "technical_plan_review": None,
+            "technical_plan_feedback": None,
+            "result": result,
+        }
 
     return plan
 

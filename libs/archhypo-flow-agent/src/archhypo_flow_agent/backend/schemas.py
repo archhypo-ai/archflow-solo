@@ -132,6 +132,8 @@ class ThreadMessageResponse(BaseModel):
 class ThreadResponse(ThreadSummaryResponse):
     messages: list[ThreadMessageResponse]
     pending_hypothesis_review: dict[str, object] | None = None
+    pending_technical_plan_review: dict[str, object] | None = None
+    completed_reviews: list[dict[str, object]] = Field(default_factory=list)
 
 
 __all__ = [

@@ -57,3 +57,31 @@ def test_interrupt_event_exposes_the_pending_hypothesis_review() -> None:
     assert serialized["type"] == "interrupt"
     assert serialized["interrupt_id"] == "interrupt-1"
     assert serialized["payload"]["kind"] == "hypothesis_review"
+
+
+def test_interrupt_event_exposes_assessment_and_technical_plan_review() -> None:
+    event = InterruptEvent(
+        run_id="run-2",
+        thread_id="thread-2",
+        interrupt_id="interrupt-2",
+        message="Review the assessment and technical plan.",
+        payload={
+            "kind": "technical_plan_review",
+            "assessment": {
+                "impact": "Medium",
+                "uncertainty": "High",
+            },
+            "technical_plan": {
+                "rationale": "Gather evidence before committing.",
+                "items": [{"title": "Run a bounded experiment"}],
+            },
+        },
+    )
+
+    serialized = agent_event_data(event)
+    assert serialized["type"] == "interrupt"
+    assert serialized["payload"]["kind"] == "technical_plan_review"
+    assert serialized["payload"]["assessment"]["impact"] == "Medium"
+    assert serialized["payload"]["technical_plan"]["rationale"] == (
+        "Gather evidence before committing."
+    )
