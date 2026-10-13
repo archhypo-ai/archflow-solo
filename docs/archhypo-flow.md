@@ -32,7 +32,9 @@ flowchart TD
 4. **Assessment:** selects one NFR and assesses impact and uncertainty
    separately, with justifications.
 5. **Technical plan:** proposes one to three actions tied to the hypothesis and
-   its assessment.
+   its assessment. It screens the catalog index, considers up to five pattern
+   candidates, reads at most three selected pattern references, and only allows
+   patterns from those references in the generated plan.
 6. **Response:** the existing conversational agent receives the structured
    result and replies using the current response behavior.
 
@@ -43,10 +45,8 @@ The rendered image is embedded below and saved at
 
 ![Current ArchHypo Flow graph](architecture/archhypo-flow-agent.png)
 
-In the diagram, the yellow `response_generation` box is a subgraph grouping the
-existing response agent. Its inner `model` box is the LLM call used by that
-agent; it is not an additional top-level ArchHypo stage. The generated diagram
-uses no tools, so only the model appears inside the subgraph.
+The yellow `response_generation` box groups the existing response agent. Its
+inner `model` box is that agent's LLM call, not another ArchHypo stage.
 
 ## Minimum data produced
 
@@ -78,8 +78,8 @@ Technical Debt Management, and Tracer Bullets.
   semantic dossier, new database table, or artifact interface was added.
 - Structured outputs are intermediate graph state/checkpoint data. There is no
   independently managed ArchHypo artifact or version history.
-- The plan uses the pattern names in the current contract; it does not yet
-  consult skills or documentary references on demand.
+- Catalog references inform plan generation, but the chosen references are not
+  yet exposed as citations or retained in an independently managed artifact.
 
 ## Coverage of the original ArchHypo technique
 
@@ -92,7 +92,7 @@ Uncertain Decisions**. The current graph covers them unevenly:
 | `architectural_uncertainty_discovery` | Input-stage support; not one of the four patterns. | Extracts only from conversation/context; it does not gather documentary or implementation evidence. |
 | `hypothesis_formulation` | Partial implementation of **Architectural Hypotheses**. | Creates one hypothesis for the current turn, without a lifecycle for updating or resolving it. |
 | `hypothesis_assessment` | Partial implementation of **Hypothesis Impact** and **Uncertainty Level**. | Scores are based only on supplied text; the contract does not explicitly model the affected decision, alternatives, or evidence behind a rating. |
-| `technical_plan_generation` | Initial implementation of **Postpone Uncertain Decisions**. | Produces a plan, but pattern selection is not grounded in a skill and the plan has no structured outcome criteria, decision trigger, or reassessment cycle. |
+| `technical_plan_generation` | Initial implementation of **Postpone Uncertain Decisions**. It screens the catalog skill and grounds selected patterns in up to three Markdown references. | The plan has no structured outcome criteria, decision trigger, or reassessment cycle; consulted references are not yet preserved as plan provenance. |
 
 The initial NFR selection is useful to this application, but it is not one of
 those four foundational patterns. Multi-label quality tagging is also an
@@ -100,20 +100,16 @@ extension, not a prerequisite for implementing the original ArchHypo cycle.
 
 ## Suggested next increments
 
-1. **Ground planning in pattern skills.** Load the relevant ArchHypo pattern
-   material inside `technical_plan_generation`; a separate graph node is not
-   needed just to resolve skills. Keep the selected pattern name from the
-   governed catalog and make the plan explain why it applies.
-2. **Make actions verifiable.** Extend plan items with expected evidence and
+1. **Make actions verifiable.** Extend plan items with expected evidence and
    criteria that would confirm/refute the hypothesis or trigger a decision.
    Keep uncertainty reduction, impact mitigation, and decision timing
    distinguishable.
-3. **Add a reassessment path.** When the user provides an action/experiment
+2. **Add a reassessment path.** When the user provides an action/experiment
    outcome, a future `hypothesis_reassessment` node can update impact and
    uncertainty separately, record whether the hypothesis is supported,
    refuted, or still open, and decide whether another plan is needed. This is
    the missing feedback loop; it should not execute the plan automatically.
-4. **Add result lifecycle/persistence later.** Preserve prior assessments,
+3. **Add result lifecycle/persistence later.** Preserve prior assessments,
    plan outcomes, and decision timing as semantic result history rather than
    relying only on the latest chat checkpoint.
 

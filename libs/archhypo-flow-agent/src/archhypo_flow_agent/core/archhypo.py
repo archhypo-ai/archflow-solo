@@ -1,8 +1,10 @@
 """Structured contracts for the first ArchHypo workflow slice."""
 
+from __future__ import annotations
+
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 RequestRoute = Literal["architectural_uncertainty_discovery"]
 DiscoveryStatus = Literal["identified", "insufficient_context"]
@@ -71,6 +73,30 @@ class HypothesisAssessment(_Contract):
     uncertainty_justification: str = Field(min_length=1)
 
 
+class CatalogPatternSelection(_Contract):
+    """Bounded candidate screen and final reference selection for planning."""
+
+    candidate_patterns: list[ArchHypoPattern] = Field(min_length=1, max_length=5)
+    selected_patterns: list[ArchHypoPattern] = Field(min_length=1, max_length=3)
+    rationale: str = Field(min_length=1)
+
+    @field_validator("candidate_patterns", "selected_patterns")
+    @classmethod
+    def reject_duplicate_patterns(
+        cls,
+        patterns: list[ArchHypoPattern],
+    ) -> list[ArchHypoPattern]:
+        if len(patterns) != len(set(patterns)):
+            raise ValueError("catalog pattern selections must not contain duplicates")
+        return patterns
+
+    @model_validator(mode="after")
+    def selected_patterns_are_candidates(self) -> CatalogPatternSelection:
+        if not set(self.selected_patterns).issubset(self.candidate_patterns):
+            raise ValueError("selected patterns must come from the candidate set")
+        return self
+
+
 class TechnicalPlanItem(_Contract):
     """One action to investigate or manage the assessed hypothesis."""
 
@@ -103,6 +129,7 @@ __all__ = [
     "ArchHypoResult",
     "ArchitecturalUncertaintyDiscovery",
     "AssessmentLevel",
+    "CatalogPatternSelection",
     "DiscoveryStatus",
     "Hypothesis",
     "HypothesisAssessment",

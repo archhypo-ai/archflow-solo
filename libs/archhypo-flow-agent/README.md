@@ -30,6 +30,12 @@ The graph always follows `request_routing` →
 it does not inspect a workspace. Scope and implementation boundaries are
 documented in [`../../docs/archhypo-flow.md`](../../docs/archhypo-flow.md).
 
+The technical planner screens the full `skills/archhypo-catalog/SKILL.md`
+index, considers up to five pattern candidates and selects up to three for
+Markdown reference reading. The plan then contains one to three actions and is
+validated so it only uses patterns whose references were read. The skill and
+its twelve Markdown references are bundled with the Python package.
+
 ## Development
 
 ```bash

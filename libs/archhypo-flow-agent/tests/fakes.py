@@ -6,6 +6,7 @@ from langchain_core.runnables import RunnableLambda
 
 from archhypo_flow_agent.core import (
     ArchitecturalUncertaintyDiscovery,
+    CatalogPatternSelection,
     Hypothesis,
     HypothesisAssessment,
     TechnicalPlan,
@@ -71,6 +72,16 @@ def structured_output(schema, value):
             impact_justification="Changing the decision may require some rework.",
             uncertainty="High",
             uncertainty_justification="The hypothesis has not been validated.",
+        )
+    if schema is CatalogPatternSelection:
+        return schema(
+            candidate_patterns=[
+                "Architectural Spike",
+                "Learning from Experiments",
+                "Tracer Bullets",
+            ],
+            selected_patterns=["Architectural Spike"],
+            rationale="A bounded experiment best addresses the stated uncertainty.",
         )
     if schema is TechnicalPlan:
         return schema(

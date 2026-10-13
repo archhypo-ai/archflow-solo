@@ -3,15 +3,24 @@
 from langchain_core.language_models import BaseChatModel
 from langgraph.runtime import Runtime
 
-from archhypo_flow_agent.agents import build_technical_plan_generation_agent
-from archhypo_flow_agent.agents.technical_plan_generation import SYSTEM_PROMPT
+from archhypo_flow_agent.agents import (
+    build_catalog_pattern_selection_agent,
+    build_technical_plan_generation_agent,
+)
+from archhypo_flow_agent.agents.technical_plan_generation import (
+    CATALOG_SELECTION_PROMPT,
+    SYSTEM_PROMPT,
+)
 from archhypo_flow_agent.core import AgentRunContext, AgentState, ArchHypoResult
+from archhypo_flow_agent.tools import CatalogReader, render_references
 
 from .support import contextual_system_prompt
 
 
 def create_technical_plan_generation_node(model: BaseChatModel):
-    agent = build_technical_plan_generation_agent(model)
+    selector = build_catalog_pattern_selection_agent(model)
+    planner = build_technical_plan_generation_agent(model)
+    catalog = CatalogReader()
 
     def plan(
         state: AgentState,
@@ -31,18 +40,49 @@ def create_technical_plan_generation_node(model: BaseChatModel):
                 "discovery, hypothesis, and assessment are required to plan"
             )
 
-        technical_plan = agent.invoke(
+        material = (
+            f"Architectural uncertainty:\n{uncertainty}\n\n"
+            "Hypothesis:\n"
+            f"{hypothesis.model_dump_json(indent=2)}\n\n"
+            "Assessment:\n"
+            f"{assessment.model_dump_json(indent=2)}"
+        )
+        selection = selector.invoke(
+            {
+                "system_prompt": contextual_system_prompt(
+                    CATALOG_SELECTION_PROMPT,
+                    runtime,
+                ),
+                "material": material,
+                "catalog_index": catalog.skill_index(),
+            }
+        )
+        references = catalog.read(selection.selected_patterns)
+        technical_plan = planner.invoke(
             {
                 "system_prompt": contextual_system_prompt(SYSTEM_PROMPT, runtime),
                 "material": (
-                    f"Architectural uncertainty:\n{uncertainty}\n\n"
-                    "Hypothesis:\n"
-                    f"{hypothesis.model_dump_json(indent=2)}\n\n"
-                    "Assessment:\n"
-                    f"{assessment.model_dump_json(indent=2)}"
+                    f"{material}\n\n"
+                    "Catalog candidate patterns:\n"
+                    f"{', '.join(selection.candidate_patterns)}\n\n"
+                    "Catalog selection rationale:\n"
+                    f"{selection.rationale}\n\n"
+                    "Selected official pattern references:\n"
+                    f"{render_references(references)}"
                 ),
             }
         )
+        unauthorized_patterns = {
+            item.pattern
+            for item in technical_plan.items
+            if item.pattern not in selection.selected_patterns
+        }
+        if unauthorized_patterns:
+            raise ValueError(
+                "The technical plan used patterns without reading their catalog "
+                "references: "
+                + ", ".join(sorted(unauthorized_patterns))
+            )
         result = ArchHypoResult(
             uncertainty=uncertainty,
             discovery=discovery,
