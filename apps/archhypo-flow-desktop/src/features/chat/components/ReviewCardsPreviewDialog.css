@@ -35,7 +35,7 @@
 .review-cards-preview-header h1 {
   margin: 0;
   color: var(--color-foreground);
-  font-size: 21px;
+  font-size: 16px;
   font-weight: 650;
   letter-spacing: -0.02em;
 }
@@ -82,7 +82,7 @@
 .review-preview-group > h2 {
   margin: 0;
   color: var(--color-foreground);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 650;
 }
 
@@ -103,7 +103,7 @@
 .review-preview-state {
   width: fit-content;
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 650;
 }
 
@@ -147,7 +147,7 @@
   }
 
   .review-cards-preview-header h1 {
-    font-size: 19px;
+    font-size: 16px;
   }
 
   .review-cards-preview-header p {

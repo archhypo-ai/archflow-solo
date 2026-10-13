@@ -10,7 +10,7 @@
 .project-chat-section > h2 {
   margin: 0 0 10px;
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 650;
 }
 
@@ -58,7 +58,7 @@
 
 .project-chat-title {
   overflow: hidden;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -67,14 +67,14 @@
 .project-chat-time {
   flex: 0 0 auto;
   color: var(--color-subtle);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .project-chat-preview {
   display: -webkit-box;
   overflow: hidden;
   color: var(--color-muted);
-  font-size: 11px;
+  font-size: 13px;
   line-height: 1.45;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -144,12 +144,12 @@
 .project-empty-state h3 {
   margin: 0;
   color: var(--color-foreground);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .project-empty-state p {
   margin: 0;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
 }

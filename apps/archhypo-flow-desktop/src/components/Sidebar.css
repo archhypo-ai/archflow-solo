@@ -19,7 +19,7 @@
 .sidebar-brand {
   overflow: hidden;
   color: var(--color-foreground);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 650;
   letter-spacing: -0.03em;
   text-overflow: ellipsis;
@@ -111,7 +111,7 @@
   color: var(--color-muted);
   padding: 0 8px;
   text-align: left;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -147,7 +147,7 @@
   margin-left: 16px;
   padding: 5px 9px;
   color: var(--color-subtle);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .sidebar-project-group {
@@ -190,7 +190,7 @@
   color: inherit;
   padding: 6px 8px;
   text-align: left;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -264,8 +264,12 @@
   z-index: 50;
   top: calc(100% + 4px);
   right: 0;
-  width: 164px;
-  padding-right: 16px;
+  width: 240px;
+  padding-right: 6px;
+}
+
+.sidebar-project-menu .menu-item > span:first-of-type {
+  white-space: nowrap;
 }
 
 .sidebar-conversation-items {
@@ -305,7 +309,7 @@
   color: inherit;
   padding: 6px 8px;
   text-align: left;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -397,7 +401,7 @@
   color: var(--color-foreground);
   padding: 0 8px;
   text-align: left;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 550;
   transition: background 140ms ease, border-color 140ms ease;
 }

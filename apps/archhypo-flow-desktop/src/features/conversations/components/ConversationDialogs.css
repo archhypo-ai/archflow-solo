@@ -45,7 +45,7 @@
   display: block;
   margin-bottom: 7px;
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 550;
 }
 
@@ -59,7 +59,7 @@
   color: var(--color-foreground);
   padding: 0 10px;
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .conversation-dialog-input:focus {
@@ -70,14 +70,14 @@
 .conversation-dialog-description {
   margin: 0;
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
 }
 
 .conversation-dialog-error {
   margin: 10px 0 0;
   color: var(--color-error);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .conversation-dialog-actions {
@@ -97,7 +97,7 @@
   border-radius: 8px;
   padding: 0 12px;
   font: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }

@@ -7,7 +7,7 @@
   justify-content: center;
   gap: 12px;
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 14px;
   text-align: center;
 }
 
@@ -87,7 +87,7 @@
   max-width: 600px;
   margin: 0;
   color: var(--color-foreground);
-  font-size: clamp(24px, 3.4vw, 34px);
+  font-size: clamp(21px, 2.5vw, 24px);
   font-weight: 600;
   letter-spacing: -0.045em;
   line-height: 1.2;
@@ -145,6 +145,7 @@
 .chat-message {
   width: 100%;
   overflow-wrap: anywhere;
+  font-size: 16px;
   line-height: 1.7;
 }
 
@@ -160,6 +161,7 @@
   background: var(--color-user-message);
   color: var(--color-foreground);
   padding: 11px 18px;
+  font-size: 16px;
 }
 
 .chat-message-assistant {
@@ -175,7 +177,7 @@
 .chat-message-error {
   margin-top: 8px;
   color: var(--color-error);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .chat-working-indicator {
@@ -183,7 +185,7 @@
   align-items: center;
   gap: 8px;
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
 }
 
@@ -266,7 +268,7 @@
   background: transparent;
   color: var(--color-muted);
   padding: 3px 0;
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
 }
 
@@ -308,7 +310,7 @@
 .chat-tool-call {
   min-width: 0;
   color: var(--color-muted);
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .chat-tool-call[data-status="running"] {
@@ -388,7 +390,7 @@
   display: block;
   margin-bottom: 2px;
   color: var(--color-subtle);
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .chat-tool-call-details pre {
@@ -398,7 +400,7 @@
   background: var(--color-surface-raised);
   padding: 6px 8px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.45;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -469,7 +471,7 @@
   background: transparent;
   color: var(--color-foreground);
   padding: 4px 1px;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.55;
 }
 
@@ -521,7 +523,7 @@
   }
 
   .chat-welcome h2 {
-    font-size: clamp(23px, 6vw, 30px);
+    font-size: clamp(20px, 5vw, 24px);
   }
 
   .chat-message-bubble {
