@@ -9,6 +9,9 @@ Desktop application for exploring architectural uncertainty with the ArchHypo te
 - `docs` — project documentation.
 - `libs` — reusable libraries.
 
+The current ArchHypo workflow is documented in
+[`docs/archhypo-flow.md`](docs/archhypo-flow.md).
+
 The desktop app is a Tauri/React chat harness built with assistant-ui and a local FastAPI/LangGraph backend. The shared SSE event contract is defined in `contracts/agent-stream.schema.json`.
 
 ## Run the desktop app

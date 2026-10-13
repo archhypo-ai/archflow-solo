@@ -4,6 +4,8 @@ Tauri and React desktop chat harness using the latest `@assistant-ui/react` pack
 
 The desktop app starts the local FastAPI chat service alongside Vite during development. Chat turns use OpenRouter, are checkpointed in SQLite, and are restored from the sidebar. The API reads `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` from `libs/archhypo-flow-agent/.env`; without a key, history remains available and chat reports a configuration error. Projects and instructions remain local UI settings and are not sent to the agent yet.
 
+The desktop's default chat backend is `libs/archhypo-flow-agent`. Its default graph now runs every message through the ArchHypo discovery, hypothesis formulation, assessment, and technical planning stages before the existing final response stage. The former single-node chat graph is no longer used as the default workflow; the response-generation agent remains only to produce the final user-facing reply. See [`docs/archhypo-flow.md`](../../docs/archhypo-flow.md).
+
 By default, the database is stored at `~/.local/share/archhypo-flow/runtime/checkpoints.sqlite`. Override the storage root with `ARCHHYPO_FLOW_STORAGE_ROOT`.
 
 ## Development

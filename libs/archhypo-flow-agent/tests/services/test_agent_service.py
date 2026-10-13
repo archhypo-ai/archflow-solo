@@ -8,18 +8,18 @@ from pydantic import PrivateAttr, SecretStr
 from archhypo_flow_agent.config import settings
 from archhypo_flow_agent.core import ChatRequest
 from archhypo_flow_agent.services import AgentService
-from tests.fakes import stub_chat_model
+from tests.fakes import StructuredOutputStub, stub_chat_model
 
 tavily_module = importlib.import_module("archhypo_flow_agent.tools.search.tavily")
 
 
-class ToolCallingModel(FakeMessagesListChatModel):
+class ToolCallingModel(StructuredOutputStub, FakeMessagesListChatModel):
     def bind_tools(self, tools, **kwargs):
         assert any(tool.name == "tavily_search" for tool in tools)
         return self
 
 
-class FailingChatModel(FakeMessagesListChatModel):
+class FailingChatModel(StructuredOutputStub, FakeMessagesListChatModel):
     def bind_tools(self, tools, **kwargs):
         return self
 
@@ -27,7 +27,7 @@ class FailingChatModel(FakeMessagesListChatModel):
         raise RuntimeError("model unavailable")
 
 
-class ContextRecordingModel(FakeMessagesListChatModel):
+class ContextRecordingModel(StructuredOutputStub, FakeMessagesListChatModel):
     _system_prompts: list[str] = PrivateAttr(default_factory=list)
 
     def bind_tools(self, tools, **kwargs):
@@ -92,7 +92,9 @@ def test_user_message_is_checkpointed_before_model_generation(tmp_path) -> None:
 
 
 def test_run_context_isolated_by_conversation_and_refreshed_per_turn(tmp_path) -> None:
-    model = ContextRecordingModel(responses=[AIMessage(content="Understood")])
+    model = ContextRecordingModel(
+        responses=[AIMessage(content="Understood") for _ in range(10)]
+    )
     service = AgentService(
         model=model,
         database_path=tmp_path / "context.sqlite",

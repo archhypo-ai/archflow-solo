@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
+from langchain_core.runnables import RunnableLambda
 
 from archhypo_flow_agent.graph import build_graph
 
@@ -22,6 +23,11 @@ class DiagramModel(FakeListChatModel):
         """Allow graph construction without binding a real provider model."""
 
         return self
+
+    def with_structured_output(self, schema: Any, **kwargs: Any):
+        """Allow structured agent construction without an LLM call."""
+
+        return RunnableLambda(lambda _input: schema.model_construct())
 
 
 def generate_workflow_diagram(output_directory: Path) -> Path:

@@ -1,17 +1,20 @@
 # archhypo-flow-agent
 
-Minimal conversational agent harness for ArchHypo Flow. The initial graph wraps a LangChain ReAct agent in one `response_generation` node; the model and tools are injected so provider configuration and future dynamic skills remain outside graph construction.
+Conversational agent for the initial ArchHypo validation flow. Each structured
+stage is a LangGraph node; the final `response_generation` stage reuses the
+existing LangChain ReAct agent. The model and tools remain injected into graph
+construction.
 
 ## Structure
 
 ```text
 src/archhypo_flow_agent/
-├── agents/          # ReAct agent assembly
+├── agents/          # Structured stage agents and final ReAct agent
 ├── backend/         # Local FastAPI chat and conversation-history API
 ├── cli/             # Graph utilities
 ├── config/          # Environment-backed settings
 ├── core/            # Shared graph state and contracts
-├── graph/           # LangGraph workflow
+├── graph/           # LangGraph workflow and stage nodes
 ├── observability/   # Optional tracing integrations
 ├── persistence/     # Checkpoint and conversation persistence
 ├── providers/       # LLM provider factories
@@ -19,6 +22,13 @@ src/archhypo_flow_agent/
 ├── stream/          # Validated events shared with the frontend
 └── tools/           # Agent tools such as bounded public-web search
 ```
+
+The graph always follows `request_routing` →
+`architectural_uncertainty_discovery` → `hypothesis_formulation` →
+`hypothesis_assessment` → `technical_plan_generation` →
+`response_generation`. Discovery uses conversation input and runtime context;
+it does not inspect a workspace. Scope and implementation boundaries are
+documented in [`../../docs/archhypo-flow.md`](../../docs/archhypo-flow.md).
 
 ## Development
 

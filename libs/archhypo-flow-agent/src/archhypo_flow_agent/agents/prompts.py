@@ -1,5 +1,7 @@
 """Shared prompt composition for ArchHypo Flow agents and graph coordinators."""
 
+from collections.abc import Mapping
+
 
 def build_system_prompt(
     base_prompt: str,
@@ -27,4 +29,18 @@ def build_system_prompt(
     return "\n\n".join(section for section in sections if section)
 
 
-__all__ = ["build_system_prompt"]
+def build_contextual_system_prompt(
+    base_prompt: str,
+    context: Mapping[str, object] | None,
+) -> str:
+    """Compose the fixed agent instructions with the current run's context."""
+
+    context = context if isinstance(context, Mapping) else {}
+    return build_system_prompt(
+        base_prompt,
+        global_context=str(context.get("global_context", "")),
+        project_context=str(context.get("project_context", "")),
+    )
+
+
+__all__ = ["build_contextual_system_prompt", "build_system_prompt"]
