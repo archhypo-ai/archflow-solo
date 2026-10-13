@@ -28,6 +28,7 @@ research = [
   "tavily-python>=0.8,<1.0",
 ]
 observability = [
+  "langfuse>=4.15.1",
   "langsmith>=0.3.0,<1.0",
 ]
 

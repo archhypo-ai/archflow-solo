@@ -19,11 +19,11 @@ npm install
 npm run tauri dev
 ```
 
-The Tauri dev command starts the API and Vite together. To run only the frontend, use `npm run dev`. To run the API manually (from its package directory, so it loads that directory's `.env`):
+The Tauri dev command starts the API and Vite together; the launcher installs the optional `research` and `observability` extras. Tracing remains disabled unless LangSmith or Langfuse is enabled in `libs/archhypo-flow-agent/.env`; see the agent README for the variables. To run only the frontend, use `npm run dev`. To run the API manually (from its package directory, so it loads that directory's `.env`):
 
 ```bash
 cd libs/archhypo-flow-agent
-uv run python -m uvicorn archhypo_flow_agent.backend.app:app --host 127.0.0.1 --port 8765
+uv run --extra research --extra observability python -m uvicorn archhypo_flow_agent.backend.app:app --host 127.0.0.1 --port 8765
 ```
 
 Build the frontend with:

@@ -9,6 +9,7 @@ from uuid import uuid4
 from langchain_core.messages import BaseMessage, HumanMessage
 
 from archhypo_flow_agent.core import ChatRequest, ChatResponse
+from archhypo_flow_agent.observability import Observability
 
 from .chat_context import ChatContextResolver
 from .chat_projection import (
@@ -29,15 +30,21 @@ class ChatExecutionService:
         graph: Any,
         context_resolver: ChatContextResolver,
         lock: Lock,
+        observability: Observability,
     ) -> None:
         self._graph = graph
         self._context_resolver = context_resolver
         self._lock = lock
+        self._observability = observability
 
     def respond(self, request: ChatRequest) -> ChatResponse:
         with self._lock:
             metadata, run_context = self._context_resolver.resolve(request)
-            config = {"configurable": {"thread_id": request.thread_id}}
+            config = self._graph_config(
+                request,
+                project_id=metadata.project_id if metadata else request.project_id,
+                run_id=uuid4().hex,
+            )
             previous_messages = self._messages_from_state(config)
             self._persist_user_message(request, config)
             result = self._graph.invoke(
@@ -69,7 +76,11 @@ class ChatExecutionService:
         active_run_id = run_id or uuid4().hex
         with self._lock:
             metadata, run_context = self._context_resolver.resolve(request)
-            config = {"configurable": {"thread_id": request.thread_id}}
+            config = self._graph_config(
+                request,
+                project_id=metadata.project_id if metadata else request.project_id,
+                run_id=active_run_id,
+            )
             previous_tool_ids = {
                 call.id
                 for call in tool_calls_from_messages(self._messages_from_state(config))
@@ -142,6 +153,21 @@ class ChatExecutionService:
                 ),
                 message=message,
             )
+
+    def _graph_config(
+        self,
+        request: ChatRequest,
+        *,
+        project_id: str | None,
+        run_id: str,
+    ) -> dict[str, object]:
+        config = self._observability.graph_config(
+            thread_id=request.thread_id,
+            run_id=run_id,
+            project_id=project_id,
+        )
+        config["configurable"] = {"thread_id": request.thread_id}
+        return config
 
     def _persist_user_message(
         self,

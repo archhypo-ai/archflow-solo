@@ -29,6 +29,38 @@ class AgentSettings(BaseSettings):
         default=None,
         validation_alias="TAVILY_API_KEY",
     )
+    langsmith_tracing: bool = Field(
+        default=False,
+        validation_alias="LANGSMITH_TRACING",
+    )
+    langsmith_endpoint: str | None = Field(
+        default=None,
+        validation_alias="LANGSMITH_ENDPOINT",
+    )
+    langsmith_api_key: SecretStr | None = Field(
+        default=None,
+        validation_alias="LANGSMITH_API_KEY",
+    )
+    langsmith_project: str | None = Field(
+        default=None,
+        validation_alias="LANGSMITH_PROJECT",
+    )
+    langfuse_enabled: bool = Field(
+        default=False,
+        validation_alias="LANGFUSE_ENABLED",
+    )
+    langfuse_secret_key: SecretStr | None = Field(
+        default=None,
+        validation_alias="LANGFUSE_SECRET_KEY",
+    )
+    langfuse_public_key: SecretStr | None = Field(
+        default=None,
+        validation_alias="LANGFUSE_PUBLIC_KEY",
+    )
+    langfuse_base_url: str | None = Field(
+        default=None,
+        validation_alias="LANGFUSE_BASE_URL",
+    )
 
     def require_openrouter_api_key(self) -> str:
         """Return the configured key or raise an actionable configuration error."""

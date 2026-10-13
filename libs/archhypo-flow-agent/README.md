@@ -47,6 +47,31 @@ Global context is saved in the Tauri Store preferences file and sent as a snapsh
 
 Tavily public-web search is enabled when `TAVILY_API_KEY` is configured. Install its optional dependency with `uv sync --extra research` (the desktop development launcher includes this extra). The tool only accepts bounded public queries, rejects obvious secrets and local paths, and returns short excerpts rather than raw page content. Never include private code, project details, credentials, or secrets in a search query.
 
+## Optional observability
+
+Tracing is disabled by default. Install both tracing integrations with
+`uv sync --extra observability`, then configure either or both providers in this
+package's `.env`:
+
+```dotenv
+LANGSMITH_TRACING=true
+LANGSMITH_ENDPOINT=https://api.smith.langchain.com
+LANGSMITH_API_KEY=...
+LANGSMITH_PROJECT=archhypo-flow
+
+LANGFUSE_ENABLED=true
+LANGFUSE_SECRET_KEY=...
+LANGFUSE_PUBLIC_KEY=...
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+```
+
+Each graph run includes its run, thread, and (when available) project IDs as
+metadata. Missing credentials, unavailable optional packages, or provider
+errors disable that provider without stopping chat. Shutting down the service
+flushes initialized clients. Tracing providers receive model inputs and outputs;
+review data retention and masking before enabling it for sensitive
+conversations.
+
 ## Draw the graph
 
 From the repository root:

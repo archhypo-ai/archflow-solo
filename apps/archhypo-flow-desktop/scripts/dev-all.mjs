@@ -72,6 +72,8 @@ try {
         "run",
         "--extra",
         "research",
+        "--extra",
+        "observability",
         "--project",
         backendDir,
         "python",

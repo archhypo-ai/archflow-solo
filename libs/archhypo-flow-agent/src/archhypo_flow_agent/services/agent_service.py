@@ -13,6 +13,7 @@ from langgraph.checkpoint.base import BaseCheckpointSaver
 from archhypo_flow_agent.config import settings
 from archhypo_flow_agent.core import ChatRequest, ChatResponse
 from archhypo_flow_agent.graph import build_graph, build_history_graph
+from archhypo_flow_agent.observability import Observability, build_observability
 from archhypo_flow_agent.persistence.paths import DATABASE_PATH
 from archhypo_flow_agent.persistence.projects import ProjectMetadata
 from archhypo_flow_agent.persistence.sqlite import (
@@ -45,6 +46,7 @@ class AgentService:
     ) -> None:
         self._lock = Lock()
         self._persistence: SQLitePersistence | None = None
+        self._observability: Observability | None = None
         if checkpointer is None:
             self._persistence = open_sqlite_persistence(database_path or DATABASE_PATH)
             active_checkpointer = self._persistence.checkpointer
@@ -71,10 +73,13 @@ class AgentService:
 
         self._chat: ChatExecutionService | None = None
         if model is not None:
+            self._observability = build_observability(settings)
+            assert self._observability is not None
             self._chat = ChatExecutionService(
                 graph,
                 ChatContextResolver(conversations, projects),
                 self._lock,
+                self._observability,
             )
 
         self._conversations = ConversationService(
@@ -177,11 +182,13 @@ class AgentService:
         return self._projects.delete(project_id)
 
     def close(self) -> None:
-        if self._persistence is None:
-            return
         with self._lock:
-            self._persistence.close()
-            self._persistence = None
+            if self._observability is not None:
+                self._observability.close()
+                self._observability = None
+            if self._persistence is not None:
+                self._persistence.close()
+                self._persistence = None
 
 
 def _resolve_tools(tools: Sequence[BaseTool] | None) -> list[BaseTool]:
