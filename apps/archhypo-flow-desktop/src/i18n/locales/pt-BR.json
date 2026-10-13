@@ -13,7 +13,7 @@
     "settings": "Configurações",
     "language": "Idioma",
     "logout": "Sair",
-    "logoutUnavailable": "O login ainda não está habilitado neste aplicativo desktop."
+    "logoutPreview": "Abrir prévia do layout dos cards de revisão."
   },
   "conversations": {
     "actions": "Ações da conversa",
@@ -68,6 +68,11 @@
     "completedTechnicalPlanReview": "Revisão da avaliação e do plano técnico",
     "reviewApprovedStatus": "Aprovado",
     "reviewSubmitted": "Decisão enviada. O fluxo está continuando.",
+    "reviewCardsPreviewTitle": "Prévia dos cards de revisão humana",
+    "reviewCardsPreviewDescription": "Compare exemplos pendentes e aprovados das duas etapas de revisão. Esta prévia não encerra sua sessão.",
+    "closeReviewCardsPreview": "Fechar prévia dos cards de revisão",
+    "reviewPreviewPending": "Aguardando decisão",
+    "reviewPreviewApproved": "Exemplo aprovado",
     "copyMessage": "Copiar mensagem",
     "toolCall": "{{count}} chamada de ferramenta",
     "toolCalls": "{{count}} chamadas de ferramenta",

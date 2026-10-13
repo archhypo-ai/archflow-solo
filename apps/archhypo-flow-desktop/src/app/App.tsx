@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Sidebar } from "../components";
 import { Chat } from "../features/chat";
+import { ReviewCardsPreviewDialog } from "../features/chat/components/ReviewCardsPreviewDialog";
 import { useWorkspaceNavigation } from "./hooks/useWorkspaceNavigation";
 import {
   DeleteConversationDialog,
@@ -43,6 +44,7 @@ function App() {
   const [projectSettingsTarget, setProjectSettingsTarget] = useState<Project | null>(null);
   const [deleteProjectTarget, setDeleteProjectTarget] = useState<Project | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [reviewCardsPreviewOpen, setReviewCardsPreviewOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [globalContext, setGlobalContext] = useState("");
   const [globalContextLoaded, setGlobalContextLoaded] = useState(false);
@@ -111,6 +113,10 @@ function App() {
       updateFromChat(threadId, title, preview, projectId, 1);
     },
     [updateFromChat],
+  );
+  const closeReviewCardsPreview = useCallback(
+    () => setReviewCardsPreviewOpen(false),
+    [],
   );
   const openCreateProject = useCallback(() => setCreateProjectOpen(true), []);
   const closeCreateProject = useCallback(() => {
@@ -236,6 +242,7 @@ function App() {
           void i18n.changeLanguage(nextLanguage)
         }
         onSettingsOpen={() => setSettingsOpen(true)}
+        onLogoutClick={() => setReviewCardsPreviewOpen(true)}
       />
       <main className="main-panel">
         <header className="main-header">
@@ -330,6 +337,10 @@ function App() {
           void i18n.changeLanguage(nextLanguage)
         }
         onGlobalContextSave={handleSaveGlobalContext}
+      />
+      <ReviewCardsPreviewDialog
+        open={reviewCardsPreviewOpen}
+        onClose={closeReviewCardsPreview}
       />
     </div>
   );

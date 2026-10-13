@@ -44,6 +44,7 @@ type SidebarProps = {
   onNewProject: () => void;
   onLanguageChange: (language: AppLanguage) => void;
   onSettingsOpen: () => void;
+  onLogoutClick: () => void;
 };
 
 export function Sidebar({
@@ -68,6 +69,7 @@ export function Sidebar({
   onNewProject,
   onLanguageChange,
   onSettingsOpen,
+  onLogoutClick,
 }: SidebarProps) {
   const { t } = useTranslation();
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
@@ -486,11 +488,13 @@ export function Sidebar({
             </MenuContent>
           </div>
           <MenuItem
-            className="menu-item-disabled"
             icon={<LogOut aria-hidden="true" />}
             label={t("sidebar.logout")}
-            title={t("sidebar.logoutUnavailable")}
-            disabled
+            title={t("sidebar.logoutPreview")}
+            onClick={() => {
+              closeAccountMenu();
+              onLogoutClick();
+            }}
           />
         </MenuContent>
         <button

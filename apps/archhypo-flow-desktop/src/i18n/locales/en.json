@@ -13,7 +13,7 @@
     "settings": "Settings",
     "language": "Language",
     "logout": "Log out",
-    "logoutUnavailable": "Sign-in is not enabled in this desktop app yet."
+    "logoutPreview": "Open the review card layout preview."
   },
   "conversations": {
     "actions": "Conversation actions",
@@ -68,6 +68,11 @@
     "completedTechnicalPlanReview": "Assessment and technical plan review",
     "reviewApprovedStatus": "Approved",
     "reviewSubmitted": "Decision submitted. The workflow is continuing.",
+    "reviewCardsPreviewTitle": "Human review card previews",
+    "reviewCardsPreviewDescription": "Compare pending and approved examples for both review stages. This preview does not sign you out.",
+    "closeReviewCardsPreview": "Close review card previews",
+    "reviewPreviewPending": "Pending decision",
+    "reviewPreviewApproved": "Approved example",
     "copyMessage": "Copy message",
     "toolCall": "{{count}} tool call",
     "toolCalls": "{{count}} tool calls",
