@@ -41,32 +41,6 @@
   font-weight: 650;
 }
 
-.project-management-label {
-  display: block;
-  margin-bottom: 7px;
-  color: var(--color-muted);
-  font-size: 14px;
-  font-weight: 550;
-}
-
-.project-management-input {
-  width: 100%;
-  min-height: 38px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  outline: none;
-  background: var(--color-background);
-  color: var(--color-foreground);
-  padding: 0 10px;
-  font: inherit;
-  font-size: 14px;
-}
-
-.project-management-input:focus {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 22%, transparent);
-}
-
 .project-management-description {
   margin: 0;
   color: var(--color-muted);
@@ -115,15 +89,6 @@
 
 .project-management-button.is-secondary:hover:not(:disabled) {
   background: var(--color-hover);
-}
-
-.project-management-button.is-primary {
-  background: var(--color-accent);
-  color: var(--color-brand-foreground);
-}
-
-.project-management-button.is-primary:hover:not(:disabled) {
-  filter: brightness(0.94);
 }
 
 .project-management-button.is-danger {

@@ -35,7 +35,6 @@ type SidebarProps = {
   onConversationSelect: (threadId: string) => void;
   onProjectSelect: (projectId: string) => void;
   onEditProjectSettings: (project: Project) => void;
-  onRenameProject: (project: Project) => void;
   onDeleteProject: (project: Project) => void;
   onRenameConversation: (conversation: ConversationSummary) => void;
   onToggleConversationPin: (conversation: ConversationSummary) => void;
@@ -60,7 +59,6 @@ export function Sidebar({
   onConversationSelect,
   onProjectSelect,
   onEditProjectSettings,
-  onRenameProject,
   onDeleteProject,
   onRenameConversation,
   onToggleConversationPin,
@@ -346,11 +344,11 @@ export function Sidebar({
                               ariaLabel={t("projects.actions")}
                             >
                               <MenuItem
-                                icon={<Pencil aria-hidden="true" />}
-                                label={t("conversations.rename")}
+                                icon={<Home aria-hidden="true" />}
+                                label={t("projects.home")}
                                 onClick={() => {
                                   setOpenProjectMenuId(null);
-                                  onRenameProject(project);
+                                  onProjectSelect(project.id);
                                 }}
                               />
                               <MenuItem
@@ -359,14 +357,6 @@ export function Sidebar({
                                 onClick={() => {
                                   setOpenProjectMenuId(null);
                                   onEditProjectSettings(project);
-                                }}
-                              />
-                              <MenuItem
-                                icon={<Home aria-hidden="true" />}
-                                label={t("projects.home")}
-                                onClick={() => {
-                                  setOpenProjectMenuId(null);
-                                  onProjectSelect(project.id);
                                 }}
                               />
                               <MenuItem

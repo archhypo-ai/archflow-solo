@@ -3,7 +3,6 @@ import {
   createProject as createProjectRequest,
   deleteProject as deleteProjectRequest,
   listProjects,
-  renameProject as renameProjectRequest,
   updateProjectSettings as updateProjectSettingsRequest,
 } from "../api/projectClient";
 import { loadProjects, saveProjects } from "../projectStorage";
@@ -59,13 +58,6 @@ export function useProjects() {
     );
   }, []);
 
-  const renameProject = useCallback(async (projectId: string, name: string) => {
-    const renamedProject = await renameProjectRequest(projectId, name);
-    setProjects((current) =>
-      current.map((project) => (project.id === projectId ? renamedProject : project)),
-    );
-  }, []);
-
   const deleteProject = useCallback(async (projectId: string) => {
     await deleteProjectRequest(projectId);
     setProjects((current) => current.filter((project) => project.id !== projectId));
@@ -75,7 +67,6 @@ export function useProjects() {
     projects,
     createProject,
     updateProjectSettings,
-    renameProject,
     deleteProject,
   };
 }

@@ -15,7 +15,6 @@ import {
   DeleteProjectDialog,
   ProjectDetail,
   ProjectIcon,
-  RenameProjectDialog,
   useProjects,
   type Project,
 } from "../features/projects";
@@ -40,7 +39,6 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [renameTarget, setRenameTarget] = useState<ConversationSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ConversationSummary | null>(null);
-  const [renameProjectTarget, setRenameProjectTarget] = useState<Project | null>(null);
   const [projectSettingsTarget, setProjectSettingsTarget] = useState<Project | null>(null);
   const [deleteProjectTarget, setDeleteProjectTarget] = useState<Project | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -73,7 +71,6 @@ function App() {
     projects,
     createProject,
     updateProjectSettings,
-    renameProject,
     deleteProject,
   } = projectStore;
   const {
@@ -144,13 +141,6 @@ function App() {
       setProjectSettingsTarget(null);
     },
     [updateProjectSettings],
-  );
-  const handleRenameProject = useCallback(
-    async (projectId: string, name: string) => {
-      await renameProject(projectId, name);
-      setRenameProjectTarget(null);
-    },
-    [renameProject],
   );
   const handleConfirmDeleteProject = useCallback(
     async (projectId: string) => {
@@ -230,7 +220,6 @@ function App() {
         projects={projects}
         onConversationSelect={selectConversation}
         onProjectSelect={openProjectHome}
-        onRenameProject={setRenameProjectTarget}
         onEditProjectSettings={setProjectSettingsTarget}
         onDeleteProject={setDeleteProjectTarget}
         onRenameConversation={setRenameTarget}
@@ -309,11 +298,6 @@ function App() {
         conversation={deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleConfirmDeleteConversation}
-      />
-      <RenameProjectDialog
-        project={renameProjectTarget}
-        onClose={() => setRenameProjectTarget(null)}
-        onSave={handleRenameProject}
       />
       <DeleteProjectDialog
         project={deleteProjectTarget}

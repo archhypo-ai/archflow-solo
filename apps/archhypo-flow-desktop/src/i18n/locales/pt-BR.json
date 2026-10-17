@@ -114,8 +114,6 @@
     "emptyDescription": "Inicie uma nova conversa para manter tudo deste projeto junto.",
     "noChats": "Ainda não há conversas.",
     "noPreview": "Ainda sem mensagens",
-    "renameTitle": "Renomear projeto",
-    "renameError": "Não foi possível renomear o projeto. Tente novamente.",
     "deleteTitle": "Excluir projeto?",
     "deleteDescription_one": "Excluir \"{{title}}\" também excluirá permanentemente {{count}} conversa e todas as suas mensagens. Esta ação não pode ser desfeita.",
     "deleteDescription_other": "Excluir \"{{title}}\" também excluirá permanentemente {{count}} conversas e todas as suas mensagens. Esta ação não pode ser desfeita.",

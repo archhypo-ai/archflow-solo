@@ -54,20 +54,6 @@ export async function createProject(project: Project): Promise<Project> {
   return toProject(created);
 }
 
-export async function renameProject(
-  projectId: string,
-  name: string,
-): Promise<Project> {
-  const renamed = await request<BackendProject>(
-    `/api/projects/${encodeURIComponent(projectId)}`,
-    {
-      method: "PATCH",
-      body: JSON.stringify({ name }),
-    },
-  );
-  return toProject(renamed);
-}
-
 export async function updateProjectSettings(project: Project): Promise<Project> {
   const updated = await request<BackendProject>(
     `/api/projects/${encodeURIComponent(project.id)}`,

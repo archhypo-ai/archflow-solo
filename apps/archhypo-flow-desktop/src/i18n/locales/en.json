@@ -114,8 +114,6 @@
     "emptyDescription": "Start a new chat to keep this project's conversations together.",
     "noChats": "No conversations yet.",
     "noPreview": "No messages yet",
-    "renameTitle": "Rename project",
-    "renameError": "Could not rename the project. Please try again.",
     "deleteTitle": "Delete project?",
     "deleteDescription_one": "Deleting \"{{title}}\" will also permanently delete {{count}} conversation and all its messages. This cannot be undone.",
     "deleteDescription_other": "Deleting \"{{title}}\" will also permanently delete {{count}} conversations and all their messages. This cannot be undone.",
