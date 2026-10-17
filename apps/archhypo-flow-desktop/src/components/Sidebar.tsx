@@ -118,7 +118,7 @@ export function Sidebar({
         const menuOpen = openConversationMenuId === conversation.threadId;
         return (
           <div
-            className={`sidebar-conversation-row${isActive ? " is-active" : ""}`}
+            className="sidebar-conversation-row"
             key={conversation.threadId}
           >
             <button

@@ -40,24 +40,23 @@
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
-  scrollbar-color: var(--color-border-strong) transparent;
-  scrollbar-width: thin;
   padding: 0 24px;
 }
 
+/* Use WebKit metrics consistently; non-auto scrollbar properties override them. */
 .chat-thread-viewport::-webkit-scrollbar {
   width: 12px;
 }
 
 .chat-thread-viewport::-webkit-scrollbar-thumb {
-  border: 3px solid transparent;
+  border: 2px solid transparent;
   border-radius: 999px;
   background: var(--color-border-strong);
   background-clip: padding-box;
 }
 
 .chat-thread-viewport::-webkit-scrollbar-thumb:hover {
-  border-width: 2px;
+  border-width: 1px;
 }
 
 .chat-empty-state {
