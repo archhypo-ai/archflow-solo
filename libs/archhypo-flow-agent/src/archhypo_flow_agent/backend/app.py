@@ -28,12 +28,7 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
         owns_service = agent_service is None
         if agent_service is None:
             try:
-                system_one_client = (
-                    create_system_one_client(settings)
-                    if settings.system_one_model
-                    and settings.system_one_model.strip()
-                    else None
-                )
+                system_one_client = create_system_one_client(settings)
                 application.state.agent_service = AgentService(
                     model=create_openrouter_model(),
                     system_one_client=system_one_client,
@@ -47,7 +42,10 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
             application.state.chat_configuration_error = (
                 None
                 if agent_service.chat_ready
-                else "Configure OPENROUTER_API_KEY in libs/archhypo-flow-agent/.env."
+                else (
+                    "Configure OPENROUTER_API_KEY and SYSTEM_ONE_MODEL in "
+                    "libs/archhypo-flow-agent/.env."
+                )
             )
         try:
             yield

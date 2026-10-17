@@ -1,15 +1,21 @@
+import importlib
 import json
 
+import pytest
 from fastapi.testclient import TestClient
 
 from archhypo_flow_agent.backend.app import create_app
+from archhypo_flow_agent.config import AgentSettings
+from archhypo_flow_agent.providers import SystemOneRequestError, SystemOneResponseError
 from archhypo_flow_agent.services import AgentService
-from tests.fakes import stub_chat_model
+from tests.fakes import StubSystemOneClient, stub_chat_model
 
 
 def test_chat_endpoint_saves_and_returns_conversation(tmp_path) -> None:
     service = AgentService(
-        model=stub_chat_model(), database_path=tmp_path / "chat.sqlite"
+        model=stub_chat_model(),
+        system_one_client=StubSystemOneClient(),
+        database_path=tmp_path / "chat.sqlite",
     )
     app = create_app(service)
 
@@ -105,9 +111,79 @@ def test_chat_requires_an_explicitly_configured_model(tmp_path) -> None:
     assert "OPENROUTER_API_KEY" in response.json()["detail"]
 
 
+@pytest.mark.parametrize("model_name", [None, "", "   "])
+def test_missing_system_one_configuration_keeps_history_available(
+    monkeypatch, tmp_path, model_name
+) -> None:
+    app_module = importlib.import_module("archhypo_flow_agent.backend.app")
+    configuration = AgentSettings(
+        _env_file=None,
+        openrouter_api_key="test-key",
+        system_one_model=model_name,
+    )
+    monkeypatch.setattr(app_module, "settings", configuration)
+    monkeypatch.setattr(
+        app_module,
+        "AgentService",
+        lambda: AgentService(database_path=tmp_path / "history-only.sqlite"),
+    )
+
+    with TestClient(create_app()) as client:
+        health = client.get("/health")
+        assert health.json()["agent_ready"] is False
+        assert "SYSTEM_ONE_MODEL" in health.json()["configuration_error"]
+        assert client.get("/api/threads").status_code == 200
+        for path in ("/api/chat", "/api/chat/stream"):
+            response = client.post(
+                path,
+                json={"thread_id": "unconfigured-router", "message": "Hello"},
+            )
+            assert response.status_code == 503
+            assert "SYSTEM_ONE_MODEL" in response.json()["detail"]
+
+
+@pytest.mark.parametrize("error_type", [SystemOneRequestError, SystemOneResponseError])
+def test_routing_failures_are_explicit_in_chat_and_stream(tmp_path, error_type) -> None:
+    system_one = StubSystemOneClient(error=error_type("private provider details"))
+    service = AgentService(
+        model=stub_chat_model(),
+        system_one_client=system_one,
+        database_path=tmp_path / "failed-router.sqlite",
+    )
+    try:
+        with TestClient(create_app(service)) as client:
+            response = client.post(
+                "/api/chat",
+                json={"thread_id": "failed-router", "message": "Explain ArchHypo"},
+            )
+            assert response.status_code == 502
+            assert "SystemOne request routing failed" in response.json()["detail"]
+            assert "private provider details" not in response.json()["detail"]
+
+            events = _stream_events(
+                client,
+                {"thread_id": "failed-stream", "message": "Gere outra hipótese"},
+            )
+            assert [event["type"] for event in events] == [
+                "conversation_started", "phase", "error"
+            ]
+            assert "SystemOne request routing failed" in events[-1]["message"]
+            assert "private provider details" not in events[-1]["message"]
+            assert system_one.calls == 2
+            for thread_id in ("failed-router", "failed-stream"):
+                history = client.get(f"/api/threads/{thread_id}").json()
+                assert len(history["messages"]) == 1
+                assert history["messages"][0]["role"] == "user"
+                assert history["pending_hypothesis_review"] is None
+    finally:
+        service.close()
+
+
 def test_chat_stream_pauses_and_resumes_the_hypothesis_review(tmp_path) -> None:
     service = AgentService(
-        model=stub_chat_model(), database_path=tmp_path / "stream.sqlite"
+        model=stub_chat_model(),
+        system_one_client=StubSystemOneClient(),
+        database_path=tmp_path / "stream.sqlite",
     )
     try:
         with TestClient(create_app(service)) as client:
@@ -255,6 +331,7 @@ def test_chat_stream_pauses_and_resumes_the_hypothesis_review(tmp_path) -> None:
 def test_chat_endpoint_uses_configured_model_response(tmp_path) -> None:
     service = AgentService(
         model=stub_chat_model("Resposta configurada pelo modelo."),
+        system_one_client=StubSystemOneClient(),
         database_path=tmp_path / "chat.sqlite",
     )
     try:
@@ -295,7 +372,9 @@ def test_chat_endpoint_uses_configured_model_response(tmp_path) -> None:
 
 def test_rejected_reviews_require_a_reason_in_the_api(tmp_path) -> None:
     service = AgentService(
-        model=stub_chat_model(), database_path=tmp_path / "review-validation.sqlite"
+        model=stub_chat_model(),
+        system_one_client=StubSystemOneClient(),
+        database_path=tmp_path / "review-validation.sqlite",
     )
     try:
         with TestClient(create_app(service)) as client:
@@ -347,7 +426,9 @@ def _stream_events(client: TestClient, payload: dict[str, object]) -> list[dict]
 
 def test_tauri_webview_origin_can_call_local_api(tmp_path) -> None:
     service = AgentService(
-        model=stub_chat_model(), database_path=tmp_path / "chat.sqlite"
+        model=stub_chat_model(),
+        system_one_client=StubSystemOneClient(),
+        database_path=tmp_path / "chat.sqlite",
     )
     try:
         with TestClient(create_app(service)) as client:
@@ -371,7 +452,9 @@ def test_tauri_webview_origin_can_call_local_api(tmp_path) -> None:
 
 def test_projects_can_be_persisted_and_linked_to_conversations(tmp_path) -> None:
     service = AgentService(
-        model=stub_chat_model(), database_path=tmp_path / "projects.sqlite"
+        model=stub_chat_model(),
+        system_one_client=StubSystemOneClient(),
+        database_path=tmp_path / "projects.sqlite",
     )
     try:
         with TestClient(create_app(service)) as client:
@@ -447,7 +530,9 @@ def test_projects_can_be_persisted_and_linked_to_conversations(tmp_path) -> None
 
 def test_thread_metadata_can_be_renamed_pinned_and_deleted(tmp_path) -> None:
     service = AgentService(
-        model=stub_chat_model(), database_path=tmp_path / "chat.sqlite"
+        model=stub_chat_model(),
+        system_one_client=StubSystemOneClient(),
+        database_path=tmp_path / "chat.sqlite",
     )
     try:
         with TestClient(create_app(service)) as client:
@@ -481,7 +566,9 @@ def test_thread_metadata_can_be_renamed_pinned_and_deleted(tmp_path) -> None:
 
 def test_thread_update_rejects_blank_titles_and_empty_updates(tmp_path) -> None:
     service = AgentService(
-        model=stub_chat_model(), database_path=tmp_path / "chat.sqlite"
+        model=stub_chat_model(),
+        system_one_client=StubSystemOneClient(),
+        database_path=tmp_path / "chat.sqlite",
     )
     try:
         with TestClient(create_app(service)) as client:
@@ -506,7 +593,9 @@ def test_thread_update_rejects_blank_titles_and_empty_updates(tmp_path) -> None:
 
 def test_unknown_thread_returns_not_found(tmp_path) -> None:
     service = AgentService(
-        model=stub_chat_model(), database_path=tmp_path / "chat.sqlite"
+        model=stub_chat_model(),
+        system_one_client=StubSystemOneClient(),
+        database_path=tmp_path / "chat.sqlite",
     )
     try:
         with TestClient(create_app(service)) as client:

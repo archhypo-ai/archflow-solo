@@ -110,6 +110,29 @@ class Hypothesis(_Contract):
     justification: str = Field(min_length=1)
 
 
+class HypothesisProposal(_Contract):
+    """A proposed hypothesis, or a question when formulation is not justified."""
+
+    hypothesis: Hypothesis | None = None
+    clarification_question: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def require_one_outcome(self) -> HypothesisProposal:
+        if (self.hypothesis is None) == (self.clarification_question is None):
+            raise ValueError("provide either a hypothesis or a clarification question")
+        if self.clarification_question is not None:
+            if not self.clarification_question.strip():
+                raise ValueError("clarification question must not be blank")
+        return self
+
+
+class HypothesisNovelty(_Contract):
+    """Whether a candidate makes a distinct claim about the same uncertainty."""
+
+    is_distinct: bool
+    rationale: str = Field(min_length=1)
+
+
 class _HumanReviewDecision(_Contract):
     """Shared approve/reject decision with required rejection feedback."""
 
@@ -209,6 +232,8 @@ __all__ = [
     "CatalogPatternSelection",
     "DiscoveryStatus",
     "Hypothesis",
+    "HypothesisNovelty",
+    "HypothesisProposal",
     "HypothesisReview",
     "HypothesisAssessment",
     "NFR",

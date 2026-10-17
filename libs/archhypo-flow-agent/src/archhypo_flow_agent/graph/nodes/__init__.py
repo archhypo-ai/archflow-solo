@@ -5,7 +5,10 @@ from .architectural_uncertainty_discovery import (
 )
 from .direct_response_generation import create_direct_response_generation_node
 from .hypothesis_assessment import create_hypothesis_assessment_node
-from .hypothesis_formulation import create_hypothesis_formulation_node
+from .hypothesis_formulation import (
+    create_hypothesis_formulation_node,
+    route_after_hypothesis_formulation,
+)
 from .hypothesis_review import hypothesis_review_node, route_after_hypothesis_review
 from .request_routing import create_request_routing_node, route_request
 from .response_generation import create_response_generation_node
@@ -20,6 +23,7 @@ __all__ = [
     "create_direct_response_generation_node",
     "create_hypothesis_assessment_node",
     "create_hypothesis_formulation_node",
+    "route_after_hypothesis_formulation",
     "hypothesis_review_node",
     "route_after_hypothesis_review",
     "create_response_generation_node",

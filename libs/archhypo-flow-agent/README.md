@@ -32,6 +32,16 @@ uses conversation input and runtime context; it does not inspect a workspace.
 Scope and implementation boundaries are documented in
 [`../../docs/archhypo-flow.md`](../../docs/archhypo-flow.md).
 
+Hypothesis formulation distinguishes initial proposals, alternatives for the
+same uncertainty, and revisions. Alternatives are checked against the relevant
+history: local checks reject repeated statements/titles, and the main model
+compares non-identical claims semantically. A failed candidate is regenerated
+at most once. The generator can also request clarification instead of proposing
+a hypothesis. If no distinct proposal is found, the conversation receives a
+question without a duplicate approval card, and the prior approved analysis is
+preserved. The graph still has nine functional nodes; this uses the existing
+direct-response node, not a fallback request classifier.
+
 The technical planner screens the full `skills/archhypo-catalog/SKILL.md`
 index, considers up to five pattern candidates and selects up to three for
 Markdown reference reading. The plan then contains one to three actions and is
@@ -49,9 +59,9 @@ uv run ruff check .
 
 The local API exposes `POST /api/chat`, the streaming `POST /api/chat/stream` endpoint used by the desktop UI, `GET /api/threads`, and `GET /api/threads/{thread_id}`. The streaming endpoint sends tool-call starts and results as they occur before the final reply. LangGraph checkpoints and conversation metadata share one SQLite database, defaulting to `~/.local/share/archhypo-flow/runtime/checkpoints.sqlite`; override the storage root with `ARCHHYPO_FLOW_STORAGE_ROOT`.
 
-The desktop API uses `ChatOpenRouter` from the configured provider factory. Set `OPENROUTER_API_KEY` and optionally `OPENROUTER_MODEL` in this package's `.env`; the development launcher starts the backend with this directory as its working directory. Without a key, conversation history remains available, but chat requests return a configuration error instead of a fake reply.
+The desktop API uses `ChatOpenRouter` from the configured provider factory. Set `OPENROUTER_API_KEY` and `SYSTEM_ONE_MODEL`, and optionally `OPENROUTER_MODEL`, in this package's `.env`; the development launcher starts the backend with this directory as its working directory. If a required setting is missing, conversation history remains available, but chat requests return a configuration error instead of a fake reply.
 
-Structured routing uses the provider-neutral `SystemOneClient` contract backed by OpenRouter's decisions endpoint. Configure `SYSTEM_ONE_MODEL` with an OpenRouter model identifier to select the decision model; Jev and other supported models use the same contract and no provider-specific graph logic. `SYSTEM_ONE_ENDPOINT` and `SYSTEM_ONE_TIMEOUT` can override the endpoint and timeout. If no SystemOne model is configured or its request fails, routing falls back to structured output from the main chat model.
+Request classification in the initial `request_routing` node exclusively uses the provider-neutral `SystemOneClient` contract backed by OpenRouter's decisions endpoint. Configure `SYSTEM_ONE_MODEL` with a supported decision model identifier, for example `typesafe/jev-1.14` or `microsoft/microsoft-decision-1`; the graph has no model-vendor-specific logic. `SYSTEM_ONE_ENDPOINT` and `SYSTEM_ONE_TIMEOUT` can override the endpoint and timeout. There is no LLM or deterministic fallback: a failed or invalid SystemOne response stops the turn with an explicit routing error, before any hypothesis or direct response is generated. Existing results remain unchanged, and the user message remains checkpointed. The main chat model is used only after a valid route has been selected. Structured human-review decisions resume their pending stage without calling the router again.
 
 Global context is saved in the Tauri Store preferences file and sent as a snapshot with each chat request. Project context remains in the project's SQLite `instructions` field and is resolved through the conversation's persisted project association. The shared `agents.prompts.build_system_prompt()` function appends both contexts to the fixed prompt without storing them in checkpointed conversation messages; project context is included only for conversations belonging to that project.
 

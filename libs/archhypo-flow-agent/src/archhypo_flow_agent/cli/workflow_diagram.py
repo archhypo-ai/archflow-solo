@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import argparse
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +11,7 @@ from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langchain_core.runnables import RunnableLambda
 
 from archhypo_flow_agent.graph import build_graph
+from archhypo_flow_agent.providers import SystemOneResponse
 
 
 class DiagramModel(FakeListChatModel):
@@ -30,12 +31,27 @@ class DiagramModel(FakeListChatModel):
         return RunnableLambda(lambda _input: schema.model_construct())
 
 
+class DiagramSystemOneClient:
+    """Offline dependency used only to compile, never execute, the diagram."""
+
+    def decide(
+        self,
+        *,
+        state: str | dict[str, Any] | list[Any],
+        questions: Mapping[str, Mapping[str, Any]],
+        session_id: str | None = None,
+    ) -> SystemOneResponse:
+        raise RuntimeError("Diagram generation must not request SystemOne decisions")
+
+
 def generate_workflow_diagram(output_directory: Path) -> Path:
     """Write the compiled graph's Mermaid source into ``output_directory``."""
 
     output_directory.mkdir(parents=True, exist_ok=True)
     mermaid_path = output_directory / "archhypo-flow-agent.mmd"
-    graph = build_graph(model=DiagramModel())
+    graph = build_graph(
+        model=DiagramModel(), system_one_client=DiagramSystemOneClient()
+    )
     diagram = graph.get_graph(xray=True).draw_mermaid()
     mermaid_path.write_text(diagram, encoding="utf-8")
     return mermaid_path

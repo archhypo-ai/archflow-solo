@@ -287,8 +287,13 @@
   color: var(--color-foreground);
 }
 
-.sidebar-conversation-row:hover {
+.sidebar-conversation-row:hover,
+.sidebar-conversation-row.is-active {
   background: var(--color-hover);
+}
+
+.sidebar-conversation-row.is-active {
+  color: var(--color-accent);
 }
 
 .sidebar-conversation {

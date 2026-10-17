@@ -21,7 +21,8 @@ flowchart TD
     ROUTING -->|Alternative or revised hypothesis| FORMULATION[hypothesis_formulation]
     ROUTING -->|Question, out of scope, or clarification| DIRECT[direct_response_generation]
     DISCOVERY --> FORMULATION[hypothesis_formulation]
-    FORMULATION --> REVIEW{hypothesis_review}
+    FORMULATION -->|Valid proposal| REVIEW{hypothesis_review}
+    FORMULATION -->|Needs clarification| DIRECT
     REVIEW -->|Approved| ASSESSMENT[hypothesis_assessment]
     REVIEW -->|Rejected with reason| FORMULATION
     ASSESSMENT --> PLAN[technical_plan_generation]
@@ -34,9 +35,11 @@ flowchart TD
 
 1. **Routing:** SystemOne classifies the latest request using recent messages,
    active results, and runtime context. `SYSTEM_ONE_MODEL` selects the decision
-   model through OpenRouter. If it is not configured or fails, the main chat
-   model produces the same structured routing contract. New uncertainties go
-   to discovery; alternative/revised hypotheses go directly to formulation;
+   model through OpenRouter and is required for chat. There is no fallback to
+   the main chat model: missing configuration disables generation while keeping
+   history readable; an unavailable decision service or invalid response stops
+   the turn with an explicit routing error and preserves prior results. New
+   uncertainties go to discovery; alternative/revised hypotheses go to formulation;
    questions, out-of-scope requests, and ambiguous requests go to a direct
    response node. A request to classify the central quality domain of a
    concrete scenario still goes to discovery when it contains an unresolved
@@ -49,8 +52,15 @@ flowchart TD
    conversation and execution context. It does not read source code, folders,
    or documents.
 4. **Formulation:** produces one declarative, testable hypothesis. For an
-   alternative it reuses the active uncertainty and includes prior hypotheses
-   as context; for a revision it keeps the prior completed result in history.
+   alternative it reuses the active uncertainty and includes only hypotheses
+   associated with that uncertainty. Initial formulation, alternative, and
+   revision have separate instructions. Repeated statements and titles are
+   checked locally, and non-identical alternative claims receive a structured
+   semantic comparison using the main model. A rejected candidate gets at most
+   one regeneration attempt, not an unbounded loop. If no grounded, distinct
+   proposal is produced, the direct-response node asks for clarification instead
+   of opening another approval card. The prior approved result stays active
+   until a valid new hypothesis is produced; previous results are not rewritten.
 5. **Hypothesis review:** pauses the LangGraph run and shows the hypothesis in
    the app. Approval continues to assessment. Rejection requires a reason; that
    feedback is supplied to formulation and the revised hypothesis is presented

@@ -21,6 +21,7 @@ from archhypo_flow_agent.graph.nodes import (
     create_response_generation_node,
     create_technical_plan_generation_node,
     hypothesis_review_node,
+    route_after_hypothesis_formulation,
     route_after_hypothesis_review,
     route_after_technical_plan_review,
     route_request,
@@ -32,16 +33,16 @@ from archhypo_flow_agent.providers import SystemOneClient
 def build_graph(
     model: BaseChatModel,
     *,
+    system_one_client: SystemOneClient,
     tools: Sequence[BaseTool] = (),
     checkpointer: BaseCheckpointSaver | None = None,
-    system_one_client: SystemOneClient | None = None,
 ):
     """Build the routed direct-response and ArchHypo workflows.
 
-    SystemOne is injected when configured; the router has a structured LLM
-    fallback. Direct and final responses use separate prompts. A checkpointer
-    may be injected by the application; it is required to resume human review.
-    Graph construction owns no storage.
+    SystemOne is required and exclusively owns request classification; routing
+    errors stop execution. Direct and final responses use separate prompts.
+    A checkpointer may be injected by the application; it is required to resume
+    human review. Graph construction owns no storage.
     """
 
     response_agent = build_response_generation_agent(
@@ -51,7 +52,7 @@ def build_graph(
     workflow = StateGraph(AgentState, context_schema=AgentRunContext)
     workflow.add_node(
         "request_routing",
-        create_request_routing_node(model, system_one_client=system_one_client),
+        create_request_routing_node(system_one_client),
     )
     workflow.add_node(
         "direct_response_generation",
@@ -95,7 +96,14 @@ def build_graph(
     )
     workflow.add_edge("direct_response_generation", END)
     workflow.add_edge("architectural_uncertainty_discovery", "hypothesis_formulation")
-    workflow.add_edge("hypothesis_formulation", "hypothesis_review")
+    workflow.add_conditional_edges(
+        "hypothesis_formulation",
+        route_after_hypothesis_formulation,
+        {
+            "hypothesis_review": "hypothesis_review",
+            "direct_response_generation": "direct_response_generation",
+        },
+    )
     workflow.add_conditional_edges(
         "hypothesis_review",
         route_after_hypothesis_review,

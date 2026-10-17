@@ -46,6 +46,8 @@ class AgentService:
         tools: Sequence[BaseTool] | None = None,
         system_one_client: SystemOneClient | None = None,
     ) -> None:
+        if model is not None and system_one_client is None:
+            raise ValueError("A SystemOne client is required for request routing.")
         self._lock = Lock()
         self._persistence: SQLitePersistence | None = None
         self._observability: Observability | None = None

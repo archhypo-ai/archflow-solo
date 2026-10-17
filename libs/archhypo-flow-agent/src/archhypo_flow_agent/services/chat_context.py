@@ -53,6 +53,7 @@ class ChatContextResolver:
         return metadata, {
             "global_context": request.global_context,
             "project_context": project_context,
+            "language": request.language,
         }
 
     def _require_project(self, project_id: str) -> None:

@@ -1,6 +1,7 @@
 import pytest
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 from langchain_core.messages import HumanMessage
+from langchain_core.runnables import RunnableLambda
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 from pydantic import ValidationError
@@ -9,6 +10,7 @@ from archhypo_flow_agent.core import (
     ArchitecturalUncertaintyDiscovery,
     Hypothesis,
     HypothesisAssessment,
+    HypothesisProposal,
     HypothesisReview,
     RequestRouting,
     TechnicalPlan,
@@ -16,8 +18,8 @@ from archhypo_flow_agent.core import (
 )
 from archhypo_flow_agent.graph import build_graph
 from archhypo_flow_agent.graph.nodes import technical_plan_generation
-from archhypo_flow_agent.providers.system_one import SystemOneAnswer, SystemOneResponse
-from tests.fakes import StructuredOutputStub
+from archhypo_flow_agent.providers import SystemOneRequestError
+from tests.fakes import StructuredOutputStub, StubSystemOneClient, structured_output
 
 
 class StubModel(StructuredOutputStub, FakeListChatModel):
@@ -28,26 +30,13 @@ class StubModel(StructuredOutputStub, FakeListChatModel):
         return self
 
 
-class IntentClient:
-    def __init__(self, *intents: str) -> None:
-        self._intents = list(intents)
-        self.state = None
-        self.questions = None
-
-    def decide(self, *, state, questions, session_id=None):
-        self.state = state
-        self.questions = questions
-        intent = self._intents.pop(0)
-        return SystemOneResponse(
-            model="test/model",
-            answers={
-                "intent": SystemOneAnswer(type="choice", choice=intent),
-            },
-        )
-
-
 def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
-    graph = build_graph(model=StubModel(), checkpointer=MemorySaver())
+    system_one = StubSystemOneClient()
+    graph = build_graph(
+        model=StubModel(),
+        system_one_client=system_one,
+        checkpointer=MemorySaver(),
+    )
     config = {"configurable": {"thread_id": "approved-hypothesis"}}
 
     paused = graph.invoke(
@@ -76,6 +65,7 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
     )
 
     assert result["messages"][-1].content == "Hello from the test agent."
+    assert system_one.calls == 1
     assert result["routing"].route == "architectural_uncertainty_discovery"
     assert result["discovery"].uncertainty == "Hello"
     assert result["hypothesis"].statement
@@ -109,7 +99,7 @@ def test_direct_question_keeps_the_completed_archhypo_result() -> None:
     graph = build_graph(
         model=StubModel(),
         checkpointer=MemorySaver(),
-        system_one_client=IntentClient("new_uncertainty", "contextual_question"),
+        system_one_client=StubSystemOneClient("new_uncertainty", "contextual_question"),
     )
     config = {"configurable": {"thread_id": "direct-follow-up"}}
 
@@ -141,11 +131,44 @@ def test_direct_question_keeps_the_completed_archhypo_result() -> None:
     )
 
 
+def test_router_failure_preserves_the_previous_completed_result() -> None:
+    system_one = StubSystemOneClient()
+    graph = build_graph(
+        model=StubModel(),
+        system_one_client=system_one,
+        checkpointer=MemorySaver(),
+    )
+    config = {"configurable": {"thread_id": "failed-routing-follow-up"}}
+    graph.invoke(
+        {"messages": [HumanMessage(content="The service may not scale.")]},
+        config=config,
+    )
+    graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    completed = graph.invoke(Command(resume={"decision": "approved"}), config=config)
+
+    system_one.error = SystemOneRequestError("decision service unavailable")
+    with pytest.raises(SystemOneRequestError, match="service unavailable"):
+        graph.invoke(
+            {"messages": [HumanMessage(content="Gere outra hipótese")]},
+            config=config,
+        )
+
+    snapshot = graph.get_state(config)
+    assert snapshot.values["result"] == completed["result"]
+    assert snapshot.values["hypothesis"] == completed["hypothesis"]
+    assert snapshot.values["review_history"] == completed["review_history"]
+    assert snapshot.values["messages"][-1].content == "Gere outra hipótese"
+    assert snapshot.next == ("request_routing",)
+    assert system_one.calls == 2
+
+
 def test_alternative_hypothesis_preserves_prior_result_and_uncertainty() -> None:
     graph = build_graph(
         model=StubModel(),
         checkpointer=MemorySaver(),
-        system_one_client=IntentClient("new_uncertainty", "alternative_hypothesis"),
+        system_one_client=StubSystemOneClient(
+            "new_uncertainty", "alternative_hypothesis"
+        ),
     )
     config = {"configurable": {"thread_id": "alternative-hypothesis"}}
     graph.invoke(
@@ -182,8 +205,48 @@ def test_alternative_hypothesis_preserves_prior_result_and_uncertainty() -> None
     )
 
 
+def test_repeated_alternative_does_not_create_another_approval_card() -> None:
+    class RepeatingModel(StubModel):
+        def with_structured_output(self, schema, **kwargs):
+            if schema is HypothesisProposal:
+                return RunnableLambda(
+                    lambda _: HypothesisProposal(
+                        hypothesis=structured_output(Hypothesis, {})
+                    )
+                )
+            return super().with_structured_output(schema, **kwargs)
+
+    system_one = StubSystemOneClient("new_uncertainty", "alternative_hypothesis")
+    graph = build_graph(
+        model=RepeatingModel(),
+        system_one_client=system_one,
+        checkpointer=MemorySaver(),
+    )
+    config = {"configurable": {"thread_id": "repeated-alternative"}}
+    graph.invoke(
+        {"messages": [HumanMessage(content="Investigate peak ingestion capacity.")]},
+        config=config,
+    )
+    graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    completed = graph.invoke(Command(resume={"decision": "approved"}), config=config)
+
+    clarified = graph.invoke(
+        {"messages": [HumanMessage(content="give me another hypothesis")]},
+        config=config,
+    )
+
+    assert graph.get_state(config).next == ()
+    assert clarified["result"] == completed["result"]
+    assert clarified["hypothesis"] == completed["hypothesis"]
+    assert clarified["assessment"] == completed["assessment"]
+    assert clarified["review_history"] == completed["review_history"]
+    assert clarified["messages"][-1].type == "ai"
+    assert "Which other assumption" in clarified["messages"][-1].content
+    assert system_one.calls == 2
+
+
 def test_concrete_uncertainty_classification_enters_archhypo_flow() -> None:
-    system_one = IntentClient("new_uncertainty")
+    system_one = StubSystemOneClient("new_uncertainty")
     graph = build_graph(
         model=StubModel(),
         checkpointer=MemorySaver(),
@@ -243,7 +306,11 @@ def test_legacy_route_checkpoint_is_upgraded_to_request_intent() -> None:
 
 
 def test_rejected_hypothesis_is_reformulated_using_required_feedback() -> None:
-    graph = build_graph(model=StubModel(), checkpointer=MemorySaver())
+    graph = build_graph(
+        model=StubModel(),
+        system_one_client=StubSystemOneClient(),
+        checkpointer=MemorySaver(),
+    )
     config = {"configurable": {"thread_id": "rejected-hypothesis"}}
     initial = graph.invoke(
         {"messages": [HumanMessage(content="Hello")]},
@@ -280,7 +347,11 @@ def test_rejected_hypothesis_is_reformulated_using_required_feedback() -> None:
 
 
 def test_rejected_technical_plan_is_regenerated_with_feedback() -> None:
-    graph = build_graph(model=StubModel(), checkpointer=MemorySaver())
+    graph = build_graph(
+        model=StubModel(),
+        system_one_client=StubSystemOneClient(),
+        checkpointer=MemorySaver(),
+    )
     config = {"configurable": {"thread_id": "rejected-technical-plan"}}
     graph.invoke(
         {"messages": [HumanMessage(content="Hello")]},

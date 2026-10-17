@@ -10,11 +10,40 @@ from archhypo_flow_agent.core import (
     ChatRequest,
     Hypothesis,
     HypothesisAssessment,
+    HypothesisNovelty,
+    HypothesisProposal,
     HypothesisReview,
-    RequestRouting,
     TechnicalPlan,
     TechnicalPlanReview,
 )
+from archhypo_flow_agent.providers import (
+    SystemOneAnswer,
+    SystemOneError,
+    SystemOneResponse,
+)
+
+
+class StubSystemOneClient:
+    """Return scripted intents without contacting a decision provider."""
+
+    def __init__(self, *intents: str, error: SystemOneError | None = None) -> None:
+        self._intents = list(intents)
+        self.error = error
+        self.calls = 0
+        self.state = None
+        self.questions = None
+
+    def decide(self, *, state, questions, session_id=None) -> SystemOneResponse:
+        self.calls += 1
+        self.state = state
+        self.questions = questions
+        if self.error is not None:
+            raise self.error
+        intent = self._intents.pop(0) if self._intents else "new_uncertainty"
+        return SystemOneResponse(
+            model="test/decision-model",
+            answers={"intent": SystemOneAnswer(type="choice", choice=intent)},
+        )
 
 
 class StructuredOutputStub:
@@ -74,6 +103,13 @@ def structured_output(schema, value):
     else:
         messages = []
 
+    if schema is HypothesisProposal:
+        return schema(hypothesis=structured_output(Hypothesis, value))
+    if schema is HypothesisNovelty:
+        return schema(
+            is_distinct=True,
+            rationale="The test fixture supplies a distinct testable alternative.",
+        )
     if schema is ArchitecturalUncertaintyDiscovery:
         latest = next(
             (
@@ -91,8 +127,6 @@ def structured_output(schema, value):
             rationale="The stub reuses the user-provided concern.",
             confidence=0.9,
         )
-    if schema is RequestRouting:
-        return RequestRouting(intent="new_uncertainty")
     if schema is Hypothesis:
         material = _human_material(value)
         marker = "Reviewer feedback (address this directly):\n"
@@ -190,6 +224,7 @@ def _human_material(value) -> str:
 __all__ = [
     "StructuredOutputStub",
     "StubChatModel",
+    "StubSystemOneClient",
     "approved_hypothesis_request",
     "approved_technical_plan_request",
     "structured_output",

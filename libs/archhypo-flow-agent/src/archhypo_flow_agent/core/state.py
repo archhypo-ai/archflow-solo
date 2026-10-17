@@ -26,6 +26,7 @@ class AgentState(TypedDict):
     discovery: NotRequired[ArchitecturalUncertaintyDiscovery | None]
     uncertainty: NotRequired[str | None]
     hypothesis: NotRequired[Hypothesis | None]
+    formulation_question: NotRequired[str | None]
     hypothesis_review: NotRequired[HypothesisReview | None]
     hypothesis_feedback: NotRequired[str | None]
     assessment: NotRequired[HypothesisAssessment | None]

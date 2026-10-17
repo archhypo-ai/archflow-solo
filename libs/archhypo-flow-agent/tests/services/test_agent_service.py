@@ -10,12 +10,22 @@ from archhypo_flow_agent.core import ChatRequest
 from archhypo_flow_agent.services import AgentService
 from tests.fakes import (
     StructuredOutputStub,
+    StubSystemOneClient,
     approved_hypothesis_request,
     approved_technical_plan_request,
     stub_chat_model,
 )
 
 tavily_module = importlib.import_module("archhypo_flow_agent.tools.search.tavily")
+
+
+def test_generation_requires_system_one_before_opening_persistence(tmp_path) -> None:
+    database_path = tmp_path / "missing-router.sqlite"
+
+    with pytest.raises(ValueError, match="SystemOne client is required"):
+        AgentService(model=stub_chat_model(), database_path=database_path)
+
+    assert not database_path.exists()
 
 
 class ToolCallingModel(StructuredOutputStub, FakeMessagesListChatModel):
@@ -54,7 +64,11 @@ class ContextRecordingModel(StructuredOutputStub, FakeMessagesListChatModel):
 
 def test_stream_persists_and_announces_user_message_before_generation(tmp_path) -> None:
     database_path = tmp_path / "early-message.sqlite"
-    service = AgentService(model=stub_chat_model(), database_path=database_path)
+    service = AgentService(
+        model=stub_chat_model(),
+        system_one_client=StubSystemOneClient(),
+        database_path=database_path,
+    )
     history_reader = AgentService(database_path=database_path)
     stream = service.stream(
         ChatRequest(thread_id="early-thread", message="Persist immediately")
@@ -80,6 +94,7 @@ def test_stream_persists_and_announces_user_message_before_generation(tmp_path) 
 def test_user_message_is_checkpointed_before_model_generation(tmp_path) -> None:
     service = AgentService(
         model=FailingChatModel(responses=[]),
+        system_one_client=StubSystemOneClient(),
         database_path=tmp_path / "failed-run.sqlite",
         tools=[],
     )
@@ -108,6 +123,7 @@ def test_run_context_isolated_by_conversation_and_refreshed_per_turn(tmp_path) -
     )
     service = AgentService(
         model=model,
+        system_one_client=StubSystemOneClient(),
         database_path=tmp_path / "context.sqlite",
         tools=[],
     )
@@ -249,7 +265,11 @@ def test_configured_tavily_calls_are_returned_and_restored(
             AIMessage(content="You're welcome."),
         ]
     )
-    service = AgentService(model=model, database_path=tmp_path / "tool-calls.sqlite")
+    service = AgentService(
+        model=model,
+        system_one_client=StubSystemOneClient(),
+        database_path=tmp_path / "tool-calls.sqlite",
+    )
 
     try:
         service.respond(
@@ -345,7 +365,11 @@ def test_stream_emits_tool_calls_and_results_before_the_final_reply(
             AIMessage(content="The first turn is summarized."),
         ]
     )
-    service = AgentService(model=model, database_path=tmp_path / "stream.sqlite")
+    service = AgentService(
+        model=model,
+        system_one_client=StubSystemOneClient(),
+        database_path=tmp_path / "stream.sqlite",
+    )
 
     try:
         pending_events = list(

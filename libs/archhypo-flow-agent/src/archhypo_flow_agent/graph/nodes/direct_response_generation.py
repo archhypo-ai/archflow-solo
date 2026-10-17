@@ -3,7 +3,7 @@
 import json
 from typing import Any
 
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import Runnable
 from langgraph.runtime import Runtime
 
@@ -19,6 +19,12 @@ def create_direct_response_generation_node(response_agent: Runnable[Any, Any]):
         state: AgentState,
         runtime: Runtime[AgentRunContext] | None = None,
     ) -> dict[str, object]:
+        question = state.get("formulation_question")
+        if question:
+            return {
+                "messages": [AIMessage(content=question)],
+                "formulation_question": None,
+            }
         routing = state.get("routing")
         intent = routing.intent if routing is not None else "contextual_question"
         serialized_analysis = json.dumps(

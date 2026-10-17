@@ -2,19 +2,13 @@
 
 from __future__ import annotations
 
-import json
-import logging
-
-from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
 from pydantic import ValidationError
 
-from archhypo_flow_agent.agents import build_request_routing_agent
 from archhypo_flow_agent.agents.request_routing import (
     REQUEST_INTENT_CRITERIA,
     SYSTEM_ONE_ROUTING_QUESTION,
-    SYSTEM_PROMPT,
 )
 from archhypo_flow_agent.core import (
     AgentRunContext,
@@ -22,24 +16,18 @@ from archhypo_flow_agent.core import (
     RequestRoute,
     RequestRouting,
 )
-from archhypo_flow_agent.providers import (
-    SystemOneClient,
-    SystemOneError,
-    SystemOneResponseError,
-)
+from archhypo_flow_agent.providers import SystemOneClient, SystemOneResponseError
 
-from .support import analysis_context, contextual_system_prompt, latest_user_input
+from .support import analysis_context, latest_user_input
 
-logger = logging.getLogger(__name__)
 
 def create_request_routing_node(
-    model: BaseChatModel,
-    *,
-    system_one_client: SystemOneClient | None = None,
+    system_one_client: SystemOneClient,
 ):
-    """Use SystemOne for routing and the main model as a resilient fallback."""
+    """Classify with SystemOne only; propagate errors without choosing a route."""
 
-    fallback_router = build_request_routing_agent(model)
+    if system_one_client is None:
+        raise ValueError("A SystemOne client is required for request routing.")
 
     def route(
         state: AgentState,
@@ -47,52 +35,28 @@ def create_request_routing_node(
     ) -> dict[str, object]:
         latest_message = latest_user_input(state["messages"])
         current_analysis = analysis_context(state)
-        fallback_input = {
-            "messages": state["messages"],
-            "system_prompt": contextual_system_prompt(SYSTEM_PROMPT, runtime),
-            "analysis_context": json.dumps(
+        decision = system_one_client.decide(
+            state=_system_one_state(
+                state,
+                runtime,
+                latest_message,
                 current_analysis,
-                ensure_ascii=False,
-                default=str,
             ),
-        }
-
-        if system_one_client is None:
-            routing = RequestRouting.model_validate(
-                fallback_router.invoke(fallback_input)
-            )
-        else:
-            try:
-                decision = system_one_client.decide(
-                    state=_system_one_state(
-                        state,
-                        runtime,
-                        latest_message,
-                        current_analysis,
-                    ),
-                    questions={"intent": SYSTEM_ONE_ROUTING_QUESTION},
-                )
-                answer = decision.answers.get("intent")
-                if answer is None or answer.choice not in REQUEST_INTENT_CRITERIA:
-                    raise SystemOneResponseError(
-                        "SystemOne returned an unknown request intent"
-                    )
-                try:
-                    routing = RequestRouting.model_validate(
-                        {"intent": answer.choice}
-                    )
-                except ValidationError as error:
-                    raise SystemOneResponseError(
-                        "SystemOne returned an invalid request intent"
-                    ) from error
-            except SystemOneError as error:
-                logger.warning(
-                    "SystemOne routing failed; using the structured LLM fallback: %s",
-                    type(error).__name__,
-                )
-                routing = RequestRouting.model_validate(
-                    fallback_router.invoke(fallback_input)
-                )
+            questions={"intent": SYSTEM_ONE_ROUTING_QUESTION},
+        )
+        answer = decision.answers.get("intent")
+        if (
+            answer is None
+            or answer.type != "choice"
+            or answer.choice not in REQUEST_INTENT_CRITERIA
+        ):
+            raise SystemOneResponseError("SystemOne returned an invalid request intent")
+        try:
+            routing = RequestRouting.model_validate({"intent": answer.choice})
+        except ValidationError as error:
+            raise SystemOneResponseError(
+                "SystemOne returned an invalid request intent"
+            ) from error
 
         return _prepare_route(state, routing)
 
@@ -131,9 +95,20 @@ def _prepare_route(
     if active_result is not None and active_result not in result_history:
         result_history.append(active_result)
 
+    if routing.intent in {"alternative_hypothesis", "revise_hypothesis"}:
+        # Preserve the approved analysis until a valid replacement is generated.
+        # If formulation asks a question, the previous result stays active.
+        return {
+            "routing": routing,
+            "result_history": result_history,
+            "formulation_question": None,
+            "hypothesis_feedback": None,
+        }
+
     update: dict[str, object] = {
         "routing": routing,
         "result_history": result_history,
+        "formulation_question": None,
         "hypothesis_review": None,
         "hypothesis_feedback": None,
         "assessment": None,
@@ -151,9 +126,6 @@ def _prepare_route(
                 "hypothesis": None,
             }
         )
-    # For an alternative/revision, keep the active discovery, uncertainty, and
-    # hypothesis available to formulation. It will replace only the active
-    # hypothesis after the previous completed result has been archived.
     return update
 
 

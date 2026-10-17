@@ -1,6 +1,6 @@
 """Runtime context passed to one graph execution."""
 
-from typing import TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 
 class AgentRunContext(TypedDict):
@@ -8,6 +8,7 @@ class AgentRunContext(TypedDict):
 
     global_context: str
     project_context: str
+    language: NotRequired[Literal["en", "pt-BR"]]
 
 
 __all__ = ["AgentRunContext"]
