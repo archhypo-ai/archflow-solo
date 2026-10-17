@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.sse import EventSourceResponse, ServerSentEvent
 
 from archhypo_flow_agent.backend.dependencies import AgentServiceDependency
-from archhypo_flow_agent.core import ChatRequest, ChatResponse
+from archhypo_flow_agent.core import ChatRequest, ChatResponse, StructuredOutputError
 from archhypo_flow_agent.providers import SystemOneError
 from archhypo_flow_agent.services.chat_execution import ReviewStateError
 
@@ -43,6 +43,12 @@ def send_message(
     except SystemOneError as error:
         logger.error("SystemOne routing failed (%s)", type(error).__name__)
         raise HTTPException(status_code=502, detail=_ROUTING_ERROR_MESSAGE) from error
+    except StructuredOutputError as error:
+        logger.error("Structured model output failed in stage %s", error.stage)
+        raise HTTPException(
+            status_code=502,
+            detail=_structured_output_error_message(error),
+        ) from error
     except Exception as error:
         logger.error("Chat generation failed (%s)", type(error).__name__)
         raise HTTPException(
@@ -96,6 +102,16 @@ def stream_message(
                     run_id, payload.thread_id, _ROUTING_ERROR_MESSAGE
                 ),
             )
+        except StructuredOutputError as error:
+            logger.error("Structured model output failed in stage %s", error.stage)
+            yield ServerSentEvent(
+                event="chat",
+                data=_stream_error_data(
+                    run_id,
+                    payload.thread_id,
+                    _structured_output_error_message(error),
+                ),
+            )
         except Exception as error:
             logger.error("Chat stream failed (%s)", type(error).__name__)
             yield ServerSentEvent(
@@ -119,6 +135,18 @@ def _stream_error_data(run_id: str, thread_id: str, message: str) -> dict[str, o
         "type": "error",
         "message": message,
     }
+
+
+def _structured_output_error_message(error: StructuredOutputError) -> str:
+    if error.stage == "hypothesis_assessment":
+        return (
+            "The model returned an incomplete assessment after one correction "
+            "attempt. The pending workflow state was preserved; retry the turn."
+        )
+    return (
+        "The model returned invalid structured output after a correction attempt. "
+        "The pending workflow state was preserved; retry the turn."
+    )
 
 
 __all__ = ["router"]

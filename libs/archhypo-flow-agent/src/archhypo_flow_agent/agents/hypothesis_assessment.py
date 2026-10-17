@@ -24,8 +24,12 @@ Assessment guidance:
   hypothesis; it is not the same as impact or risk severity.
 - Give an independent, concise justification for the NFR, impact, and
   uncertainty.
+- Always return every required field exactly: `nfr`, `nfr_justification`,
+  `impact`, `impact_justification`, `uncertainty`, and
+  `uncertainty_justification`. Never omit a justification, including when it is
+  concise.
 - Base ratings only on the supplied material. Where context is sparse, say so
-  in the justifications and keep the assessment exploratory.
+  in each relevant justification and keep the assessment exploratory.
 - Do not create a technical plan or infer unprovided facts.
 """
 
@@ -34,7 +38,7 @@ def build_hypothesis_assessment_agent(model: BaseChatModel):
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", "{system_prompt}"),
-            ("human", "{material}"),
+            ("human", "{material}\n\n{repair_feedback}"),
         ]
     )
     return prompt | model.with_structured_output(HypothesisAssessment)

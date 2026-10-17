@@ -21,6 +21,7 @@ from .archhypo import (
 )
 from .context import AgentRunContext
 from .contracts import ChatRequest, ChatResponse, ToolCallRecord
+from .errors import StructuredOutputError
 from .state import AgentState
 
 __all__ = [
@@ -42,6 +43,7 @@ __all__ = [
     "RequestIntent",
     "RequestRoute",
     "RequestRouting",
+    "StructuredOutputError",
     "TechnicalPlan",
     "TechnicalPlanItem",
     "TechnicalPlanReview",

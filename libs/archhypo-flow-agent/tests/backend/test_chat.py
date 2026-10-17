@@ -6,6 +6,7 @@ from fastapi.testclient import TestClient
 
 from archhypo_flow_agent.backend.app import create_app
 from archhypo_flow_agent.config import AgentSettings
+from archhypo_flow_agent.core import StructuredOutputError
 from archhypo_flow_agent.providers import SystemOneRequestError, SystemOneResponseError
 from archhypo_flow_agent.services import AgentService
 from tests.fakes import StubSystemOneClient, stub_chat_model
@@ -177,6 +178,50 @@ def test_routing_failures_are_explicit_in_chat_and_stream(tmp_path, error_type) 
                 assert history["pending_hypothesis_review"] is None
     finally:
         service.close()
+
+
+def test_assessment_schema_failure_is_reported_separately_from_openrouter(
+    monkeypatch, tmp_path
+) -> None:
+    service = AgentService(
+        model=stub_chat_model(),
+        system_one_client=StubSystemOneClient(),
+        database_path=tmp_path / "assessment-schema-error.sqlite",
+    )
+
+    def fail_respond(_request):
+        raise StructuredOutputError(stage="hypothesis_assessment", attempts=2)
+
+    def fail_stream(_request, *, run_id=None):
+        def events():
+            raise StructuredOutputError(stage="hypothesis_assessment", attempts=2)
+            yield {}
+
+        return events()
+
+    monkeypatch.setattr(service, "respond", fail_respond)
+    monkeypatch.setattr(service, "stream", fail_stream)
+    expected_detail = (
+        "The model returned an incomplete assessment after one correction attempt."
+    )
+    try:
+        with TestClient(create_app(service)) as client:
+            response = client.post(
+                "/api/chat",
+                json={"thread_id": "assessment-error", "message": "Assess this"},
+            )
+            events = _stream_events(
+                client,
+                {"thread_id": "assessment-error", "message": "Assess this"},
+            )
+    finally:
+        service.close()
+
+    assert response.status_code == 502
+    assert expected_detail in response.json()["detail"]
+    assert "OpenRouter request failed" not in response.json()["detail"]
+    assert events[-1]["type"] == "error"
+    assert expected_detail in events[-1]["message"]
 
 
 def test_chat_stream_pauses_and_resumes_the_hypothesis_review(tmp_path) -> None:

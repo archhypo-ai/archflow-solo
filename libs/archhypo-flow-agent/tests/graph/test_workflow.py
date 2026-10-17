@@ -13,6 +13,7 @@ from archhypo_flow_agent.core import (
     HypothesisProposal,
     HypothesisReview,
     RequestRouting,
+    StructuredOutputError,
     TechnicalPlan,
     TechnicalPlanReview,
 )
@@ -160,6 +161,52 @@ def test_router_failure_preserves_the_previous_completed_result() -> None:
     assert snapshot.values["messages"][-1].content == "Gere outra hipótese"
     assert snapshot.next == ("request_routing",)
     assert system_one.calls == 2
+
+
+def test_unrepairable_assessment_keeps_approved_hypothesis_checkpoint() -> None:
+    assessment_calls = [0]
+
+    class MalformedAssessmentModel(StubModel):
+        def with_structured_output(self, schema, **kwargs):
+            if schema is HypothesisAssessment:
+                def omit_required_justification(_input):
+                    assessment_calls[0] += 1
+                    return HypothesisAssessment.model_validate(
+                        {
+                            "nfr": "Performance",
+                            "nfr_justification": "The input rate is large.",
+                            "impact": "High",
+                            "impact_justification": "Capacity affects deployment.",
+                            "uncertainty": "Medium",
+                        }
+                    )
+
+                return RunnableLambda(omit_required_justification)
+            return super().with_structured_output(schema, **kwargs)
+
+    model = MalformedAssessmentModel()
+    graph = build_graph(
+        model=model,
+        system_one_client=StubSystemOneClient(),
+        checkpointer=MemorySaver(),
+    )
+    config = {"configurable": {"thread_id": "assessment-invalid-output"}}
+    graph.invoke(
+        {"messages": [HumanMessage(content="Assess peak capacity.")]},
+        config=config,
+    )
+
+    with pytest.raises(StructuredOutputError, match="hypothesis_assessment"):
+        graph.invoke(Command(resume={"decision": "approved"}), config=config)
+
+    snapshot = graph.get_state(config)
+    assert assessment_calls[0] == 2
+    assert snapshot.values["hypothesis_review"].decision == "approved"
+    assert snapshot.values["hypothesis"] is not None
+    assert snapshot.values.get("assessment") is None
+    assert [item["kind"] for item in snapshot.values["review_history"]] == [
+        "hypothesis_review"
+    ]
 
 
 def test_alternative_hypothesis_preserves_prior_result_and_uncertainty() -> None:
