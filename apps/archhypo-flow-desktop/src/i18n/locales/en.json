@@ -74,6 +74,7 @@
     "reviewPreviewPending": "Pending decision",
     "reviewPreviewApproved": "Approved example",
     "copyMessage": "Copy message",
+    "tableScrollRegion": "Markdown table. Scroll horizontally to see all columns.",
     "toolCall": "{{count}} tool call",
     "toolCalls": "{{count}} tool calls",
     "toolArguments": "Arguments",

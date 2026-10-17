@@ -74,6 +74,7 @@
     "reviewPreviewPending": "Aguardando decisão",
     "reviewPreviewApproved": "Exemplo aprovado",
     "copyMessage": "Copiar mensagem",
+    "tableScrollRegion": "Tabela Markdown. Role horizontalmente para ver todas as colunas.",
     "toolCall": "{{count}} chamada de ferramenta",
     "toolCalls": "{{count}} chamadas de ferramenta",
     "toolArguments": "Argumentos",

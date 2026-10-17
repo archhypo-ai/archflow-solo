@@ -3,6 +3,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import type { TextMessagePartComponent } from "@assistant-ui/react";
 import { MarkdownTextPrimitive } from "@assistant-ui/react-markdown";
 import type { ComponentProps, MouseEvent } from "react";
+import { useTranslation } from "react-i18next";
 import remarkGfm from "remark-gfm";
 
 type MarkdownLinkProps = ComponentProps<"a">;
@@ -38,9 +39,37 @@ function MarkdownLink({ href, ...props }: MarkdownLinkProps) {
   );
 }
 
+type MarkdownTableProps = ComponentProps<"table"> & { node?: unknown };
+
+function MarkdownTable({
+  children,
+  className,
+  node: _node,
+  ...props
+}: MarkdownTableProps) {
+  const { t } = useTranslation();
+
+  return (
+    <div
+      className="chat-markdown-table-scroll"
+      role="region"
+      aria-label={t("chat.tableScrollRegion")}
+      tabIndex={0}
+    >
+      <table
+        {...props}
+        className={className ? `chat-markdown-table ${className}` : "chat-markdown-table"}
+      >
+        {children}
+      </table>
+    </div>
+  );
+}
+
 export const ChatMarkdownText: TextMessagePartComponent = () => (
   <MarkdownTextPrimitive
+    className="chat-markdown"
     remarkPlugins={[remarkGfm]}
-    components={{ a: MarkdownLink }}
+    components={{ a: MarkdownLink, table: MarkdownTable }}
   />
 );
