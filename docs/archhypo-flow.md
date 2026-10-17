@@ -17,7 +17,9 @@ structured result of each stage.
 ```mermaid
 flowchart TD
     START([Start]) --> ROUTING[request_routing]
-    ROUTING --> DISCOVERY[architectural_uncertainty_discovery]
+    ROUTING -->|New uncertainty| DISCOVERY[architectural_uncertainty_discovery]
+    ROUTING -->|Alternative or revised hypothesis| FORMULATION[hypothesis_formulation]
+    ROUTING -->|Question, out of scope, or clarification| DIRECT[direct_response_generation]
     DISCOVERY --> FORMULATION[hypothesis_formulation]
     FORMULATION --> REVIEW{hypothesis_review}
     REVIEW -->|Approved| ASSESSMENT[hypothesis_assessment]
@@ -27,40 +29,50 @@ flowchart TD
     PLAN_REVIEW -->|Approved| RESPONSE[existing response_generation]
     PLAN_REVIEW -->|Rejected with reason| PLAN
     RESPONSE --> END([End])
+    DIRECT --> END
 ```
 
-1. **Routing:** deterministic; every input goes to
-   `architectural_uncertainty_discovery`.
-2. **Discovery:** identifies one central architectural uncertainty from the
+1. **Routing:** SystemOne classifies the latest request using recent messages,
+   active results, and runtime context. `SYSTEM_ONE_MODEL` selects the decision
+   model through OpenRouter. If it is not configured or fails, the main chat
+   model produces the same structured routing contract. New uncertainties go
+   to discovery; alternative/revised hypotheses go directly to formulation;
+   questions, out-of-scope requests, and ambiguous requests go to a direct
+   response node. A request to classify the central quality domain of a
+   concrete scenario still goes to discovery when it contains an unresolved
+   architectural decision; the framing verb alone does not make it a direct
+   classification task.
+2. **Direct response:** answers questions about the conversation and current
+   results, briefly declines out-of-scope requests, or asks for clarification.
+   It does not clear or regenerate ArchHypo results.
+3. **Discovery:** identifies one central architectural uncertainty from the
    conversation and execution context. It does not read source code, folders,
    or documents.
-3. **Formulation:** produces one declarative, testable hypothesis.
-4. **Hypothesis review:** pauses the LangGraph run and shows the hypothesis in
+4. **Formulation:** produces one declarative, testable hypothesis. For an
+   alternative it reuses the active uncertainty and includes prior hypotheses
+   as context; for a revision it keeps the prior completed result in history.
+5. **Hypothesis review:** pauses the LangGraph run and shows the hypothesis in
    the app. Approval continues to assessment. Rejection requires a reason; that
    feedback is supplied to formulation and the revised hypothesis is presented
    for review again. The pause is checkpointed and can be resumed later.
-5. **Assessment:** selects one NFR and assesses impact and uncertainty
+6. **Assessment:** selects one NFR and assesses impact and uncertainty
    separately, with justifications.
-6. **Technical plan:** proposes one to three actions tied to the hypothesis and
+7. **Technical plan:** proposes one to three actions tied to the hypothesis and
    its assessment. It screens the catalog index, considers up to five pattern
    candidates, reads at most three selected pattern references, and only allows
    patterns from those references in the generated plan.
-7. **Technical plan review:** pauses with the impact and uncertainty levels and
+8. **Technical plan review:** pauses with the impact and uncertainty levels and
    justifications, plus the plan rationale and actions. The initial NFR label is
     not displayed as a quality tag. Approval continues to the response stage;
     rejection requires a reason and regenerates the plan using that feedback.
     The assessment remains unchanged, and the pause is checkpointed for later
     resumption. Approved reviews are kept as compact, chronological history
     cards; review decisions are structured actions, not chat messages.
-8. **Response:** the existing conversational agent receives the approved
+9. **Response:** the existing conversational agent receives the approved
    structured result and replies using the current response behavior.
 
 The graph-generated diagram is available at
 [`docs/architecture/archhypo-flow-agent.mmd`](architecture/archhypo-flow-agent.mmd).
-The rendered image is embedded below and saved at
-[`docs/architecture/archhypo-flow-agent.png`](architecture/archhypo-flow-agent.png).
-
-![Current ArchHypo Flow graph](architecture/archhypo-flow-agent.png)
 
 The yellow `response_generation` box groups the existing response agent. Its
 inner `model` box is that agent's LLM call, not another ArchHypo stage.
@@ -84,19 +96,23 @@ Technical Debt Management, and Tracer Bullets.
 
 ## Scope and limitations
 
-- There is no direct-response route: even out-of-scope input enters the ArchHypo
-  workflow, as required for this fixed-routing validation.
+- Direct responses are now separated from ArchHypo execution. General software
+  architecture questions, questions about existing results, out-of-scope
+  requests, and requests requiring clarification do not enter the workflow.
 - Discovery uses conversation input only. It does not inspect repositories or
   documents.
-- If context is missing, the flow continues with an exploratory formulation
-  whose limitations should be explicit. There is not yet a context interview or
-  clarification-question stage. Human review covers the hypothesis and the
-  assessment/technical plan; assessment does not yet use multi-label quality
-  tags.
+- If a request is ambiguous, direct response asks for clarification. A full
+  context-sufficiency interview is not implemented. Human review covers the
+  hypothesis and assessment/technical plan; assessment does not yet use
+  multi-label quality tags.
+- A new user message cannot interrupt a pending review card; the user must
+  approve or reject that review first. Explanations alongside a pending card are
+  deferred.
 - No Deep Agent, documentary research agent, multi-label quality tagging,
   semantic dossier, new database table, or artifact interface was added.
-- Structured outputs are intermediate graph state/checkpoint data. There is no
-  independently managed ArchHypo artifact or version history.
+- Completed results and hypothesis alternatives are preserved in checkpoint
+  state, but there is no independently managed ArchHypo artifact lifecycle or
+  version history.
 - Catalog references inform plan generation, but the chosen references are not
   yet exposed as citations or retained in an independently managed artifact.
 
@@ -109,7 +125,7 @@ Uncertain Decisions**. The current graph covers them unevenly:
 | Current stage | Relationship to the original technique | Current gap |
 |---|---|---|
 | `architectural_uncertainty_discovery` | Input-stage support; not one of the four patterns. | Extracts only from conversation/context; it does not gather documentary or implementation evidence. |
-| `hypothesis_formulation` | Partial implementation of **Architectural Hypotheses**. A rejected hypothesis is reformulated from the user's required reason. | Creates one hypothesis for the current turn, without a lifecycle for resolving it beyond the review loop. |
+| `hypothesis_formulation` | Partial implementation of **Architectural Hypotheses**. A rejected hypothesis is reformulated from the user's required reason; an alternative reuses the active uncertainty. | Completed results are retained in checkpoint history, but hypotheses do not yet have an independently managed lifecycle or resolution state. |
 | `hypothesis_review` | Human confirmation of the formulated hypothesis before impact and uncertainty are assessed. | The review loop covers the hypothesis only; later-stage decisions are handled by the technical-plan review. |
 | `hypothesis_assessment` | Partial implementation of **Hypothesis Impact** and **Uncertainty Level**. | Scores are based only on supplied text; the contract does not explicitly model the affected decision, alternatives, or evidence behind a rating. |
 | `technical_plan_generation` | Initial implementation of **Postpone Uncertain Decisions**. It screens the catalog skill and grounds selected patterns in up to three Markdown references. | The plan has no structured outcome criteria, decision trigger, or reassessment cycle; consulted references are not yet preserved as plan provenance. |

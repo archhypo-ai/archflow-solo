@@ -4,6 +4,7 @@ from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_OPENROUTER_MODEL = "google/gemini-2.5-flash"
+DEFAULT_SYSTEM_ONE_ENDPOINT = "https://openrouter.ai/api/alpha/decisions"
 
 
 class AgentSettings(BaseSettings):
@@ -24,6 +25,20 @@ class AgentSettings(BaseSettings):
         default=DEFAULT_OPENROUTER_MODEL,
         validation_alias="OPENROUTER_MODEL",
         min_length=1,
+    )
+    system_one_model: str | None = Field(
+        default=None,
+        validation_alias="SYSTEM_ONE_MODEL",
+    )
+    system_one_endpoint: str = Field(
+        default=DEFAULT_SYSTEM_ONE_ENDPOINT,
+        validation_alias="SYSTEM_ONE_ENDPOINT",
+        min_length=1,
+    )
+    system_one_timeout: float = Field(
+        default=30.0,
+        validation_alias="SYSTEM_ONE_TIMEOUT",
+        gt=0,
     )
     tavily_api_key: SecretStr | None = Field(
         default=None,
@@ -72,7 +87,19 @@ class AgentSettings(BaseSettings):
             raise ValueError("OPENROUTER_API_KEY must not be empty")
         return api_key
 
+    def require_system_one_model(self) -> str:
+        """Return the configured decision model or raise an actionable error."""
+
+        if self.system_one_model is None or not self.system_one_model.strip():
+            raise ValueError("SYSTEM_ONE_MODEL is required to create SystemOne")
+        return self.system_one_model.strip()
+
 
 settings = AgentSettings()
 
-__all__ = ["DEFAULT_OPENROUTER_MODEL", "AgentSettings", "settings"]
+__all__ = [
+    "DEFAULT_OPENROUTER_MODEL",
+    "DEFAULT_SYSTEM_ONE_ENDPOINT",
+    "AgentSettings",
+    "settings",
+]

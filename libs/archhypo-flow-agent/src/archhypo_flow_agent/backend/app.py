@@ -12,7 +12,11 @@ from archhypo_flow_agent.backend.controllers import (
     projects_router,
     threads_router,
 )
-from archhypo_flow_agent.providers.openrouter import create_openrouter_model
+from archhypo_flow_agent.config import settings
+from archhypo_flow_agent.providers import (
+    create_openrouter_model,
+    create_system_one_client,
+)
 from archhypo_flow_agent.services import AgentService
 
 
@@ -24,8 +28,15 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
         owns_service = agent_service is None
         if agent_service is None:
             try:
+                system_one_client = (
+                    create_system_one_client(settings)
+                    if settings.system_one_model
+                    and settings.system_one_model.strip()
+                    else None
+                )
                 application.state.agent_service = AgentService(
-                    model=create_openrouter_model()
+                    model=create_openrouter_model(),
+                    system_one_client=system_one_client,
                 )
                 application.state.chat_configuration_error = None
             except ValueError as error:

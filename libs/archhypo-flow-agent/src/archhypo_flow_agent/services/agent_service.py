@@ -20,6 +20,7 @@ from archhypo_flow_agent.persistence.sqlite import (
     SQLitePersistence,
     open_sqlite_persistence,
 )
+from archhypo_flow_agent.providers import SystemOneClient
 from archhypo_flow_agent.tools import tavily_search
 
 from .chat_context import ChatContextResolver
@@ -43,6 +44,7 @@ class AgentService:
         checkpointer: BaseCheckpointSaver | None = None,
         database_path: Path | None = None,
         tools: Sequence[BaseTool] | None = None,
+        system_one_client: SystemOneClient | None = None,
     ) -> None:
         self._lock = Lock()
         self._persistence: SQLitePersistence | None = None
@@ -63,6 +65,7 @@ class AgentService:
                     model,
                     tools=active_tools,
                     checkpointer=active_checkpointer,
+                    system_one_client=system_one_client,
                 )
                 if model is not None
                 else build_history_graph(active_checkpointer)

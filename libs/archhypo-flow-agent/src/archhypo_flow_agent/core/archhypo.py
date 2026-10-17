@@ -6,7 +6,19 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-RequestRoute = Literal["architectural_uncertainty_discovery"]
+RequestRoute = Literal[
+    "architectural_uncertainty_discovery",
+    "hypothesis_formulation",
+    "direct_response_generation",
+]
+RequestIntent = Literal[
+    "new_uncertainty",
+    "alternative_hypothesis",
+    "revise_hypothesis",
+    "contextual_question",
+    "out_of_scope",
+    "clarification",
+]
 DiscoveryStatus = Literal["identified", "insufficient_context"]
 NFR = Literal[
     "Performance",
@@ -32,15 +44,51 @@ ArchHypoPattern = Literal[
     "Tracer Bullets",
 ]
 
+_ROUTE_BY_INTENT: dict[str, RequestRoute] = {
+    "new_uncertainty": "architectural_uncertainty_discovery",
+    "alternative_hypothesis": "hypothesis_formulation",
+    "revise_hypothesis": "hypothesis_formulation",
+    "contextual_question": "direct_response_generation",
+    "out_of_scope": "direct_response_generation",
+    "clarification": "direct_response_generation",
+}
+_LEGACY_INTENT_BY_ROUTE: dict[str, RequestIntent] = {
+    "architectural_uncertainty_discovery": "new_uncertainty",
+    "hypothesis_formulation": "alternative_hypothesis",
+    "direct_response_generation": "contextual_question",
+}
+
 
 class _Contract(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
 
 class RequestRouting(_Contract):
-    """Fixed first destination for this validation version."""
+    """Validated request intent and its corresponding workflow destination."""
 
     route: RequestRoute = "architectural_uncertainty_discovery"
+    intent: RequestIntent
+
+    @model_validator(mode="before")
+    @classmethod
+    def derive_route_from_intent(cls, value: object) -> object:
+        """Keep the graph destination consistent and load legacy checkpoints."""
+
+        if not isinstance(value, dict):
+            return value
+        values = dict(value)
+        intent = values.get("intent")
+        if intent is None:
+            if "route" not in values:
+                return values
+            intent = _LEGACY_INTENT_BY_ROUTE.get(str(values["route"]))
+            if intent is None:
+                return values
+            values["intent"] = intent
+        route = _ROUTE_BY_INTENT.get(str(intent))
+        if route is not None:
+            values["route"] = route
+        return values
 
 
 class ArchitecturalUncertaintyDiscovery(_Contract):
@@ -164,6 +212,7 @@ __all__ = [
     "HypothesisReview",
     "HypothesisAssessment",
     "NFR",
+    "RequestIntent",
     "RequestRoute",
     "RequestRouting",
     "TechnicalPlan",

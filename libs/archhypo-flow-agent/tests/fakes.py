@@ -11,6 +11,7 @@ from archhypo_flow_agent.core import (
     Hypothesis,
     HypothesisAssessment,
     HypothesisReview,
+    RequestRouting,
     TechnicalPlan,
     TechnicalPlanReview,
 )
@@ -90,6 +91,8 @@ def structured_output(schema, value):
             rationale="The stub reuses the user-provided concern.",
             confidence=0.9,
         )
+    if schema is RequestRouting:
+        return RequestRouting(intent="new_uncertainty")
     if schema is Hypothesis:
         material = _human_material(value)
         marker = "Reviewer feedback (address this directly):\n"
@@ -102,6 +105,26 @@ def structured_output(schema, value):
                 justification=(
                     "The hypothesis was revised to address the user's reason."
                 ),
+            )
+        if "Previously proposed hypotheses for this uncertainty" in material:
+            return schema(
+                uncertainty="The architectural behavior is not yet confirmed.",
+                title="Alternative architectural behavior hypothesis",
+                statement=(
+                    "An alternative implementation meets the user-visible behavior."
+                ),
+                justification=(
+                    "This is a distinct testable alternative for the same uncertainty."
+                ),
+            )
+        if "Hypothesis to revise" in material:
+            return schema(
+                uncertainty="The architectural behavior is not yet confirmed.",
+                title="Revised architectural behavior hypothesis",
+                statement=(
+                    "The revised hypothesis accounts for the requested constraint."
+                ),
+                justification="The previous hypothesis was revised as requested.",
             )
         return schema(
             uncertainty="The architectural behavior is not yet confirmed.",

@@ -6,7 +6,7 @@ from langchain_core.messages import HumanMessage
 from langgraph.runtime import Runtime
 
 from archhypo_flow_agent.agents import build_contextual_system_prompt
-from archhypo_flow_agent.core import AgentRunContext
+from archhypo_flow_agent.core import AgentRunContext, AgentState
 
 
 def latest_user_input(messages: list[Any]) -> str:
@@ -33,4 +33,25 @@ def contextual_system_prompt(
     return build_contextual_system_prompt(base_prompt, context)
 
 
-__all__ = ["contextual_system_prompt", "latest_user_input"]
+def analysis_context(state: AgentState) -> dict[str, object]:
+    """Return a bounded structured summary for router and direct-answer nodes."""
+
+    return {
+        "active_result": _jsonable(state.get("result")),
+        "active_uncertainty": state.get("uncertainty"),
+        "active_hypothesis": _jsonable(state.get("hypothesis")),
+        "previous_results": [
+            _jsonable(result) for result in state.get("result_history", [])[-5:]
+        ],
+    }
+
+
+def _jsonable(value: object) -> object:
+    if hasattr(value, "model_dump"):
+        return value.model_dump(mode="json")
+    if isinstance(value, list):
+        return [_jsonable(item) for item in value]
+    return value
+
+
+__all__ = ["analysis_context", "contextual_system_prompt", "latest_user_input"]

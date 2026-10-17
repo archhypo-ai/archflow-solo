@@ -10,20 +10,40 @@ from archhypo_flow_agent.core import (
     Hypothesis,
     HypothesisAssessment,
     HypothesisReview,
+    RequestRouting,
     TechnicalPlan,
     TechnicalPlanReview,
 )
 from archhypo_flow_agent.graph import build_graph
 from archhypo_flow_agent.graph.nodes import technical_plan_generation
+from archhypo_flow_agent.providers.system_one import SystemOneAnswer, SystemOneResponse
 from tests.fakes import StructuredOutputStub
 
 
 class StubModel(StructuredOutputStub, FakeListChatModel):
     def __init__(self) -> None:
-        super().__init__(responses=["Hello from the test agent."])
+        super().__init__(responses=["Hello from the test agent."] * 20)
 
     def bind_tools(self, tools, **kwargs):
         return self
+
+
+class IntentClient:
+    def __init__(self, *intents: str) -> None:
+        self._intents = list(intents)
+        self.state = None
+        self.questions = None
+
+    def decide(self, *, state, questions, session_id=None):
+        self.state = state
+        self.questions = questions
+        intent = self._intents.pop(0)
+        return SystemOneResponse(
+            model="test/model",
+            answers={
+                "intent": SystemOneAnswer(type="choice", choice=intent),
+            },
+        )
 
 
 def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
@@ -68,6 +88,7 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
     graph_diagram = graph.get_graph().draw_mermaid()
     stages = [
         "request_routing",
+        "direct_response_generation",
         "architectural_uncertainty_discovery",
         "hypothesis_formulation",
         "hypothesis_review",
@@ -82,6 +103,143 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
         "__end__",
         *stages,
     }
+
+
+def test_direct_question_keeps_the_completed_archhypo_result() -> None:
+    graph = build_graph(
+        model=StubModel(),
+        checkpointer=MemorySaver(),
+        system_one_client=IntentClient("new_uncertainty", "contextual_question"),
+    )
+    config = {"configurable": {"thread_id": "direct-follow-up"}}
+
+    graph.invoke(
+        {"messages": [HumanMessage(content="The service may not scale.")]},
+        config=config,
+    )
+    graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    completed = graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    completed_result = completed["result"]
+
+    direct = graph.invoke(
+        {
+            "messages": [
+                HumanMessage(content="Why is the impact rated Medium?")
+            ]
+        },
+        config=config,
+    )
+
+    assert direct["routing"].intent == "contextual_question"
+    assert direct["routing"].route == "direct_response_generation"
+    assert direct["result"] == completed_result
+    assert direct["assessment"] == completed_result.assessment
+    assert direct["messages"][-1].content == "Hello from the test agent."
+    assert all(
+        "archhypo_reference_context" not in str(message.content)
+        for message in direct["messages"]
+    )
+
+
+def test_alternative_hypothesis_preserves_prior_result_and_uncertainty() -> None:
+    graph = build_graph(
+        model=StubModel(),
+        checkpointer=MemorySaver(),
+        system_one_client=IntentClient("new_uncertainty", "alternative_hypothesis"),
+    )
+    config = {"configurable": {"thread_id": "alternative-hypothesis"}}
+    graph.invoke(
+        {"messages": [HumanMessage(content="The service may not scale.")]},
+        config=config,
+    )
+    graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    first_result = graph.invoke(
+        Command(resume={"decision": "approved"}),
+        config=config,
+    )["result"]
+
+    graph.invoke(
+        {
+            "messages": [
+                HumanMessage(content="Propose another hypothesis for the same concern.")
+            ]
+        },
+        config=config,
+    )
+    current = graph.get_state(config).values
+
+    assert current["routing"].intent == "alternative_hypothesis"
+    assert current["routing"].route == "hypothesis_formulation"
+    assert current["result_history"] == [first_result]
+    assert current["result"] is None
+    assert current["uncertainty"] == first_result.uncertainty
+    assert current["discovery"] == first_result.discovery
+    assert current["hypothesis"].title == (
+        "Alternative architectural behavior hypothesis"
+    )
+    assert graph.get_state(config).tasks[0].interrupts[0].value["kind"] == (
+        "hypothesis_review"
+    )
+
+
+def test_concrete_uncertainty_classification_enters_archhypo_flow() -> None:
+    system_one = IntentClient("new_uncertainty")
+    graph = build_graph(
+        model=StubModel(),
+        checkpointer=MemorySaver(),
+        system_one_client=system_one,
+    )
+    config = {"configurable": {"thread_id": "classify-concrete-uncertainty"}}
+    message = (
+        "Classify the central quality domain for this public-agency document "
+        "system. The projected peak may reach 1 GB/minute, and the team is "
+        "uncertain whether the current single-server architecture can sustain "
+        "that load. The note also mentions legacy XML/JSON and SSO integration."
+    )
+
+    paused = graph.invoke(
+        {"messages": [HumanMessage(content=message)]},
+        config=config,
+    )
+
+    assert system_one.state["latest_user_message"] == message
+    new_uncertainty_criteria = system_one.questions["intent"]["criteria"][
+        "new_uncertainty"
+    ]
+    assert "central quality domain" in new_uncertainty_criteria
+    assert "projected peak throughput" in new_uncertainty_criteria
+    assert paused["routing"].intent == "new_uncertainty"
+    assert paused["routing"].route == "architectural_uncertainty_discovery"
+    assert paused["discovery"] is not None
+    assert graph.get_state(config).tasks[0].interrupts[0].value["kind"] == (
+        "hypothesis_review"
+    )
+
+
+@pytest.mark.parametrize(
+    ("intent", "route"),
+    [
+        ("new_uncertainty", "architectural_uncertainty_discovery"),
+        ("alternative_hypothesis", "hypothesis_formulation"),
+        ("revise_hypothesis", "hypothesis_formulation"),
+        ("contextual_question", "direct_response_generation"),
+        ("out_of_scope", "direct_response_generation"),
+        ("clarification", "direct_response_generation"),
+    ],
+)
+def test_request_intent_maps_to_its_graph_destination(intent, route) -> None:
+    assert RequestRouting(intent=intent).route == route
+
+
+def test_legacy_route_checkpoint_is_upgraded_to_request_intent() -> None:
+    routing = RequestRouting.model_validate(
+        {"route": "direct_response_generation"}
+    )
+
+    assert routing.intent == "contextual_question"
+
+    with pytest.raises(ValidationError):
+        RequestRouting.model_validate({})
 
 
 def test_rejected_hypothesis_is_reformulated_using_required_feedback() -> None:

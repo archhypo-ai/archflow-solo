@@ -22,13 +22,16 @@ def build_response_generation_agent(
     model: BaseChatModel,
     *,
     tools: Sequence[BaseTool] = (),
+    base_system_prompt: str | None = None,
 ):
     """Build a ReAct agent with context composed into each model system prompt."""
 
     selected_tools = list(tools)
-    base_system_prompt = _SYSTEM_PROMPT
+    base_system_prompt = base_system_prompt or _SYSTEM_PROMPT
     if any(tool.name == "tavily_search" for tool in selected_tools):
-        base_system_prompt = f"{_SYSTEM_PROMPT}\n\n{TAVILY_RESEARCH_PROMPT_SNIPPET}"
+        base_system_prompt = (
+            f"{base_system_prompt}\n\n{TAVILY_RESEARCH_PROMPT_SNIPPET}"
+        )
 
     @dynamic_prompt
     def prompt_for_execution(request: ModelRequest) -> str:

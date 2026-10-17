@@ -34,6 +34,7 @@ class AgentState(TypedDict):
     technical_plan_feedback: NotRequired[str | None]
     review_history: NotRequired[list[dict[str, object]]]
     result: NotRequired[ArchHypoResult | None]
+    result_history: NotRequired[list[ArchHypoResult]]
 
 
 __all__ = ["AgentState"]

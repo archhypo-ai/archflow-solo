@@ -23,12 +23,14 @@ src/archhypo_flow_agent/
 └── tools/           # Agent tools such as bounded public-web search
 ```
 
-The graph always follows `request_routing` →
-`architectural_uncertainty_discovery` → `hypothesis_formulation` →
-`hypothesis_assessment` → `technical_plan_generation` →
-`response_generation`. Discovery uses conversation input and runtime context;
-it does not inspect a workspace. Scope and implementation boundaries are
-documented in [`../../docs/archhypo-flow.md`](../../docs/archhypo-flow.md).
+The graph starts with `request_routing`. New uncertainties go through discovery;
+alternative or revised hypotheses reuse the active uncertainty; contextual,
+out-of-scope, and ambiguous requests use `direct_response_generation` without
+clearing completed results. ArchHypo runs still pass through hypothesis review,
+assessment, plan generation, plan review, and `response_generation`. Discovery
+uses conversation input and runtime context; it does not inspect a workspace.
+Scope and implementation boundaries are documented in
+[`../../docs/archhypo-flow.md`](../../docs/archhypo-flow.md).
 
 The technical planner screens the full `skills/archhypo-catalog/SKILL.md`
 index, considers up to five pattern candidates and selects up to three for
@@ -48,6 +50,8 @@ uv run ruff check .
 The local API exposes `POST /api/chat`, the streaming `POST /api/chat/stream` endpoint used by the desktop UI, `GET /api/threads`, and `GET /api/threads/{thread_id}`. The streaming endpoint sends tool-call starts and results as they occur before the final reply. LangGraph checkpoints and conversation metadata share one SQLite database, defaulting to `~/.local/share/archhypo-flow/runtime/checkpoints.sqlite`; override the storage root with `ARCHHYPO_FLOW_STORAGE_ROOT`.
 
 The desktop API uses `ChatOpenRouter` from the configured provider factory. Set `OPENROUTER_API_KEY` and optionally `OPENROUTER_MODEL` in this package's `.env`; the development launcher starts the backend with this directory as its working directory. Without a key, conversation history remains available, but chat requests return a configuration error instead of a fake reply.
+
+Structured routing uses the provider-neutral `SystemOneClient` contract backed by OpenRouter's decisions endpoint. Configure `SYSTEM_ONE_MODEL` with an OpenRouter model identifier to select the decision model; Jev and other supported models use the same contract and no provider-specific graph logic. `SYSTEM_ONE_ENDPOINT` and `SYSTEM_ONE_TIMEOUT` can override the endpoint and timeout. If no SystemOne model is configured or its request fails, routing falls back to structured output from the main chat model.
 
 Global context is saved in the Tauri Store preferences file and sent as a snapshot with each chat request. Project context remains in the project's SQLite `instructions` field and is resolved through the conversation's persisted project association. The shared `agents.prompts.build_system_prompt()` function appends both contexts to the fixed prompt without storing them in checkpointed conversation messages; project context is included only for conversations belonging to that project.
 
