@@ -46,14 +46,18 @@
 }
 
 .chat-thread-viewport::-webkit-scrollbar {
-  width: 8px;
+  width: 12px;
 }
 
 .chat-thread-viewport::-webkit-scrollbar-thumb {
-  border: 2px solid transparent;
+  border: 3px solid transparent;
   border-radius: 999px;
   background: var(--color-border-strong);
   background-clip: padding-box;
+}
+
+.chat-thread-viewport::-webkit-scrollbar-thumb:hover {
+  border-width: 2px;
 }
 
 .chat-empty-state {
@@ -529,14 +533,18 @@
 }
 
 .chat-markdown-table-scroll::-webkit-scrollbar {
-  height: 8px;
+  height: 12px;
 }
 
 .chat-markdown-table-scroll::-webkit-scrollbar-thumb {
-  border: 2px solid transparent;
+  border: 3px solid transparent;
   border-radius: 999px;
   background: var(--color-border-strong);
   background-clip: padding-box;
+}
+
+.chat-markdown-table-scroll::-webkit-scrollbar-thumb:hover {
+  border-width: 2px;
 }
 
 .chat-markdown-table {
@@ -582,6 +590,12 @@
 
 .chat-markdown-table tbody tr:hover td {
   background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+}
+
+.chat-markdown-table::selection,
+.chat-markdown-table ::selection {
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+  color: var(--color-foreground);
 }
 
 .chat-markdown-table th > :last-child,
