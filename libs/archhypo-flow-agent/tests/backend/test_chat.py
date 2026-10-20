@@ -5,7 +5,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from archhypo_flow_agent.backend.app import create_app
-from archhypo_flow_agent.config import AgentSettings
+from archhypo_flow_agent.config import AgentSettings, settings
 from archhypo_flow_agent.core import StructuredOutputError
 from archhypo_flow_agent.providers import SystemOneRequestError, SystemOneResponseError
 from archhypo_flow_agent.services import AgentService
@@ -93,6 +93,57 @@ def test_chat_endpoint_saves_and_returns_conversation(tmp_path) -> None:
             ] == [1, 1]
     finally:
         service.close()
+
+
+@pytest.mark.parametrize("path", ["/api/chat", "/api/chat/stream"])
+def test_disabled_hitl_finishes_without_review_cards(
+    monkeypatch, tmp_path, path
+) -> None:
+    monkeypatch.setattr(settings, "hitl_enabled", False)
+    database_path = tmp_path / "without-hitl.sqlite"
+    service = AgentService(
+        model=stub_chat_model(),
+        system_one_client=StubSystemOneClient(),
+        database_path=database_path,
+        tools=[],
+    )
+    expected_message = "Understood. Let's explore this architectural decision."
+    try:
+        with TestClient(create_app(service)) as client:
+            payload = {"thread_id": "without-hitl", "message": "Assess peak capacity."}
+            if path == "/api/chat":
+                response = client.post(path, json=payload)
+                assert response.status_code == 200
+                assert response.json()["message"] == expected_message
+                assert response.json()["pending_hypothesis_review"] is None
+                assert response.json()["pending_technical_plan_review"] is None
+            else:
+                events = _stream_events(client, payload)
+                assert events[-1]["type"] == "done"
+                assert events[-1]["status"] == "completed"
+                assert events[-1]["message"] == expected_message
+                assert not any(event["type"] == "interrupt" for event in events)
+
+            conversation = client.get("/api/threads/without-hitl").json()
+            assert conversation["pending_hypothesis_review"] is None
+            assert conversation["pending_technical_plan_review"] is None
+            assert conversation["completed_reviews"] == []
+            assert [message["role"] for message in conversation["messages"]] == [
+                "user", "assistant"
+            ]
+    finally:
+        service.close()
+
+    history_service = AgentService(database_path=database_path)
+    try:
+        restored = history_service.get_conversation("without-hitl")
+        assert restored is not None
+        assert restored.messages[-1].content == expected_message
+        assert restored.pending_hypothesis_review is None
+        assert restored.pending_technical_plan_review is None
+        assert restored.completed_reviews == []
+    finally:
+        history_service.close()
 
 
 def test_chat_requires_an_explicitly_configured_model(tmp_path) -> None:

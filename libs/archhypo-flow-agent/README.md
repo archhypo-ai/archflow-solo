@@ -67,6 +67,24 @@ Global context is saved in the Tauri Store preferences file and sent as a snapsh
 
 Tavily public-web search is enabled when `TAVILY_API_KEY` is configured. Install its optional dependency with `uv sync --extra research` (the desktop development launcher includes this extra). The tool only accepts bounded public queries, rejects obvious secrets and local paths, and returns short excerpts rather than raw page content. Never include private code, project details, credentials, or secrets in a search query.
 
+## Optional human approval (HITL)
+
+Human approval is enabled by default. To skip both the hypothesis review and
+assessment/technical-plan review, add this to `libs/archhypo-flow-agent/.env`:
+
+```dotenv
+HITL_ENABLED=false
+```
+
+Restart the backend (or the desktop development launcher) after changing the
+file. Set `HITL_ENABLED=true`, or remove the variable, to require approval again.
+With approval disabled, discovery, formulation, assessment, plan generation,
+and the final response still run normally; no approval interrupts or synthetic
+human-review history cards are produced. The option is resolved per run, not
+stored in conversation checkpoints. A review already pending before the restart
+still needs its existing review action to resume; subsequent gates are skipped.
+There is no visual setting yet.
+
 ## Optional observability
 
 Tracing is disabled by default. Install both tracing integrations with

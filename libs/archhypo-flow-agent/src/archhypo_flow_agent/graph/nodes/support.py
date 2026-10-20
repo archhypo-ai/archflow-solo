@@ -33,6 +33,13 @@ def contextual_system_prompt(
     return build_contextual_system_prompt(base_prompt, context)
 
 
+def human_review_enabled(runtime: Runtime[AgentRunContext] | None) -> bool:
+    """Require human review unless the run context explicitly disables it."""
+
+    context = runtime.context if runtime is not None else None
+    return context.get("hitl_enabled", True) if isinstance(context, dict) else True
+
+
 def analysis_context(state: AgentState) -> dict[str, object]:
     """Return a bounded structured summary for router and direct-answer nodes."""
 
@@ -54,4 +61,9 @@ def _jsonable(value: object) -> object:
     return value
 
 
-__all__ = ["analysis_context", "contextual_system_prompt", "latest_user_input"]
+__all__ = [
+    "analysis_context",
+    "contextual_system_prompt",
+    "human_review_enabled",
+    "latest_user_input",
+]

@@ -40,6 +40,10 @@ class AgentSettings(BaseSettings):
         validation_alias="SYSTEM_ONE_TIMEOUT",
         gt=0,
     )
+    hitl_enabled: bool = Field(
+        default=True,
+        validation_alias="HITL_ENABLED",
+    )
     tavily_api_key: SecretStr | None = Field(
         default=None,
         validation_alias="TAVILY_API_KEY",

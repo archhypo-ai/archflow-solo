@@ -7,7 +7,12 @@ This document describes the central ArchHypo path in the agent at
 agent tries to identify an architectural uncertainty, formulate and assess a
 hypothesis, and propose a short technical plan. The user reviews the hypothesis
 before assessment, then reviews the assessment and technical plan before the
-workflow produces its final response.
+workflow produces its final response. These human approval gates are enabled
+by default; setting `HITL_ENABLED=false` in
+`libs/archhypo-flow-agent/.env` and restarting the backend skips both gates
+without skipping generation stages or recording synthetic human approvals.
+No visual toggle is implemented yet. Reviews already pending still require
+their existing review action to resume.
 
 The workflow is implemented as LangGraph nodes with Pydantic contracts for the
 structured result of each stage.
@@ -78,8 +83,9 @@ flowchart TD
     The assessment remains unchanged, and the pause is checkpointed for later
     resumption. Approved reviews are kept as compact, chronological history
     cards; review decisions are structured actions, not chat messages.
-9. **Response:** the existing conversational agent receives the approved
-   structured result and replies using the current response behavior.
+9. **Response:** the existing conversational agent receives the structured
+   result (human-approved when HITL is enabled) and replies using the current
+   response behavior.
 
 The graph-generated diagram is available at
 [`docs/architecture/archhypo-flow-agent.mmd`](architecture/archhypo-flow-agent.mmd).

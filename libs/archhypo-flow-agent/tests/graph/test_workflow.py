@@ -96,6 +96,72 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
     }
 
 
+@pytest.mark.parametrize("checkpointed", [False, True])
+def test_disabled_hitl_runs_all_stages_without_human_approval(checkpointed) -> None:
+    system_one = StubSystemOneClient()
+    graph = build_graph(
+        model=StubModel(),
+        system_one_client=system_one,
+        checkpointer=MemorySaver() if checkpointed else None,
+    )
+    config = {"configurable": {"thread_id": "without-human-review"}}
+
+    result = graph.invoke(
+        {"messages": [HumanMessage(content="Assess peak capacity.")]},
+        config=config,
+        context={"global_context": "", "project_context": "", "hitl_enabled": False},
+    )
+
+    assert result["messages"][-1].content == "Hello from the test agent."
+    assert result["discovery"].uncertainty == "Assess peak capacity."
+    assert result["hypothesis"].statement
+    assert result["assessment"].impact == "Medium"
+    assert result["technical_plan"].items[0].pattern == "Architectural Spike"
+    assert result["result"].hypothesis == result["hypothesis"]
+    assert result["hypothesis_review"] is None
+    assert result["technical_plan_review"] is None
+    assert result.get("review_history", []) == []
+    assert not result.get("__interrupt__")
+    assert system_one.calls == 1
+    if checkpointed:
+        snapshot = graph.get_state(config)
+        assert snapshot.next == ()
+        assert not any(task.interrupts for task in snapshot.tasks)
+
+
+def test_hitl_can_be_reenabled_for_the_next_turn() -> None:
+    graph = build_graph(
+        model=StubModel(),
+        system_one_client=StubSystemOneClient(
+            "new_uncertainty", "alternative_hypothesis"
+        ),
+        checkpointer=MemorySaver(),
+    )
+    config = {"configurable": {"thread_id": "reenable-human-review"}}
+    completed = graph.invoke(
+        {"messages": [HumanMessage(content="Assess peak capacity.")]},
+        config=config,
+        context={"global_context": "", "project_context": "", "hitl_enabled": False},
+    )
+
+    graph.invoke(
+        {"messages": [HumanMessage(content="Propose a different hypothesis.")]},
+        config=config,
+        context={"global_context": "", "project_context": "", "hitl_enabled": True},
+    )
+    snapshot = graph.get_state(config)
+    assert snapshot.tasks[0].interrupts[0].value["kind"] == "hypothesis_review"
+    assert snapshot.values["result_history"] == [completed["result"]]
+    assert snapshot.values.get("review_history", []) == []
+
+    graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    result = graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    assert [record["kind"] for record in result["review_history"]] == [
+        "hypothesis_review",
+        "technical_plan_review",
+    ]
+
+
 def test_direct_question_keeps_the_completed_archhypo_result() -> None:
     graph = build_graph(
         model=StubModel(),

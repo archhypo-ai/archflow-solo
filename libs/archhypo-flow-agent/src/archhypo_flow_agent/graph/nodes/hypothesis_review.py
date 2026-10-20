@@ -1,16 +1,25 @@
 """Human review gate for the formulated hypothesis."""
 
+from langgraph.runtime import Runtime
 from langgraph.types import interrupt
 
-from archhypo_flow_agent.core import AgentState, HypothesisReview
+from archhypo_flow_agent.core import AgentRunContext, AgentState, HypothesisReview
+
+from .support import human_review_enabled
 
 
-def hypothesis_review_node(state: AgentState) -> dict[str, object]:
-    """Pause until the user approves the hypothesis or rejects it with a reason."""
+def hypothesis_review_node(
+    state: AgentState,
+    runtime: Runtime[AgentRunContext] | None = None,
+) -> dict[str, object]:
+    """Pause for a human decision unless review is disabled for this run."""
 
     hypothesis = state.get("hypothesis")
     if hypothesis is None:
         raise ValueError("a hypothesis is required before human review")
+
+    if not human_review_enabled(runtime):
+        return {"hypothesis_review": None, "hypothesis_feedback": None}
 
     decision = HypothesisReview.model_validate(
         interrupt(
@@ -43,8 +52,14 @@ def hypothesis_review_node(state: AgentState) -> dict[str, object]:
     return update
 
 
-def route_after_hypothesis_review(state: AgentState) -> str:
-    """Continue to assessment only after approval; otherwise reformulate."""
+def route_after_hypothesis_review(
+    state: AgentState,
+    runtime: Runtime[AgentRunContext] | None = None,
+) -> str:
+    """Continue after approval or bypass; otherwise reformulate."""
+
+    if not human_review_enabled(runtime):
+        return "hypothesis_assessment"
 
     decision = state.get("hypothesis_review")
     if decision is None:

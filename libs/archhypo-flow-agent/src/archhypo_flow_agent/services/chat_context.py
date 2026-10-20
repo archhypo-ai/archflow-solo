@@ -1,5 +1,6 @@
 """Resolve project data for one chat execution."""
 
+from archhypo_flow_agent.config import settings
 from archhypo_flow_agent.core import AgentRunContext, ChatRequest
 from archhypo_flow_agent.persistence.conversations import (
     ConversationMetadata,
@@ -54,6 +55,7 @@ class ChatContextResolver:
             "global_context": request.global_context,
             "project_context": project_context,
             "language": request.language,
+            "hitl_enabled": settings.hitl_enabled,
         }
 
     def _require_project(self, project_id: str) -> None:

@@ -1,17 +1,26 @@
 """Human review gate for the assessed technical plan."""
 
+from langgraph.runtime import Runtime
 from langgraph.types import interrupt
 
-from archhypo_flow_agent.core import AgentState, TechnicalPlanReview
+from archhypo_flow_agent.core import AgentRunContext, AgentState, TechnicalPlanReview
+
+from .support import human_review_enabled
 
 
-def technical_plan_review_node(state: AgentState) -> dict[str, object]:
-    """Pause before final response until a person reviews the plan."""
+def technical_plan_review_node(
+    state: AgentState,
+    runtime: Runtime[AgentRunContext] | None = None,
+) -> dict[str, object]:
+    """Pause before the final response unless review is disabled for this run."""
 
     assessment = state.get("assessment")
     technical_plan = state.get("technical_plan")
     if assessment is None or technical_plan is None:
         raise ValueError("assessment and technical plan are required before review")
+
+    if not human_review_enabled(runtime):
+        return {"technical_plan_review": None, "technical_plan_feedback": None}
 
     decision = TechnicalPlanReview.model_validate(
         interrupt(
@@ -46,8 +55,14 @@ def technical_plan_review_node(state: AgentState) -> dict[str, object]:
     return update
 
 
-def route_after_technical_plan_review(state: AgentState) -> str:
-    """Finalize only after approval; otherwise generate a revised plan."""
+def route_after_technical_plan_review(
+    state: AgentState,
+    runtime: Runtime[AgentRunContext] | None = None,
+) -> str:
+    """Finalize after approval or bypass; otherwise generate a revised plan."""
+
+    if not human_review_enabled(runtime):
+        return "response_generation"
 
     decision = state.get("technical_plan_review")
     if decision is None:

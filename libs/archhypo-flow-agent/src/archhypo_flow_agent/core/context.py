@@ -9,6 +9,7 @@ class AgentRunContext(TypedDict):
     global_context: str
     project_context: str
     language: NotRequired[Literal["en", "pt-BR"]]
+    hitl_enabled: NotRequired[bool]
 
 
 __all__ = ["AgentRunContext"]
