@@ -14,6 +14,24 @@ The current ArchHypo workflow is documented in
 
 The desktop app is a Tauri/React chat harness built with assistant-ui and a local FastAPI/LangGraph backend. The shared SSE event contract is defined in `contracts/agent-stream.schema.json`.
 
+## Run the CLI
+
+From the repository root, pass a prompt directly:
+
+```bash
+uv run --project libs/archhypo-flow-agent python archhypoflow_cli.py \
+  "Can one server handle the projected document load?"
+```
+
+Or pass a text file; its contents are used as the prompt:
+
+```bash
+uv run --project libs/archhypo-flow-agent python archhypoflow_cli.py input.txt
+```
+
+The CLI also accepts `-` to read from standard input. It uses the settings in
+`libs/archhypo-flow-agent/.env` and the same local SQLite database as the app.
+
 ## Run the desktop app
 
 ```bash
