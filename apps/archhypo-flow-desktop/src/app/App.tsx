@@ -20,7 +20,9 @@ import {
 } from "../features/projects";
 import {
   getGlobalContext,
+  getHitlEnabled,
   saveGlobalContext,
+  saveHitlEnabled,
   SettingsDialog,
 } from "../features/settings";
 import { LANGUAGE_STORAGE_KEY, toAppLanguage } from "../i18n";
@@ -36,6 +38,8 @@ function initialTheme(): ThemePreference {
 
 function App() {
   const [theme, setTheme] = useState<ThemePreference>(initialTheme);
+  const [hitlEnabled, setHitlEnabled] = useState(getHitlEnabled);
+  const [hitlSaveError, setHitlSaveError] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [renameTarget, setRenameTarget] = useState<ConversationSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ConversationSummary | null>(null);
@@ -159,6 +163,15 @@ function App() {
       setGlobalContextLoadError(false);
     } finally {
       setGlobalContextSaving(false);
+    }
+  }, []);
+  const handleHitlChange = useCallback((enabled: boolean) => {
+    try {
+      saveHitlEnabled(enabled);
+      setHitlEnabled(enabled);
+      setHitlSaveError(false);
+    } catch {
+      setHitlSaveError(true);
     }
   }, []);
   const closeSettings = useCallback(() => {
@@ -311,6 +324,9 @@ function App() {
         open={settingsOpen}
         theme={theme}
         language={language}
+        hitlEnabled={hitlEnabled}
+        hitlSaveError={hitlSaveError}
+        onHitlChange={handleHitlChange}
         globalContext={globalContext}
         globalContextLoading={!globalContextLoaded}
         globalContextSaving={globalContextSaving}

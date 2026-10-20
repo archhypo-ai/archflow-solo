@@ -13,6 +13,9 @@ type SettingsDialogProps = {
   open: boolean;
   theme: ThemePreference;
   language: AppLanguage;
+  hitlEnabled: boolean;
+  hitlSaveError: boolean;
+  onHitlChange: (enabled: boolean) => void;
   globalContext: string;
   globalContextLoading: boolean;
   globalContextSaving: boolean;
@@ -27,6 +30,9 @@ export function SettingsDialog({
   open,
   theme,
   language,
+  hitlEnabled,
+  hitlSaveError,
+  onHitlChange,
   globalContext,
   globalContextLoading,
   globalContextSaving,
@@ -121,6 +127,9 @@ export function SettingsDialog({
                 <GeneralSettings
                   theme={theme}
                   language={language}
+                  hitlEnabled={hitlEnabled}
+                  hitlSaveError={hitlSaveError}
+                  onHitlChange={onHitlChange}
                   onThemeChange={onThemeChange}
                   onLanguageChange={onLanguageChange}
                 />

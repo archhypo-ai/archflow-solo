@@ -77,13 +77,19 @@ HITL_ENABLED=false
 ```
 
 Restart the backend (or the desktop development launcher) after changing the
-file. Set `HITL_ENABLED=true`, or remove the variable, to require approval again.
+file. Set `HITL_ENABLED=true`, or remove the variable, to allow approval again.
+The desktop also has a **Human approval (HITL)** switch in **Settings → General**,
+below **App version**. It defaults to on, persists in `localStorage` like the
+theme, and is sent as `hitl_enabled` with every chat request. UI changes apply
+to subsequent requests without restarting. Approval is enabled only when both
+the environment setting and request preference are enabled; an omitted request
+preference defaults to `true`, preserving existing API behavior.
+
 With approval disabled, discovery, formulation, assessment, plan generation,
 and the final response still run normally; no approval interrupts or synthetic
 human-review history cards are produced. The option is resolved per run, not
 stored in conversation checkpoints. A review already pending before the restart
 still needs its existing review action to resume; subsequent gates are skipped.
-There is no visual setting yet.
 
 ## Optional observability
 

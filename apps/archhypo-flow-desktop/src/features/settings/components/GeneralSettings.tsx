@@ -7,6 +7,9 @@ import type { ThemePreference } from "../../../theme/types";
 type GeneralSettingsProps = {
   theme: ThemePreference;
   language: AppLanguage;
+  hitlEnabled: boolean;
+  hitlSaveError: boolean;
+  onHitlChange: (enabled: boolean) => void;
   onThemeChange: (theme: ThemePreference) => void;
   onLanguageChange: (language: AppLanguage) => void;
 };
@@ -14,6 +17,9 @@ type GeneralSettingsProps = {
 export function GeneralSettings({
   theme,
   language,
+  hitlEnabled,
+  hitlSaveError,
+  onHitlChange,
   onThemeChange,
   onLanguageChange,
 }: GeneralSettingsProps) {
@@ -39,6 +45,30 @@ export function GeneralSettings({
           <strong>{t("settings.appVersion")}</strong>
           <span className="settings-setting-value">{appPackage.version}</span>
         </div>
+        <div className="settings-setting-row settings-toggle-row">
+          <div className="settings-setting-label">
+            <strong id="hitl-label">{t("settings.hitl")}</strong>
+            <p id="hitl-description" className="settings-setting-description">
+              {t("settings.hitlDescription")}
+            </p>
+          </div>
+          <button
+            className="settings-switch"
+            type="button"
+            role="switch"
+            aria-checked={hitlEnabled}
+            aria-labelledby="hitl-label"
+            aria-describedby="hitl-description"
+            onClick={() => onHitlChange(!hitlEnabled)}
+          >
+            <span className="settings-switch-thumb" aria-hidden="true" />
+          </button>
+        </div>
+        {hitlSaveError && (
+          <p className="settings-inline-error" role="alert">
+            {t("settings.hitlSaveError")}
+          </p>
+        )}
       </section>
 
       <section className="settings-group" aria-labelledby="appearance-title">

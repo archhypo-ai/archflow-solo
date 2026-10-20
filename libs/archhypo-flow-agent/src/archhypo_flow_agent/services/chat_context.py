@@ -55,7 +55,7 @@ class ChatContextResolver:
             "global_context": request.global_context,
             "project_context": project_context,
             "language": request.language,
-            "hitl_enabled": settings.hitl_enabled,
+            "hitl_enabled": settings.hitl_enabled and request.hitl_enabled,
         }
 
     def _require_project(self, project_id: str) -> None:

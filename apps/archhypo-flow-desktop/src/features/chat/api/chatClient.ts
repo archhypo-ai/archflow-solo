@@ -1,4 +1,4 @@
-import { getGlobalContext } from "../../settings";
+import { getGlobalContext, getHitlEnabled } from "../../settings";
 import type {
   ChatStreamEvent,
   HypothesisReviewDecision,
@@ -30,6 +30,7 @@ export async function* streamChatMessage(
       language,
       project_id: projectId,
       global_context,
+      hitl_enabled: getHitlEnabled(),
       ...(hypothesisReview ? { hypothesis_review: hypothesisReview } : {}),
       ...(technicalPlanReview
         ? { technical_plan_review: technicalPlanReview }

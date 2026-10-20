@@ -8,6 +8,20 @@ The desktop's default chat backend is `libs/archhypo-flow-agent`. Its default gr
 
 By default, the database is stored at `~/.local/share/archhypo-flow/runtime/checkpoints.sqlite`. Override the storage root with `ARCHHYPO_FLOW_STORAGE_ROOT`.
 
+## Human approval (HITL)
+
+**Settings → General** includes a **Human approval (HITL)** switch immediately
+below **App version**. It is on by default and saved in `localStorage`, just
+like the theme. Switching it off skips hypothesis and technical-plan approval
+pauses for subsequent requests without restarting the app. Already pending
+reviews still require their review action to resume.
+
+Each chat request sends the saved preference as `hitl_enabled`.
+`HITL_ENABLED=false` in the backend's `.env` always disables approval, even if
+the visual switch is on. Neither option creates synthetic approval history.
+
+Run the preference tests with `npm test` (Node.js 22.18+).
+
 ## Development
 
 Install the Python agent dependencies once, then run the desktop app:

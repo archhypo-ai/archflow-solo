@@ -96,10 +96,14 @@ def test_chat_endpoint_saves_and_returns_conversation(tmp_path) -> None:
 
 
 @pytest.mark.parametrize("path", ["/api/chat", "/api/chat/stream"])
+@pytest.mark.parametrize(
+    ("env_enabled", "request_enabled"),
+    [(False, None), (False, True), (False, False), (True, False)],
+)
 def test_disabled_hitl_finishes_without_review_cards(
-    monkeypatch, tmp_path, path
+    monkeypatch, tmp_path, path, env_enabled, request_enabled
 ) -> None:
-    monkeypatch.setattr(settings, "hitl_enabled", False)
+    monkeypatch.setattr(settings, "hitl_enabled", env_enabled)
     database_path = tmp_path / "without-hitl.sqlite"
     service = AgentService(
         model=stub_chat_model(),
@@ -111,6 +115,8 @@ def test_disabled_hitl_finishes_without_review_cards(
     try:
         with TestClient(create_app(service)) as client:
             payload = {"thread_id": "without-hitl", "message": "Assess peak capacity."}
+            if request_enabled is not None:
+                payload["hitl_enabled"] = request_enabled
             if path == "/api/chat":
                 response = client.post(path, json=payload)
                 assert response.status_code == 200
@@ -144,6 +150,80 @@ def test_disabled_hitl_finishes_without_review_cards(
         assert restored.completed_reviews == []
     finally:
         history_service.close()
+
+
+def test_hitl_preference_is_resolved_for_each_request(tmp_path) -> None:
+    service = AgentService(
+        model=stub_chat_model(),
+        system_one_client=StubSystemOneClient(),
+        database_path=tmp_path / "hitl-preference.sqlite",
+        tools=[],
+    )
+    try:
+        with TestClient(create_app(service)) as client:
+            payload = {"thread_id": "toggle-hitl", "message": "Assess peak capacity."}
+            disabled = client.post("/api/chat", json={**payload, "hitl_enabled": False})
+            assert disabled.status_code == 200
+            assert disabled.json()["pending_hypothesis_review"] is None
+            assert disabled.json()["pending_technical_plan_review"] is None
+            assert client.get("/api/threads/toggle-hitl").json()[
+                "completed_reviews"
+            ] == []
+
+            enabled = client.post("/api/chat", json={**payload, "hitl_enabled": True})
+            assert enabled.status_code == 200
+            assert enabled.json()["pending_hypothesis_review"] is not None
+            plan = client.post(
+                "/api/chat",
+                json={
+                    "thread_id": "toggle-hitl",
+                    "hitl_enabled": True,
+                    "hypothesis_review": {"decision": "approved"},
+                },
+            )
+            assert plan.status_code == 200
+            assert plan.json()["pending_technical_plan_review"] is not None
+            completed = client.post(
+                "/api/chat",
+                json={
+                    "thread_id": "toggle-hitl",
+                    "hitl_enabled": True,
+                    "technical_plan_review": {"decision": "approved"},
+                },
+            )
+            assert completed.status_code == 200
+
+            disabled_again = _stream_events(
+                client, {**payload, "hitl_enabled": False}
+            )
+            assert disabled_again[-1]["type"] == "done"
+            assert not any(event["type"] == "interrupt" for event in disabled_again)
+            conversation = client.get("/api/threads/toggle-hitl").json()
+            assert conversation["pending_hypothesis_review"] is None
+            assert conversation["pending_technical_plan_review"] is None
+            assert [review["kind"] for review in conversation["completed_reviews"]] == [
+                "hypothesis_review", "technical_plan_review"
+            ]
+    finally:
+        service.close()
+
+
+@pytest.mark.parametrize("value", [None, "invalid", {}])
+def test_chat_rejects_invalid_hitl_preferences(tmp_path, value) -> None:
+    service = AgentService(database_path=tmp_path / "invalid-hitl.sqlite")
+    try:
+        with TestClient(create_app(service)) as client:
+            response = client.post(
+                "/api/chat",
+                json={
+                    "thread_id": "invalid-hitl",
+                    "message": "Hello",
+                    "hitl_enabled": value,
+                },
+            )
+            assert response.status_code == 422
+    finally:
+        service.close()
 
 
 def test_chat_requires_an_explicitly_configured_model(tmp_path) -> None:

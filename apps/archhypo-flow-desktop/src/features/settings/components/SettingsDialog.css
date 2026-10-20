@@ -258,10 +258,66 @@
   padding: 8px 0;
 }
 
-.settings-setting-row > strong {
+.settings-setting-row > strong,
+.settings-setting-label > strong {
   color: var(--color-foreground);
   font-size: 14px;
   font-weight: 600;
+}
+
+.settings-setting-row.settings-toggle-row {
+  align-items: center;
+  flex-direction: row;
+}
+
+.settings-setting-label {
+  min-width: 0;
+}
+
+.settings-setting-description {
+  margin: 5px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.settings-switch {
+  display: inline-flex;
+  width: 44px;
+  height: 26px;
+  flex: 0 0 auto;
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-surface-raised);
+  padding: 3px;
+  cursor: pointer;
+}
+
+.settings-switch[aria-checked="true"] {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+}
+
+.settings-switch:hover {
+  filter: brightness(1.1);
+}
+
+.settings-switch:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.settings-switch-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--color-muted);
+}
+
+.settings-switch[aria-checked="true"] .settings-switch-thumb {
+  transform: translateX(18px);
+  background: var(--color-brand-foreground);
 }
 
 .settings-setting-value {

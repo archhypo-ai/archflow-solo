@@ -11,8 +11,13 @@ workflow produces its final response. These human approval gates are enabled
 by default; setting `HITL_ENABLED=false` in
 `libs/archhypo-flow-agent/.env` and restarting the backend skips both gates
 without skipping generation stages or recording synthetic human approvals.
-No visual toggle is implemented yet. Reviews already pending still require
-their existing review action to resume.
+The desktop's **Settings → General → Human approval (HITL)** switch, below
+**App version**, can also disable these gates. Like the theme, this preference
+is persisted in `localStorage` and sent with each request as `hitl_enabled`.
+Changes apply to subsequent requests without restarting. Either the environment
+setting or the request preference being `false` disables approval; existing API
+clients that omit the preference retain the environment default. Reviews
+already pending still require their existing review action to resume.
 
 The workflow is implemented as LangGraph nodes with Pydantic contracts for the
 structured result of each stage.

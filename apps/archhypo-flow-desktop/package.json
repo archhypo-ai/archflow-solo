@@ -7,6 +7,7 @@
     "dev": "vite",
     "dev:all": "node scripts/dev-all.mjs",
     "build": "tsc && vite build",
+    "test": "node --test tests/*.test.mjs",
     "preview": "vite preview",
     "tauri": "node scripts/tauri.mjs"
   },

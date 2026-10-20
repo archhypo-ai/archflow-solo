@@ -17,6 +17,7 @@ class ChatRequest(BaseModel):
     language: Literal["en", "pt-BR"] = "en"
     project_id: str | None = None
     global_context: str = Field(default="", max_length=50_000)
+    hitl_enabled: bool = True
     hypothesis_review: HypothesisReview | None = None
     technical_plan_review: TechnicalPlanReview | None = None
 
