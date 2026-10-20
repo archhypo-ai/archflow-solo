@@ -1,5 +1,6 @@
 import importlib
 import json
+import sqlite3
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,10 +14,11 @@ from tests.fakes import StubSystemOneClient, stub_chat_model
 
 
 def test_chat_endpoint_saves_and_returns_conversation(tmp_path) -> None:
+    database_path = tmp_path / "chat.sqlite"
     service = AgentService(
         model=stub_chat_model(),
         system_one_client=StubSystemOneClient(),
-        database_path=tmp_path / "chat.sqlite",
+        database_path=database_path,
     )
     app = create_app(service)
 
@@ -94,6 +96,15 @@ def test_chat_endpoint_saves_and_returns_conversation(tmp_path) -> None:
     finally:
         service.close()
 
+    with sqlite3.connect(database_path) as connection:
+        artifact = connection.execute(
+            """SELECT status, outcome, thread_id, hitl_enabled, result_json
+               FROM archhypo_artifacts"""
+        ).fetchone()
+    assert artifact is not None
+    assert artifact[:4] == ("open", "not_evaluated", "api-thread", 1)
+    assert json.loads(artifact[4])["hypothesis"]["statement"]
+
 
 @pytest.mark.parametrize("path", ["/api/chat", "/api/chat/stream"])
 @pytest.mark.parametrize(
@@ -139,6 +150,14 @@ def test_disabled_hitl_finishes_without_review_cards(
             ]
     finally:
         service.close()
+
+    with sqlite3.connect(database_path) as connection:
+        artifact = connection.execute(
+            "SELECT hitl_enabled, result_json FROM archhypo_artifacts"
+        ).fetchone()
+    assert artifact is not None
+    assert artifact[0] == 0
+    assert json.loads(artifact[1])["technical_plan"]["items"]
 
     history_service = AgentService(database_path=database_path)
     try:

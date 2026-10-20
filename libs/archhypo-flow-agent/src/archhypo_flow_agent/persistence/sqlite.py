@@ -8,6 +8,7 @@ from pathlib import Path
 
 from langgraph.checkpoint.sqlite import SqliteSaver
 
+from archhypo_flow_agent.persistence.artifacts import SQLiteArchHypoArtifactRepository
 from archhypo_flow_agent.persistence.conversations import SQLiteConversationRepository
 from archhypo_flow_agent.persistence.paths import DATABASE_PATH
 from archhypo_flow_agent.persistence.projects import SQLiteProjectRepository
@@ -22,6 +23,7 @@ class SQLitePersistence:
     checkpointer: SqliteSaver
     conversations: SQLiteConversationRepository
     projects: SQLiteProjectRepository
+    artifacts: SQLiteArchHypoArtifactRepository
 
     def delete_project(self, project_id: str) -> bool:
         """Delete a project, its conversations, and their checkpoint state."""
@@ -75,6 +77,7 @@ def open_sqlite_persistence(path: Path = DATABASE_PATH) -> SQLitePersistence:
         checkpointer.setup()
         conversations = SQLiteConversationRepository(connection)
         projects = SQLiteProjectRepository(connection)
+        artifacts = SQLiteArchHypoArtifactRepository(connection)
     except Exception:
         connection.close()
         raise
@@ -84,6 +87,7 @@ def open_sqlite_persistence(path: Path = DATABASE_PATH) -> SQLitePersistence:
         checkpointer=checkpointer,
         conversations=conversations,
         projects=projects,
+        artifacts=artifacts,
     )
 
 

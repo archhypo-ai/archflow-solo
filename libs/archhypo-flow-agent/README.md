@@ -124,4 +124,6 @@ From the repository root:
 uv run --project libs/archhypo-flow-agent archhypo-flow-workflow-diagram
 ```
 
-This writes the Mermaid graph to `docs/architecture/archhypo-flow-agent.mmd`. Override the output directory with `--output-directory`.
+This writes both the Mermaid source (`docs/architecture/archhypo-flow-agent.mmd`)
+and its PNG image (`docs/architecture/archhypo-flow-agent.png`). Override the
+output directory with `--output-directory`.

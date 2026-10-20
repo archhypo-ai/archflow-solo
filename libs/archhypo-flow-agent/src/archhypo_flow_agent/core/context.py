@@ -8,6 +8,7 @@ class AgentRunContext(TypedDict):
 
     global_context: str
     project_context: str
+    project_id: NotRequired[str | None]
     language: NotRequired[Literal["en", "pt-BR"]]
     hitl_enabled: NotRequired[bool]
 

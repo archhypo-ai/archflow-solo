@@ -92,8 +92,10 @@ flowchart TD
    result (human-approved when HITL is enabled) and replies using the current
    response behavior.
 
-The graph-generated diagram is available at
-[`docs/architecture/archhypo-flow-agent.mmd`](architecture/archhypo-flow-agent.mmd).
+The graph-generated workflow diagram is available as
+[`Mermaid source`](architecture/archhypo-flow-agent.mmd) and PNG:
+
+![ArchHypo Flow workflow graph](architecture/archhypo-flow-agent.png)
 
 The yellow `response_generation` box groups the existing response agent. Its
 inner `model` box is that agent's LLM call, not another ArchHypo stage.

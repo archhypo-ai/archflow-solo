@@ -23,6 +23,10 @@ class AgentState(TypedDict):
 
     messages: Annotated[list[AnyMessage], add_messages]
     routing: NotRequired[RequestRouting | None]
+    cycle_id: NotRequired[str | None]
+    artifact_id: NotRequired[str | None]
+    project_id: NotRequired[str | None]
+    hitl_enabled: NotRequired[bool]
     discovery: NotRequired[ArchitecturalUncertaintyDiscovery | None]
     uncertainty: NotRequired[str | None]
     hypothesis: NotRequired[Hypothesis | None]

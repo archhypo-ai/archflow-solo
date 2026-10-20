@@ -9,6 +9,7 @@ from fastapi.sse import EventSourceResponse, ServerSentEvent
 
 from archhypo_flow_agent.backend.dependencies import AgentServiceDependency
 from archhypo_flow_agent.core import ChatRequest, ChatResponse, StructuredOutputError
+from archhypo_flow_agent.persistence import ArtifactPersistenceError
 from archhypo_flow_agent.providers import SystemOneError
 from archhypo_flow_agent.services.chat_execution import ReviewStateError
 
@@ -48,6 +49,12 @@ def send_message(
         raise HTTPException(
             status_code=502,
             detail=_structured_output_error_message(error),
+        ) from error
+    except ArtifactPersistenceError as error:
+        logger.error("ArchHypo artifact persistence failed")
+        raise HTTPException(
+            status_code=503,
+            detail=_artifact_persistence_error_message(),
         ) from error
     except Exception as error:
         logger.error("Chat generation failed (%s)", type(error).__name__)
@@ -112,6 +119,16 @@ def stream_message(
                     _structured_output_error_message(error),
                 ),
             )
+        except ArtifactPersistenceError:
+            logger.error("ArchHypo artifact persistence failed")
+            yield ServerSentEvent(
+                event="chat",
+                data=_stream_error_data(
+                    run_id,
+                    payload.thread_id,
+                    _artifact_persistence_error_message(),
+                ),
+            )
         except Exception as error:
             logger.error("Chat stream failed (%s)", type(error).__name__)
             yield ServerSentEvent(
@@ -148,5 +165,11 @@ def _structured_output_error_message(error: StructuredOutputError) -> str:
         "The pending workflow state was preserved; retry the turn."
     )
 
+
+def _artifact_persistence_error_message() -> str:
+    return (
+        "The ArchHypo result was generated but could not be saved. "
+        "The conversation state was preserved; retry the turn."
+    )
 
 __all__ = ["router"]

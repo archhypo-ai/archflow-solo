@@ -1,5 +1,7 @@
 """Deterministic model stubs for service and API tests."""
 
+from uuid import uuid4
+
 from langchain_core.language_models.fake_chat_models import FakeMessagesListChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableLambda
@@ -44,6 +46,25 @@ class StubSystemOneClient:
             model="test/decision-model",
             answers={"intent": SystemOneAnswer(type="choice", choice=intent)},
         )
+
+
+class InMemoryArtifactRepository:
+    """Capture finalized artifacts in graph tests without writing SQLite."""
+
+    def __init__(self) -> None:
+        self.records: list[dict[str, object]] = []
+
+    def save_final_result(self, **snapshot: object) -> str:
+        cycle_id = str(snapshot["cycle_id"])
+        existing = next(
+            (record for record in self.records if record["cycle_id"] == cycle_id),
+            None,
+        )
+        if existing is not None:
+            return str(existing["id"])
+        artifact_id = uuid4().hex
+        self.records.append({"id": artifact_id, **snapshot})
+        return artifact_id
 
 
 class StructuredOutputStub:
@@ -225,6 +246,7 @@ __all__ = [
     "StructuredOutputStub",
     "StubChatModel",
     "StubSystemOneClient",
+    "InMemoryArtifactRepository",
     "approved_hypothesis_request",
     "approved_technical_plan_request",
     "structured_output",

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
+
 from langchain_core.messages import BaseMessage
 from langgraph.runtime import Runtime
 from pydantic import ValidationError
@@ -18,7 +20,7 @@ from archhypo_flow_agent.core import (
 )
 from archhypo_flow_agent.providers import SystemOneClient, SystemOneResponseError
 
-from .support import analysis_context, latest_user_input
+from .support import analysis_context, human_review_enabled, latest_user_input
 
 
 def create_request_routing_node(
@@ -58,7 +60,16 @@ def create_request_routing_node(
                 "SystemOne returned an invalid request intent"
             ) from error
 
-        return _prepare_route(state, routing)
+        update = _prepare_route(state, routing)
+        prepared_routing = update["routing"]
+        if isinstance(prepared_routing, RequestRouting) and (
+            prepared_routing.route != "direct_response_generation"
+        ):
+            context = runtime.context if runtime is not None else None
+            context = context if isinstance(context, dict) else {}
+            update["project_id"] = context.get("project_id")
+            update["hitl_enabled"] = human_review_enabled(runtime)
+        return update
 
     return route
 
@@ -100,6 +111,8 @@ def _prepare_route(
         # If formulation asks a question, the previous result stays active.
         return {
             "routing": routing,
+            "cycle_id": uuid4().hex,
+            "artifact_id": None,
             "result_history": result_history,
             "formulation_question": None,
             "hypothesis_feedback": None,
@@ -107,6 +120,8 @@ def _prepare_route(
 
     update: dict[str, object] = {
         "routing": routing,
+        "cycle_id": uuid4().hex,
+        "artifact_id": None,
         "result_history": result_history,
         "formulation_question": None,
         "hypothesis_review": None,

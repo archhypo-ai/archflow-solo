@@ -14,6 +14,7 @@ from archhypo_flow_agent.config import settings
 from archhypo_flow_agent.core import ChatRequest, ChatResponse
 from archhypo_flow_agent.graph import build_graph, build_history_graph
 from archhypo_flow_agent.observability import Observability, build_observability
+from archhypo_flow_agent.persistence.artifacts import ArchHypoArtifactRepository
 from archhypo_flow_agent.persistence.paths import DATABASE_PATH
 from archhypo_flow_agent.persistence.projects import ProjectMetadata
 from archhypo_flow_agent.persistence.sqlite import (
@@ -45,6 +46,7 @@ class AgentService:
         database_path: Path | None = None,
         tools: Sequence[BaseTool] | None = None,
         system_one_client: SystemOneClient | None = None,
+        artifact_repository: ArchHypoArtifactRepository | None = None,
     ) -> None:
         if model is not None and system_one_client is None:
             raise ValueError("A SystemOne client is required for request routing.")
@@ -59,15 +61,26 @@ class AgentService:
 
         conversations = self._persistence.conversations if self._persistence else None
         projects = self._persistence.projects if self._persistence else None
+        artifacts = (
+            artifact_repository
+            or (self._persistence.artifacts if self._persistence is not None else None)
+        )
         active_tools = _resolve_tools(tools)
 
         try:
+            if model is not None and artifacts is None:
+                raise ValueError(
+                    "An artifact repository is required for ArchHypo chat."
+                )
             graph = (
                 build_graph(
                     model,
                     tools=active_tools,
                     checkpointer=active_checkpointer,
                     system_one_client=system_one_client,
+                    artifact_repository=artifacts,
+                    chat_model_id=settings.openrouter_model,
+                    system_one_model_id=settings.system_one_model,
                 )
                 if model is not None
                 else build_history_graph(active_checkpointer)

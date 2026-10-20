@@ -62,13 +62,13 @@ def route_after_technical_plan_review(
     """Finalize after approval or bypass; otherwise generate a revised plan."""
 
     if not human_review_enabled(runtime):
-        return "response_generation"
+        return "artifact_persistence"
 
     decision = state.get("technical_plan_review")
     if decision is None:
         raise ValueError("a human decision is required after technical plan review")
     return (
-        "response_generation"
+        "artifact_persistence"
         if decision.decision == "approved"
         else "technical_plan_generation"
     )

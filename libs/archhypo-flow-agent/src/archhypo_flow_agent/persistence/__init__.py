@@ -1,5 +1,11 @@
 """Conversation and project metadata with LangGraph SQLite checkpoints."""
 
+from .artifacts import (
+    ArchHypoArtifactRecord,
+    ArchHypoArtifactRepository,
+    ArtifactPersistenceError,
+    SQLiteArchHypoArtifactRepository,
+)
 from .conversations import (
     ConversationMetadata,
     ConversationRepository,
@@ -11,12 +17,16 @@ from .schema import initialize_schema
 from .sqlite import SQLitePersistence, open_sqlite_persistence
 
 __all__ = [
+    "ArchHypoArtifactRecord",
+    "ArchHypoArtifactRepository",
+    "ArtifactPersistenceError",
     "DATABASE_PATH",
     "RUNTIME_ROOT",
     "STORAGE_ROOT",
     "ConversationMetadata",
     "ConversationRepository",
     "SQLiteConversationRepository",
+    "SQLiteArchHypoArtifactRepository",
     "ProjectMetadata",
     "ProjectRepository",
     "SQLiteProjectRepository",

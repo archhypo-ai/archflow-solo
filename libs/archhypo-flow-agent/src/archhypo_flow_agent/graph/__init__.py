@@ -3,6 +3,7 @@
 from .history import build_history_graph
 from .nodes import (
     create_architectural_uncertainty_discovery_node,
+    create_artifact_persistence_node,
     create_direct_response_generation_node,
     create_hypothesis_assessment_node,
     create_hypothesis_formulation_node,
@@ -17,6 +18,7 @@ __all__ = [
     "build_graph",
     "build_history_graph",
     "create_architectural_uncertainty_discovery_node",
+    "create_artifact_persistence_node",
     "create_direct_response_generation_node",
     "create_hypothesis_assessment_node",
     "create_hypothesis_formulation_node",

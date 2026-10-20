@@ -17,10 +17,22 @@ from archhypo_flow_agent.core import (
     TechnicalPlan,
     TechnicalPlanReview,
 )
-from archhypo_flow_agent.graph import build_graph
+from archhypo_flow_agent.graph import build_graph as _build_graph
 from archhypo_flow_agent.graph.nodes import technical_plan_generation
 from archhypo_flow_agent.providers import SystemOneRequestError
-from tests.fakes import StructuredOutputStub, StubSystemOneClient, structured_output
+from tests.fakes import (
+    InMemoryArtifactRepository,
+    StructuredOutputStub,
+    StubSystemOneClient,
+    structured_output,
+)
+
+
+def build_graph(model, **kwargs):
+    kwargs.setdefault("artifact_repository", InMemoryArtifactRepository())
+    kwargs.setdefault("chat_model_id", "test/chat-model")
+    kwargs.setdefault("system_one_model_id", "test/system-one-model")
+    return _build_graph(model, **kwargs)
 
 
 class StubModel(StructuredOutputStub, FakeListChatModel):
@@ -33,9 +45,11 @@ class StubModel(StructuredOutputStub, FakeListChatModel):
 
 def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
     system_one = StubSystemOneClient()
+    artifacts = InMemoryArtifactRepository()
     graph = build_graph(
         model=StubModel(),
         system_one_client=system_one,
+        artifact_repository=artifacts,
         checkpointer=MemorySaver(),
     )
     config = {"configurable": {"thread_id": "approved-hypothesis"}}
@@ -50,6 +64,7 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
     assert graph.get_state(config).tasks[0].interrupts[0].value["kind"] == (
         "hypothesis_review"
     )
+    assert artifacts.records == []
 
     plan_review = graph.invoke(
         Command(resume={"decision": "approved"}),
@@ -59,6 +74,7 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
     assert graph.get_state(config).tasks[0].interrupts[0].value["kind"] == (
         "technical_plan_review"
     )
+    assert artifacts.records == []
 
     result = graph.invoke(
         Command(resume={"decision": "approved"}),
@@ -67,6 +83,12 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
 
     assert result["messages"][-1].content == "Hello from the test agent."
     assert system_one.calls == 1
+    assert len(artifacts.records) == 1
+    saved = artifacts.records[0]
+    assert result["artifact_id"] == saved["id"]
+    assert saved["cycle_id"] == result["cycle_id"]
+    assert saved["result"] == result["result"]
+    assert saved["hitl_enabled"] is True
     assert result["routing"].route == "architectural_uncertainty_discovery"
     assert result["discovery"].uncertainty == "Hello"
     assert result["hypothesis"].statement
@@ -86,6 +108,7 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
         "hypothesis_assessment",
         "technical_plan_generation",
         "technical_plan_review",
+        "artifact_persistence",
         "response_generation",
     ]
     assert all(stage in graph_diagram for stage in stages)
@@ -99,9 +122,11 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
 @pytest.mark.parametrize("checkpointed", [False, True])
 def test_disabled_hitl_runs_all_stages_without_human_approval(checkpointed) -> None:
     system_one = StubSystemOneClient()
+    artifacts = InMemoryArtifactRepository()
     graph = build_graph(
         model=StubModel(),
         system_one_client=system_one,
+        artifact_repository=artifacts,
         checkpointer=MemorySaver() if checkpointed else None,
     )
     config = {"configurable": {"thread_id": "without-human-review"}}
@@ -123,6 +148,8 @@ def test_disabled_hitl_runs_all_stages_without_human_approval(checkpointed) -> N
     assert result.get("review_history", []) == []
     assert not result.get("__interrupt__")
     assert system_one.calls == 1
+    assert len(artifacts.records) == 1
+    assert artifacts.records[0]["hitl_enabled"] is False
     if checkpointed:
         snapshot = graph.get_state(config)
         assert snapshot.next == ()
@@ -460,9 +487,11 @@ def test_rejected_hypothesis_is_reformulated_using_required_feedback() -> None:
 
 
 def test_rejected_technical_plan_is_regenerated_with_feedback() -> None:
+    artifacts = InMemoryArtifactRepository()
     graph = build_graph(
         model=StubModel(),
         system_one_client=StubSystemOneClient(),
+        artifact_repository=artifacts,
         checkpointer=MemorySaver(),
     )
     config = {"configurable": {"thread_id": "rejected-technical-plan"}}
@@ -477,6 +506,7 @@ def test_rejected_technical_plan_is_regenerated_with_feedback() -> None:
     assert first_state.tasks[0].interrupts[0].value["kind"] == (
         "technical_plan_review"
     )
+    assert artifacts.records == []
 
     graph.invoke(
         Command(
@@ -498,6 +528,7 @@ def test_rejected_technical_plan_is_regenerated_with_feedback() -> None:
     assert revised_state.tasks[0].interrupts[0].value["kind"] == (
         "technical_plan_review"
     )
+    assert artifacts.records == []
     reviewed_payload = revised_state.tasks[0].interrupts[0].value
     assert "Add evidence that can trigger a rollback." in reviewed_payload[
         "technical_plan"
@@ -505,6 +536,8 @@ def test_rejected_technical_plan_is_regenerated_with_feedback() -> None:
 
     result = graph.invoke(Command(resume={"decision": "approved"}), config=config)
     assert result["messages"][-1].content == "Hello from the test agent."
+    assert len(artifacts.records) == 1
+    assert artifacts.records[0]["result"] == result["result"]
     assert [record["kind"] for record in result["review_history"]] == [
         "hypothesis_review",
         "technical_plan_review",

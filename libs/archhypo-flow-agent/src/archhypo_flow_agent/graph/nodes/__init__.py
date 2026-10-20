@@ -3,6 +3,7 @@
 from .architectural_uncertainty_discovery import (
     create_architectural_uncertainty_discovery_node,
 )
+from .artifact_persistence import create_artifact_persistence_node
 from .direct_response_generation import create_direct_response_generation_node
 from .hypothesis_assessment import create_hypothesis_assessment_node
 from .hypothesis_formulation import (
@@ -20,6 +21,7 @@ from .technical_plan_review import (
 
 __all__ = [
     "create_architectural_uncertainty_discovery_node",
+    "create_artifact_persistence_node",
     "create_direct_response_generation_node",
     "create_hypothesis_assessment_node",
     "create_hypothesis_formulation_node",

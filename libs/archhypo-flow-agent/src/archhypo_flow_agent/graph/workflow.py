@@ -14,6 +14,7 @@ from archhypo_flow_agent.agents import (
 from archhypo_flow_agent.core import AgentRunContext, AgentState
 from archhypo_flow_agent.graph.nodes import (
     create_architectural_uncertainty_discovery_node,
+    create_artifact_persistence_node,
     create_direct_response_generation_node,
     create_hypothesis_assessment_node,
     create_hypothesis_formulation_node,
@@ -27,6 +28,7 @@ from archhypo_flow_agent.graph.nodes import (
     route_request,
     technical_plan_review_node,
 )
+from archhypo_flow_agent.persistence import ArchHypoArtifactRepository
 from archhypo_flow_agent.providers import SystemOneClient
 
 
@@ -34,6 +36,9 @@ def build_graph(
     model: BaseChatModel,
     *,
     system_one_client: SystemOneClient,
+    artifact_repository: ArchHypoArtifactRepository,
+    chat_model_id: str | None = None,
+    system_one_model_id: str | None = None,
     tools: Sequence[BaseTool] = (),
     checkpointer: BaseCheckpointSaver | None = None,
 ):
@@ -79,6 +84,14 @@ def build_graph(
     )
     workflow.add_node("technical_plan_review", technical_plan_review_node)
     workflow.add_node(
+        "artifact_persistence",
+        create_artifact_persistence_node(
+            artifact_repository,
+            chat_model=chat_model_id,
+            system_one_model=system_one_model_id,
+        ),
+    )
+    workflow.add_node(
         "response_generation",
         create_response_generation_node(response_agent),
     )
@@ -118,10 +131,11 @@ def build_graph(
         "technical_plan_review",
         route_after_technical_plan_review,
         {
-            "response_generation": "response_generation",
+            "artifact_persistence": "artifact_persistence",
             "technical_plan_generation": "technical_plan_generation",
         },
     )
+    workflow.add_edge("artifact_persistence", "response_generation")
     workflow.add_edge("response_generation", END)
     return workflow.compile(checkpointer=checkpointer)
 

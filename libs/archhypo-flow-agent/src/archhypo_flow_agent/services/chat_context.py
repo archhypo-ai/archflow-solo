@@ -54,6 +54,7 @@ class ChatContextResolver:
         return metadata, {
             "global_context": request.global_context,
             "project_context": project_context,
+            "project_id": project_id or request.project_id,
             "language": request.language,
             "hitl_enabled": settings.hitl_enabled and request.hitl_enabled,
         }

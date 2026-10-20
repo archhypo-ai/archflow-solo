@@ -12,9 +12,11 @@ graph TD;
 	hypothesis_review(hypothesis_review)
 	technical_plan_generation(technical_plan_generation)
 	technical_plan_review(technical_plan_review)
+	artifact_persistence(artifact_persistence)
 	__end__([<p>__end__</p>]):::last
 	__start__ --> request_routing;
 	architectural_uncertainty_discovery --> hypothesis_formulation;
+	artifact_persistence --> response_generation\3amodel;
 	hypothesis_assessment --> technical_plan_generation;
 	hypothesis_formulation -.-> direct_response_generation\3amodel;
 	hypothesis_formulation -.-> hypothesis_review;
@@ -24,7 +26,7 @@ graph TD;
 	request_routing -.-> direct_response_generation\3amodel;
 	request_routing -.-> hypothesis_formulation;
 	technical_plan_generation --> technical_plan_review;
-	technical_plan_review -.-> response_generation\3amodel;
+	technical_plan_review -.-> artifact_persistence;
 	technical_plan_review -.-> technical_plan_generation;
 	direct_response_generation\3amodel --> __end__;
 	response_generation\3amodel --> __end__;
