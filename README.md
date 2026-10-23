@@ -32,6 +32,13 @@ uv run --project libs/archhypo-flow-agent python archhypoflow_cli.py input.txt
 The CLI also accepts `-` to read from standard input. It uses the settings in
 `libs/archhypo-flow-agent/.env` and the same local SQLite database as the app.
 
+Export saved ArchHypo artifacts as a JSON array with:
+
+```bash
+uv run --project libs/archhypo-flow-agent python archhypoflow_cli.py \
+  --export-json > artifacts.json
+```
+
 ## Run the desktop app
 
 ```bash

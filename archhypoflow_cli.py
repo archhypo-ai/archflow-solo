@@ -13,6 +13,8 @@ Examples (from the repository root)::
 from __future__ import annotations
 
 import argparse
+import json
+import sqlite3
 import sys
 from pathlib import Path
 from uuid import uuid4
@@ -51,6 +53,48 @@ def _read_input(source: str, *, force_text: bool) -> str:
     return text
 
 
+def _export_artifacts_json() -> int:
+    """Print final ArchHypo artifact rows as a JSON array."""
+
+    try:
+        _load_environment()
+        from archhypo_flow_agent.persistence.paths import DATABASE_PATH
+
+        database_uri = f"{DATABASE_PATH.resolve().as_uri()}?mode=ro"
+        connection = sqlite3.connect(database_uri, uri=True)
+        connection.row_factory = sqlite3.Row
+        try:
+            rows = connection.execute(
+                """
+                SELECT id, cycle_id, thread_id, project_id, title, status, outcome,
+                       hitl_enabled, chat_model, system_one_model,
+                       result_schema_version, routing_json, review_history_json,
+                       result_json, created_at, updated_at
+                FROM archhypo_artifacts
+                ORDER BY created_at DESC, id
+                """
+            ).fetchall()
+        finally:
+            connection.close()
+
+        artifacts: list[dict[str, object]] = []
+        for row in rows:
+            artifact: dict[str, object] = dict(row)
+            artifact["hitl_enabled"] = bool(artifact["hitl_enabled"])
+            artifact["routing"] = json.loads(str(artifact.pop("routing_json")))
+            artifact["review_history"] = json.loads(
+                str(artifact.pop("review_history_json"))
+            )
+            artifact["result"] = json.loads(str(artifact.pop("result_json")))
+            artifacts.append(artifact)
+    except (ImportError, OSError, sqlite3.Error, ValueError) as error:
+        print(f"Could not export ArchHypo artifacts: {error}", file=sys.stderr)
+        return 1
+
+    print(json.dumps(artifacts, ensure_ascii=False, indent=2))
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -58,13 +102,29 @@ def main() -> int:
             "file, or '-' to read from stdin."
         )
     )
-    parser.add_argument("input", help="Text, file path, or '-' for stdin")
+    parser.add_argument(
+        "input",
+        nargs="?",
+        help="Text, file path, or '-' for stdin (omit when exporting)",
+    )
+    parser.add_argument(
+        "--export-json",
+        action="store_true",
+        help="Export the final ArchHypo artifact rows as a JSON array",
+    )
     parser.add_argument(
         "--text",
         action="store_true",
         help="Treat INPUT as literal text even if it matches an existing file",
     )
     arguments = parser.parse_args()
+
+    if arguments.export_json:
+        if arguments.input is not None or arguments.text:
+            parser.error("--export-json cannot be combined with input or --text")
+        return _export_artifacts_json()
+    if arguments.input is None:
+        parser.error("input is required unless --export-json is used")
 
     try:
         message = _read_input(arguments.input, force_text=arguments.text)
