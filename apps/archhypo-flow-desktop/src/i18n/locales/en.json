@@ -39,12 +39,28 @@
     "retry": "Retry",
     "emptyTitle": "No artifacts yet",
     "emptyDescription": "Final results from ArchHypo cycles will appear here.",
+    "openArtifact": "Open artifact: {{title}}",
     "idLabel": "ID · {{id}}",
     "statusOpen": "Open",
+    "statusClosed": "Closed",
     "outcomeNotEvaluated": "Not evaluated",
     "noProject": "No project",
     "plansLabel": "Technical plans",
-    "noPlans": "No actions recorded"
+    "noPlans": "No actions recorded",
+    "detail": {
+      "loading": "Loading artifact…",
+      "loadError": "Could not load this artifact.",
+      "status": "Status",
+      "statusSaving": "Saving status…",
+      "statusError": "Could not update the artifact status. Please try again.",
+      "uncertainty": "Architectural uncertainty",
+      "hypothesis": "Hypothesis",
+      "assessment": "Assessment",
+      "nfr": "Quality attribute",
+      "technicalPlan": "Technical plan",
+      "objective": "Objective",
+      "tradeoff": "Trade-off"
+    }
   },
   "chat": {
     "welcomeTitle": "What architectural uncertainty would you like to explore?",

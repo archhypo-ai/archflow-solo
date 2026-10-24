@@ -6,17 +6,23 @@ type ArtifactCardProps = {
   artifact: ArtifactSummary;
   projectName: string | null;
   language: AppLanguage;
+  onSelect: (artifact: ArtifactSummary) => void;
 };
 
 export function ArtifactCard({
   artifact,
   projectName,
   language,
+  onSelect,
 }: ArtifactCardProps) {
   const { t } = useTranslation();
   const status = artifact.status.toLowerCase();
   const statusLabel =
-    status === "open" ? t("artifacts.statusOpen") : formatEnum(artifact.status);
+    status === "open"
+      ? t("artifacts.statusOpen")
+      : status === "closed"
+        ? t("artifacts.statusClosed")
+        : formatEnum(artifact.status);
   const translatedLevel = (value: string) => {
     const key = assessmentLevelKeys[value];
     return key ? t(`chat.assessmentLevels.${key}`) : value;
@@ -26,7 +32,19 @@ export function ArtifactCard({
   ];
 
   return (
-    <article className="artifact-card">
+    <article
+      className="artifact-card"
+      role="button"
+      tabIndex={0}
+      aria-label={t("artifacts.openArtifact", { title: artifact.title })}
+      onClick={() => onSelect(artifact)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect(artifact);
+        }
+      }}
+    >
       <header className="artifact-card-header">
         <span className={`artifact-status-badge is-${status}`}>
           {statusLabel}

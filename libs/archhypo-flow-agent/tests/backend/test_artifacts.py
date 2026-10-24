@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
@@ -19,6 +20,24 @@ class InMemoryArtifactListRepository:
         if thread_id is not None:
             records = [record for record in records if record.thread_id == thread_id]
         return records
+
+    def get_by_id(self, artifact_id):
+        return next(
+            (record for record in self.records if record.id == artifact_id),
+            None,
+        )
+
+    def update_status(self, artifact_id, status):
+        for index, record in enumerate(self.records):
+            if record.id == artifact_id:
+                updated = replace(
+                    record,
+                    status=status,
+                    updated_at=datetime.now(UTC).isoformat(),
+                )
+                self.records[index] = updated
+                return updated
+        return None
 
 
 def artifact_record(
@@ -43,18 +62,29 @@ def artifact_record(
         result={
             "uncertainty": "Can one server handle the projected load?",
             "hypothesis": {
-                "statement": "One server can handle the projected load."
+                "title": "Validate peak ingestion capacity",
+                "justification": "A representative load test can measure capacity.",
+                "statement": "One server can handle the projected load.",
             },
             "assessment": {
                 "nfr": "Performance",
+                "nfr_justification": "Throughput is the key quality attribute.",
                 "impact": "High",
+                "impact_justification": (
+                    "A failure would require infrastructure changes."
+                ),
                 "uncertainty": "Medium",
+                "uncertainty_justification": "The expected load is not measured yet.",
             },
             "technical_plan": {
+                "rationale": "A load test can validate the capacity assumption.",
                 "items": [
                     {
                         "title": "Replay a representative workload",
+                        "objective": "Measure projected peak throughput.",
+                        "description": "Replay a representative data batch.",
                         "pattern": "Architectural Spike",
+                        "tradeoff": "Requires a representative test environment.",
                     }
                 ]
             },
@@ -101,5 +131,46 @@ def test_artifact_list_returns_card_summaries_and_filters_by_project() -> None:
                 "pattern": "Architectural Spike",
             }
         ]
+    finally:
+        service.close()
+
+
+def test_artifact_detail_returns_full_result_and_status_can_be_updated() -> None:
+    repository = InMemoryArtifactListRepository(
+        [artifact_record("artifact-1", project_id="project-1")]
+    )
+    service = AgentService(
+        checkpointer=MemorySaver(),
+        artifact_repository=repository,
+    )
+    try:
+        with TestClient(create_app(service)) as client:
+            detail = client.get("/api/artifacts/artifact-1")
+            updated = client.patch(
+                "/api/artifacts/artifact-1",
+                json={"status": "closed"},
+            )
+            listed = client.get("/api/artifacts")
+            invalid_status = client.patch(
+                "/api/artifacts/artifact-1",
+                json={"status": "archived"},
+            )
+            missing = client.get("/api/artifacts/missing")
+
+        assert detail.status_code == 200
+        assert detail.json()["hypothesis"]["statement"] == (
+            "One server can handle the projected load."
+        )
+        assert detail.json()["technical_plan"]["items"][0]["objective"] == (
+            "Measure projected peak throughput."
+        )
+        assert detail.json()["technical_plan"]["items"][0]["pattern"] == (
+            "Architectural Spike"
+        )
+        assert updated.status_code == 200
+        assert updated.json()["status"] == "closed"
+        assert listed.json()[0]["status"] == "closed"
+        assert invalid_status.status_code == 422
+        assert missing.status_code == 404
     finally:
         service.close()

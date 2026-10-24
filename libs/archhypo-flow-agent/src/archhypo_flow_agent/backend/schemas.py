@@ -65,6 +65,66 @@ class ArtifactSummaryResponse(BaseModel):
     created_at: str
 
 
+class ArtifactHypothesisResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    title: str
+    statement: str
+    justification: str
+
+
+class ArtifactAssessmentResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    nfr: str
+    nfr_justification: str
+    impact: str
+    impact_justification: str
+    uncertainty: str
+    uncertainty_justification: str
+
+
+class ArtifactDetailPlanItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    title: str
+    objective: str
+    description: str
+    pattern: str
+    tradeoff: str
+
+
+class ArtifactTechnicalPlanResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    rationale: str
+    items: list[ArtifactDetailPlanItemResponse]
+
+
+class ArtifactDetailResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    cycle_id: str
+    thread_id: str
+    project_id: str | None
+    title: str
+    status: Literal["open", "closed"]
+    outcome: str
+    uncertainty: str
+    hypothesis: ArtifactHypothesisResponse
+    assessment: ArtifactAssessmentResponse
+    technical_plan: ArtifactTechnicalPlanResponse
+    created_at: str
+    updated_at: str
+
+
+class ArtifactStatusUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    status: Literal["open", "closed"]
+
+
 class ProjectCreateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -164,7 +224,13 @@ class ThreadResponse(ThreadSummaryResponse):
 
 __all__ = [
     "ArtifactPlanItemResponse",
+    "ArtifactAssessmentResponse",
+    "ArtifactDetailPlanItemResponse",
+    "ArtifactDetailResponse",
+    "ArtifactHypothesisResponse",
     "ArtifactSummaryResponse",
+    "ArtifactStatusUpdateRequest",
+    "ArtifactTechnicalPlanResponse",
     "HealthResponse",
     "ProjectCreateRequest",
     "ProjectResponse",

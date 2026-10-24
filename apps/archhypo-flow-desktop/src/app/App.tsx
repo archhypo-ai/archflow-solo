@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Layers } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Sidebar } from "../components";
-import { ArtifactsPage } from "../features/artifacts";
+import { ArtifactDetailPage, ArtifactsPage } from "../features/artifacts";
+import type { ArtifactSummary } from "../features/artifacts/types";
 import { Chat } from "../features/chat";
 import { ReviewCardsPreviewDialog } from "../features/chat/components/ReviewCardsPreviewDialog";
 import { useWorkspaceNavigation } from "./hooks/useWorkspaceNavigation";
@@ -44,6 +45,7 @@ function App() {
   const [hitlSaveError, setHitlSaveError] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [artifactsLibraryOpen, setArtifactsLibraryOpen] = useState(false);
+  const [activeArtifact, setActiveArtifact] = useState<ArtifactSummary | null>(null);
   const [renameTarget, setRenameTarget] = useState<ConversationSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ConversationSummary | null>(null);
   const [projectSettingsTarget, setProjectSettingsTarget] = useState<Project | null>(null);
@@ -183,11 +185,13 @@ function App() {
   }, []);
   const handleNewConversation = useCallback(() => {
     setArtifactsLibraryOpen(false);
+    setActiveArtifact(null);
     startNewConversation();
   }, [startNewConversation]);
   const handleProjectSelect = useCallback(
     (projectId: string) => {
       setArtifactsLibraryOpen(false);
+      setActiveArtifact(null);
       openProjectHome(projectId);
     },
     [openProjectHome],
@@ -195,10 +199,23 @@ function App() {
   const handleConversationSelect = useCallback(
     (threadId: string) => {
       setArtifactsLibraryOpen(false);
+      setActiveArtifact(null);
       selectConversation(threadId);
     },
     [selectConversation],
   );
+  const handleArtifactSelect = useCallback((artifact: ArtifactSummary) => {
+    setArtifactsLibraryOpen(false);
+    setActiveArtifact(artifact);
+  }, []);
+  const handleArtifactsSelect = useCallback(() => {
+    setActiveArtifact(null);
+    setArtifactsLibraryOpen(true);
+  }, []);
+  const handleReturnToArtifacts = useCallback(() => {
+    setActiveArtifact(null);
+    setArtifactsLibraryOpen(true);
+  }, []);
 
   useEffect(() => {
     const systemTheme = window.matchMedia("(prefers-color-scheme: light)");
@@ -246,10 +263,14 @@ function App() {
         accountTriggerRef={accountTriggerRef}
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)}
-        activeConversationId={artifactsLibraryOpen ? null : activeConversationId}
-        activeProjectId={artifactsLibraryOpen ? null : activeProjectId}
-        isNewConversationActive={!artifactsLibraryOpen && isNewConversationActive}
-        isArtifactsActive={artifactsLibraryOpen}
+        activeConversationId={
+          artifactsLibraryOpen || activeArtifact ? null : activeConversationId
+        }
+        activeProjectId={artifactsLibraryOpen || activeArtifact ? null : activeProjectId}
+        isNewConversationActive={
+          !artifactsLibraryOpen && !activeArtifact && isNewConversationActive
+        }
+        isArtifactsActive={artifactsLibraryOpen || activeArtifact !== null}
         conversations={conversations}
         language={language}
         projects={projects}
@@ -261,7 +282,7 @@ function App() {
         onToggleConversationPin={toggleConversationPin}
         onDeleteConversation={setDeleteTarget}
         onNewChat={handleNewConversation}
-        onArtifactsSelect={() => setArtifactsLibraryOpen(true)}
+        onArtifactsSelect={handleArtifactsSelect}
         onNewProject={openCreateProject}
         onLanguageChange={(nextLanguage) =>
           void i18n.changeLanguage(nextLanguage)
@@ -271,7 +292,23 @@ function App() {
       />
       <main className="main-panel">
         <header className="main-header">
-          {artifactsLibraryOpen ? (
+          {activeArtifact ? (
+            <div className="main-header-breadcrumb">
+              <button
+                className="main-header-project-link"
+                type="button"
+                onClick={handleReturnToArtifacts}
+                title={t("artifacts.pageTitle")}
+              >
+                <Layers size={17} aria-hidden="true" />
+                <span>{t("artifacts.pageTitle")}</span>
+              </button>
+              <span className="main-header-separator" aria-hidden="true">
+                /
+              </span>
+              <h1 title={activeArtifact.title}>{activeArtifact.title}</h1>
+            </div>
+          ) : artifactsLibraryOpen ? (
             <div className="main-header-breadcrumb">
               <Layers size={17} aria-hidden="true" />
               <h1 id="artifacts-heading">{t("artifacts.pageTitle")}</h1>
@@ -296,8 +333,24 @@ function App() {
             </div>
           ) : null}
         </header>
-        {artifactsLibraryOpen ? (
-          <ArtifactsPage language={language} projects={projects} />
+        {activeArtifact ? (
+          <ArtifactDetailPage
+            key={activeArtifact.id}
+            artifactId={activeArtifact.id}
+            language={language}
+            projectName={
+              activeArtifact.projectId
+                ? projects.find((project) => project.id === activeArtifact.projectId)
+                    ?.name ?? null
+                : null
+            }
+          />
+        ) : artifactsLibraryOpen ? (
+          <ArtifactsPage
+            language={language}
+            projects={projects}
+            onArtifactSelect={handleArtifactSelect}
+          />
         ) : activeConversationId ? (
           <Chat
             key={activeConversationId}

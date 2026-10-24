@@ -1,3 +1,4 @@
+export { ArtifactDetailPage } from "./components/ArtifactDetailPage";
 export { ArtifactsPage } from "./components/ArtifactsPage";
 export { useArtifacts } from "./hooks/useArtifacts";
 export type { ArtifactPlanItem, ArtifactSummary } from "./types";

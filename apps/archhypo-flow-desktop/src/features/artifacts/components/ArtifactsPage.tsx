@@ -4,15 +4,21 @@ import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../../i18n";
 import type { Project } from "../../projects/types";
 import { useArtifacts } from "../hooks/useArtifacts";
+import type { ArtifactSummary } from "../types";
 import { ArtifactCard } from "./ArtifactCard";
 import "./ArtifactsPage.css";
 
 type ArtifactsPageProps = {
   language: AppLanguage;
   projects: Project[];
+  onArtifactSelect: (artifact: ArtifactSummary) => void;
 };
 
-export function ArtifactsPage({ language, projects }: ArtifactsPageProps) {
+export function ArtifactsPage({
+  language,
+  projects,
+  onArtifactSelect,
+}: ArtifactsPageProps) {
   const { t } = useTranslation();
   const { artifacts, loading, error, reload } = useArtifacts();
   const projectNames = useMemo(
@@ -56,6 +62,7 @@ export function ArtifactsPage({ language, projects }: ArtifactsPageProps) {
                 artifact={artifact}
                 key={artifact.id}
                 language={language}
+                onSelect={onArtifactSelect}
                 projectName={
                   artifact.projectId
                     ? projectNames.get(artifact.projectId) ?? null

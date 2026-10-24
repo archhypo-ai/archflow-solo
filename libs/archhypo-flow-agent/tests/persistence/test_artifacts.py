@@ -105,6 +105,14 @@ def test_artifact_table_stores_the_exact_result_and_is_idempotent(tmp_path) -> N
         assert persistence.artifacts.list(project_id="project-1") == [saved]
         assert persistence.artifacts.list(thread_id="thread-1") == [saved]
 
+        closed = persistence.artifacts.update_status(artifact_id, "closed")
+        assert closed is not None
+        assert closed.status == "closed"
+        reopened = persistence.artifacts.update_status(artifact_id, "open")
+        assert reopened is not None
+        assert reopened.status == "open"
+        assert persistence.artifacts.update_status("missing-artifact", "closed") is None
+
         with sqlite3.connect(tmp_path / "artifacts.sqlite") as connection:
             row = connection.execute(
                 "SELECT result_json FROM archhypo_artifacts WHERE id = ?",

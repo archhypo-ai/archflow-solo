@@ -7,7 +7,7 @@ import sqlite3
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Literal, Protocol
 from uuid import uuid4
 
 from archhypo_flow_agent.core import ArchHypoResult, RequestRouting
@@ -55,6 +55,12 @@ class ArchHypoArtifactRepository(Protocol):
     ) -> str: ...
 
     def get_by_id(self, artifact_id: str) -> ArchHypoArtifactRecord | None: ...
+
+    def update_status(
+        self,
+        artifact_id: str,
+        status: Literal["open", "closed"],
+    ) -> ArchHypoArtifactRecord | None: ...
 
     def list(
         self,
@@ -166,6 +172,36 @@ class SQLiteArchHypoArtifactRepository:
             f"SELECT {self._SELECT_COLUMNS} FROM archhypo_artifacts WHERE id = ?",
             (artifact_id,),
         ).fetchone()
+        return _artifact_from_row(row) if row is not None else None
+
+    def update_status(
+        self,
+        artifact_id: str,
+        status: Literal["open", "closed"],
+    ) -> ArchHypoArtifactRecord | None:
+        if status not in {"open", "closed"}:
+            raise ValueError("artifact status must be 'open' or 'closed'")
+
+        try:
+            with self._connection:
+                cursor = self._connection.execute(
+                    """UPDATE archhypo_artifacts
+                       SET status = ?, updated_at = ?
+                       WHERE id = ?""",
+                    (status, _now(), artifact_id),
+                )
+                if cursor.rowcount == 0:
+                    return None
+                row = self._connection.execute(
+                    f"SELECT {self._SELECT_COLUMNS} FROM archhypo_artifacts "
+                    "WHERE id = ?",
+                    (artifact_id,),
+                ).fetchone()
+        except sqlite3.Error as error:
+            raise ArtifactPersistenceError(
+                "Could not update the ArchHypo artifact status"
+            ) from error
+
         return _artifact_from_row(row) if row is not None else None
 
     def list(

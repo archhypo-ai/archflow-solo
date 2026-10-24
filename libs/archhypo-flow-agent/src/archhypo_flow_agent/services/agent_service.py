@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 from threading import Lock
+from typing import Literal
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
@@ -170,6 +171,22 @@ class AgentService:
             return []
         with self._lock:
             return self._artifact_repository.list(project_id=project_id)
+
+    def get_artifact(self, artifact_id: str) -> ArchHypoArtifactRecord | None:
+        if self._artifact_repository is None:
+            return None
+        with self._lock:
+            return self._artifact_repository.get_by_id(artifact_id)
+
+    def update_artifact_status(
+        self,
+        artifact_id: str,
+        status: Literal["open", "closed"],
+    ) -> ArchHypoArtifactRecord | None:
+        if self._artifact_repository is None:
+            return None
+        with self._lock:
+            return self._artifact_repository.update_status(artifact_id, status)
 
     def get_project(self, project_id: str) -> ProjectMetadata | None:
         return self._projects.get(project_id)

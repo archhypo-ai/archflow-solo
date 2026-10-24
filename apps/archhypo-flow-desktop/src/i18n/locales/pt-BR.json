@@ -39,12 +39,28 @@
     "retry": "Tentar novamente",
     "emptyTitle": "Ainda não há artefatos",
     "emptyDescription": "Os resultados finais de ciclos ArchHypo aparecerão aqui.",
+    "openArtifact": "Abrir artefato: {{title}}",
     "idLabel": "ID · {{id}}",
     "statusOpen": "Aberto",
+    "statusClosed": "Fechado",
     "outcomeNotEvaluated": "Não avaliado",
     "noProject": "Sem projeto",
     "plansLabel": "Planos técnicos",
-    "noPlans": "Sem ações registradas"
+    "noPlans": "Sem ações registradas",
+    "detail": {
+      "loading": "Carregando artefato…",
+      "loadError": "Não foi possível carregar este artefato.",
+      "status": "Status",
+      "statusSaving": "Salvando status…",
+      "statusError": "Não foi possível atualizar o status do artefato. Tente novamente.",
+      "uncertainty": "Incerteza arquitetural",
+      "hypothesis": "Hipótese",
+      "assessment": "Avaliação",
+      "nfr": "Atributo de qualidade",
+      "technicalPlan": "Plano técnico",
+      "objective": "Objetivo",
+      "tradeoff": "Trade-off"
+    }
   },
   "chat": {
     "welcomeTitle": "Qual incerteza arquitetural você quer explorar?",
