@@ -39,6 +39,32 @@ class ProjectResponse(BaseModel):
     updated_at: str
 
 
+class ArtifactPlanItemResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    title: str
+    pattern: str
+
+
+class ArtifactSummaryResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    id: str
+    cycle_id: str
+    thread_id: str
+    project_id: str | None
+    title: str
+    status: str
+    outcome: str
+    uncertainty: str
+    hypothesis_statement: str
+    nfr: str | None
+    impact: str | None
+    uncertainty_level: str | None
+    technical_plan_items: list[ArtifactPlanItemResponse]
+    created_at: str
+
+
 class ProjectCreateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
@@ -137,6 +163,8 @@ class ThreadResponse(ThreadSummaryResponse):
 
 
 __all__ = [
+    "ArtifactPlanItemResponse",
+    "ArtifactSummaryResponse",
     "HealthResponse",
     "ProjectCreateRequest",
     "ProjectResponse",

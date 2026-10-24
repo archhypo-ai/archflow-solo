@@ -6,6 +6,7 @@
     "anonymous": "Anônimo",
     "newConversation": "Nova conversa",
     "newProject": "Novo projeto",
+    "artifacts": "Artefatos",
     "projects": "Projetos",
     "pins": "Fixadas",
     "conversations": "Conversas",
@@ -28,6 +29,22 @@
     "cancel": "Cancelar",
     "save": "Salvar",
     "actionError": "Não foi possível atualizar esta conversa. Tente novamente."
+  },
+  "artifacts": {
+    "pageTitle": "Artefatos",
+    "count_one": "{{count}} artefato",
+    "count_other": "{{count}} artefatos",
+    "loading": "Carregando artefatos…",
+    "loadError": "Não foi possível carregar os artefatos do serviço local.",
+    "retry": "Tentar novamente",
+    "emptyTitle": "Ainda não há artefatos",
+    "emptyDescription": "Os resultados finais de ciclos ArchHypo aparecerão aqui.",
+    "idLabel": "ID · {{id}}",
+    "statusOpen": "Aberto",
+    "outcomeNotEvaluated": "Não avaliado",
+    "noProject": "Sem projeto",
+    "plansLabel": "Planos técnicos",
+    "noPlans": "Sem ações registradas"
   },
   "chat": {
     "welcomeTitle": "Qual incerteza arquitetural você quer explorar?",

@@ -6,6 +6,7 @@
     "anonymous": "Anonymous",
     "newConversation": "New conversation",
     "newProject": "New project",
+    "artifacts": "Artifacts",
     "projects": "Projects",
     "pins": "Pins",
     "conversations": "Conversations",
@@ -28,6 +29,22 @@
     "cancel": "Cancel",
     "save": "Save",
     "actionError": "Could not update this conversation. Please try again."
+  },
+  "artifacts": {
+    "pageTitle": "Artifacts",
+    "count_one": "{{count}} artifact",
+    "count_other": "{{count}} artifacts",
+    "loading": "Loading artifacts…",
+    "loadError": "Could not load artifacts from the local service.",
+    "retry": "Retry",
+    "emptyTitle": "No artifacts yet",
+    "emptyDescription": "Final results from ArchHypo cycles will appear here.",
+    "idLabel": "ID · {{id}}",
+    "statusOpen": "Open",
+    "outcomeNotEvaluated": "Not evaluated",
+    "noProject": "No project",
+    "plansLabel": "Technical plans",
+    "noPlans": "No actions recorded"
   },
   "chat": {
     "welcomeTitle": "What architectural uncertainty would you like to explore?",

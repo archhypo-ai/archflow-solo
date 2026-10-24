@@ -14,7 +14,10 @@ from archhypo_flow_agent.config import settings
 from archhypo_flow_agent.core import ChatRequest, ChatResponse
 from archhypo_flow_agent.graph import build_graph, build_history_graph
 from archhypo_flow_agent.observability import Observability, build_observability
-from archhypo_flow_agent.persistence.artifacts import ArchHypoArtifactRepository
+from archhypo_flow_agent.persistence.artifacts import (
+    ArchHypoArtifactRecord,
+    ArchHypoArtifactRepository,
+)
 from archhypo_flow_agent.persistence.paths import DATABASE_PATH
 from archhypo_flow_agent.persistence.projects import ProjectMetadata
 from archhypo_flow_agent.persistence.sqlite import (
@@ -53,6 +56,7 @@ class AgentService:
         self._lock = Lock()
         self._persistence: SQLitePersistence | None = None
         self._observability: Observability | None = None
+        self._artifact_repository: ArchHypoArtifactRepository | None = None
         if checkpointer is None:
             self._persistence = open_sqlite_persistence(database_path or DATABASE_PATH)
             active_checkpointer = self._persistence.checkpointer
@@ -65,6 +69,7 @@ class AgentService:
             artifact_repository
             or (self._persistence.artifacts if self._persistence is not None else None)
         )
+        self._artifact_repository = artifacts
         active_tools = _resolve_tools(tools)
 
         try:
@@ -155,6 +160,16 @@ class AgentService:
 
     def list_projects(self) -> list[ProjectMetadata]:
         return self._projects.list()
+
+    def list_artifacts(
+        self,
+        *,
+        project_id: str | None = None,
+    ) -> list[ArchHypoArtifactRecord]:
+        if self._artifact_repository is None:
+            return []
+        with self._lock:
+            return self._artifact_repository.list(project_id=project_id)
 
     def get_project(self, project_id: str) -> ProjectMetadata | None:
         return self._projects.get(project_id)

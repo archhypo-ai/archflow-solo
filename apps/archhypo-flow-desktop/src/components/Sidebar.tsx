@@ -3,6 +3,7 @@ import {
   ChevronRight,
   FolderPlus,
   Home,
+  Layers,
   Languages,
   LogOut,
   MoreHorizontal,
@@ -29,6 +30,7 @@ type SidebarProps = {
   activeConversationId: string | null;
   activeProjectId: string | null;
   isNewConversationActive: boolean;
+  isArtifactsActive: boolean;
   conversations: ConversationSummary[];
   language: AppLanguage;
   projects: Project[];
@@ -40,6 +42,7 @@ type SidebarProps = {
   onToggleConversationPin: (conversation: ConversationSummary) => void;
   onDeleteConversation: (conversation: ConversationSummary) => void;
   onNewChat: () => void;
+  onArtifactsSelect: () => void;
   onNewProject: () => void;
   onLanguageChange: (language: AppLanguage) => void;
   onSettingsOpen: () => void;
@@ -53,6 +56,7 @@ export function Sidebar({
   activeConversationId,
   activeProjectId,
   isNewConversationActive,
+  isArtifactsActive,
   conversations,
   language,
   projects,
@@ -64,6 +68,7 @@ export function Sidebar({
   onToggleConversationPin,
   onDeleteConversation,
   onNewChat,
+  onArtifactsSelect,
   onNewProject,
   onLanguageChange,
   onSettingsOpen,
@@ -243,6 +248,17 @@ export function Sidebar({
         >
           <FolderPlus size={17} aria-hidden="true" />
           <span>{t("sidebar.newProject")}</span>
+        </button>
+        <button
+          className={`sidebar-action-button${isArtifactsActive ? " is-active" : ""}`}
+          onClick={onArtifactsSelect}
+          type="button"
+          aria-pressed={isArtifactsActive}
+          aria-label={t("sidebar.artifacts")}
+          title={t("sidebar.artifacts")}
+        >
+          <Layers size={17} aria-hidden="true" />
+          <span>{t("sidebar.artifacts")}</span>
         </button>
       </div>
 

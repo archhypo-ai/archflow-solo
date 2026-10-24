@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Layers } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Sidebar } from "../components";
+import { ArtifactsPage } from "../features/artifacts";
 import { Chat } from "../features/chat";
 import { ReviewCardsPreviewDialog } from "../features/chat/components/ReviewCardsPreviewDialog";
 import { useWorkspaceNavigation } from "./hooks/useWorkspaceNavigation";
@@ -41,6 +43,7 @@ function App() {
   const [hitlEnabled, setHitlEnabled] = useState(getHitlEnabled);
   const [hitlSaveError, setHitlSaveError] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [artifactsLibraryOpen, setArtifactsLibraryOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState<ConversationSummary | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ConversationSummary | null>(null);
   const [projectSettingsTarget, setProjectSettingsTarget] = useState<Project | null>(null);
@@ -53,7 +56,7 @@ function App() {
   const [globalContextSaving, setGlobalContextSaving] = useState(false);
   const [globalContextLoadError, setGlobalContextLoadError] = useState(false);
   const accountTriggerRef = useRef<HTMLButtonElement>(null);
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const language = toAppLanguage(i18n.resolvedLanguage);
 
   const conversationStore = useConversations();
@@ -178,6 +181,24 @@ function App() {
     setSettingsOpen(false);
     requestAnimationFrame(() => accountTriggerRef.current?.focus());
   }, []);
+  const handleNewConversation = useCallback(() => {
+    setArtifactsLibraryOpen(false);
+    startNewConversation();
+  }, [startNewConversation]);
+  const handleProjectSelect = useCallback(
+    (projectId: string) => {
+      setArtifactsLibraryOpen(false);
+      openProjectHome(projectId);
+    },
+    [openProjectHome],
+  );
+  const handleConversationSelect = useCallback(
+    (threadId: string) => {
+      setArtifactsLibraryOpen(false);
+      selectConversation(threadId);
+    },
+    [selectConversation],
+  );
 
   useEffect(() => {
     const systemTheme = window.matchMedia("(prefers-color-scheme: light)");
@@ -225,20 +246,22 @@ function App() {
         accountTriggerRef={accountTriggerRef}
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed((collapsed) => !collapsed)}
-        activeConversationId={activeConversationId}
-        activeProjectId={activeProjectId}
-        isNewConversationActive={isNewConversationActive}
+        activeConversationId={artifactsLibraryOpen ? null : activeConversationId}
+        activeProjectId={artifactsLibraryOpen ? null : activeProjectId}
+        isNewConversationActive={!artifactsLibraryOpen && isNewConversationActive}
+        isArtifactsActive={artifactsLibraryOpen}
         conversations={conversations}
         language={language}
         projects={projects}
-        onConversationSelect={selectConversation}
-        onProjectSelect={openProjectHome}
+        onConversationSelect={handleConversationSelect}
+        onProjectSelect={handleProjectSelect}
         onEditProjectSettings={setProjectSettingsTarget}
         onDeleteProject={setDeleteProjectTarget}
         onRenameConversation={setRenameTarget}
         onToggleConversationPin={toggleConversationPin}
         onDeleteConversation={setDeleteTarget}
-        onNewChat={startNewConversation}
+        onNewChat={handleNewConversation}
+        onArtifactsSelect={() => setArtifactsLibraryOpen(true)}
         onNewProject={openCreateProject}
         onLanguageChange={(nextLanguage) =>
           void i18n.changeLanguage(nextLanguage)
@@ -248,7 +271,12 @@ function App() {
       />
       <main className="main-panel">
         <header className="main-header">
-          {activeConversation && (
+          {artifactsLibraryOpen ? (
+            <div className="main-header-breadcrumb">
+              <Layers size={17} aria-hidden="true" />
+              <h1 id="artifacts-heading">{t("artifacts.pageTitle")}</h1>
+            </div>
+          ) : activeConversation ? (
             <div className="main-header-breadcrumb">
               {chatProject && (
                 <>
@@ -266,9 +294,11 @@ function App() {
               )}
               <h1 title={activeConversation.title}>{activeConversation.title}</h1>
             </div>
-          )}
+          ) : null}
         </header>
-        {activeConversationId && (
+        {artifactsLibraryOpen ? (
+          <ArtifactsPage language={language} projects={projects} />
+        ) : activeConversationId ? (
           <Chat
             key={activeConversationId}
             threadId={activeConversationId}
@@ -293,7 +323,7 @@ function App() {
             onConversationStarted={handleConversationStarted}
             onConversationUpdated={handleConversationUpdated}
           />
-        )}
+        ) : null}
       </main>
       <CreateProjectDialog
         open={createProjectOpen || projectSettingsTarget !== null}

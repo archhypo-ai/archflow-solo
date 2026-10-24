@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from archhypo_flow_agent.backend.controllers import (
+    artifacts_router,
     chat_router,
     health_router,
     projects_router,
@@ -71,6 +72,7 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
         allow_headers=["Content-Type"],
     )
     application.include_router(health_router)
+    application.include_router(artifacts_router)
     application.include_router(chat_router)
     application.include_router(projects_router)
     application.include_router(threads_router)
