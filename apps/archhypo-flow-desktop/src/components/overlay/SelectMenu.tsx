@@ -12,6 +12,7 @@ type SelectMenuProps<Value extends string> = {
   options: readonly SelectMenuOption<Value>[];
   onChange: (value: Value) => void;
   label: string;
+  disabled?: boolean;
 };
 
 export function SelectMenu<Value extends string>({
@@ -19,6 +20,7 @@ export function SelectMenu<Value extends string>({
   options,
   onChange,
   label,
+  disabled = false,
 }: SelectMenuProps<Value>) {
   const [open, setOpen] = useState(false);
   const selectedOption = options.find((option) => option.value === value);
@@ -32,6 +34,7 @@ export function SelectMenu<Value extends string>({
       <button
         className="settings-select-trigger"
         type="button"
+        disabled={disabled}
         aria-label={label}
         aria-expanded={open}
         aria-haspopup="menu"

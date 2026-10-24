@@ -1,6 +1,7 @@
 import { RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { SelectMenu } from "../../../components/overlay";
 import type { AppLanguage } from "../../../i18n";
 import { getArtifact, updateArtifactStatus } from "../api/artifactClient";
 import type { ArtifactDetail, ArtifactStatus } from "../types";
@@ -26,6 +27,10 @@ export function ArtifactDetailPage({
   language,
 }: ArtifactDetailPageProps) {
   const { t } = useTranslation();
+  const statusOptions = [
+    { value: "open" as const, label: t("artifacts.statusOpen") },
+    { value: "closed" as const, label: t("artifacts.statusClosed") },
+  ];
   const [artifact, setArtifact] = useState<ArtifactDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -99,26 +104,23 @@ export function ArtifactDetailPage({
         <header className="artifact-detail-toolbar">
           <div className="artifact-detail-metadata">
             <code title={artifact.id}>
-              {t("artifacts.idLabel", { id: artifact.id })}
+              {t("artifacts.idLabel", { id: artifact.id.slice(0, 8) })}
             </code>
             {projectName && <span>{projectName}</span>}
             <time dateTime={artifact.createdAt}>
               {formatDate(artifact.createdAt, language)}
             </time>
           </div>
-          <label className="artifact-status-control">
+          <div className="artifact-status-control">
             <span>{t("artifacts.detail.status")}</span>
-            <select
+            <SelectMenu
               value={artifact.status}
+              options={statusOptions}
+              label={t("artifacts.detail.status")}
               disabled={statusSaving}
-              onChange={(event) =>
-                void handleStatusChange(event.currentTarget.value as ArtifactStatus)
-              }
-            >
-              <option value="open">{t("artifacts.statusOpen")}</option>
-              <option value="closed">{t("artifacts.statusClosed")}</option>
-            </select>
-          </label>
+              onChange={(status) => void handleStatusChange(status)}
+            />
+          </div>
         </header>
         {statusSaving && (
           <p className="artifact-status-feedback" role="status">
@@ -138,7 +140,9 @@ export function ArtifactDetailPage({
 
         <section className="artifact-detail-section">
           <h2>{t("artifacts.detail.hypothesis")}</h2>
-          <p className="artifact-detail-lead">{artifact.hypothesis.statement}</p>
+          <p className="artifact-detail-lead">
+            {artifact.hypothesis.statement}
+          </p>
           {artifact.hypothesis.justification && (
             <p className="artifact-detail-copy">
               {artifact.hypothesis.justification}
@@ -178,28 +182,44 @@ export function ArtifactDetailPage({
               {artifact.technicalPlan.rationale}
             </p>
           )}
-          <div className="artifact-detail-plan-list">
+          <ol className="artifact-detail-plan-list">
             {artifact.technicalPlan.items.map((item, index) => (
-              <article
+              <li
                 className="artifact-detail-plan-item"
                 key={`${item.title}-${index}`}
               >
-                <header>
-                  <h3>{item.title}</h3>
-                  <span>{item.pattern}</span>
-                </header>
-                <p>
-                  <strong>{t("artifacts.detail.objective")}:</strong>{" "}
-                  {item.objective}
-                </p>
-                <p>{item.description}</p>
-                <p>
-                  <strong>{t("artifacts.detail.tradeoff")}:</strong>{" "}
-                  {item.tradeoff}
-                </p>
-              </article>
+                <div className="artifact-detail-plan-heading">
+                  <span className="artifact-detail-plan-number">
+                    {index + 1}
+                  </span>
+                  <div className="artifact-detail-plan-title">
+                    <h3>{item.title}</h3>
+                    <span className="artifact-detail-pattern">
+                      {item.pattern}
+                    </span>
+                  </div>
+                </div>
+                {item.objective && (
+                  <PlanField
+                    label={t("chat.planObjectiveLabel")}
+                    value={item.objective}
+                  />
+                )}
+                {item.description && (
+                  <PlanField
+                    label={t("chat.planDescriptionLabel")}
+                    value={item.description}
+                  />
+                )}
+                {item.tradeoff && (
+                  <PlanField
+                    label={t("chat.planTradeoffLabel")}
+                    value={item.tradeoff}
+                  />
+                )}
+              </li>
             ))}
-          </div>
+          </ol>
         </section>
       </div>
     </section>
@@ -233,6 +253,15 @@ function AssessmentCard({
       </header>
       <p>{justification}</p>
     </article>
+  );
+}
+
+function PlanField({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="artifact-detail-plan-field">
+      <span>{label}</span>
+      <p>{value}</p>
+    </div>
   );
 }
 
