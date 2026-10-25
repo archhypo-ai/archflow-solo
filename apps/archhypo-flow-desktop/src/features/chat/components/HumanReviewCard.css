@@ -59,12 +59,12 @@
   width: 19px;
   height: 19px;
   flex: 0 0 auto;
-  color: var(--project-color-green);
+  color: var(--color-success);
 }
 
 .human-review-completed-status {
   flex: 0 0 auto;
-  color: var(--project-color-green);
+  color: var(--color-success);
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
@@ -219,7 +219,7 @@
 
 .human-review-note:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+  box-shadow: 0 0 0 3px var(--color-focus-ring-subtle);
 }
 
 .human-review-note-hint {
@@ -295,7 +295,7 @@
 }
 
 .human-review-approve:hover {
-  filter: brightness(1.08);
+  background: var(--color-brand-hover);
 }
 
 @media (max-width: 620px) {

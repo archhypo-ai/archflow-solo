@@ -34,6 +34,7 @@
     "pageTitle": "Artefatos",
     "count_one": "{{count}} artefato",
     "count_other": "{{count}} artefatos",
+    "filteredCount": "{{count}} de {{total}} artefatos",
     "loading": "Carregando artefatos…",
     "loadError": "Não foi possível carregar os artefatos do serviço local.",
     "retry": "Tentar novamente",
@@ -47,6 +48,20 @@
     "noProject": "Sem projeto",
     "plansLabel": "Planos técnicos",
     "noPlans": "Sem ações registradas",
+    "filters": {
+      "label": "Filtros de artefatos",
+      "status": "Status",
+      "project": "Projeto",
+      "impact": "Impacto",
+      "uncertainty": "Incerteza",
+      "qualityAttribute": "Atributo de qualidade",
+      "selectAll": "Selecionar todos",
+      "clearSelection": "Limpar seleção",
+      "emptyOptions": "Nenhuma opção disponível",
+      "clearAll": "Limpar filtros",
+      "noMatchesTitle": "Nenhum artefato encontrado",
+      "noMatchesDescription": "Tente alterar ou limpar alguns filtros."
+    },
     "detail": {
       "loading": "Carregando artefato…",
       "loadError": "Não foi possível carregar este artefato.",

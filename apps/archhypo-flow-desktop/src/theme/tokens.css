@@ -14,9 +14,16 @@
   --color-foreground: #b1bae6;
   --color-muted: #8b93b7;
   --color-subtle: #7982a8;
-  --color-accent: #7aa2f7;
-  --color-error: #f7768e;
-  --color-brand: #7aa2f7;
+  --color-accent: var(--color-blue);
+  --color-red: #f7768e;
+  --color-orange: #ff9e64;
+  --color-yellow: #e0af68;
+  --color-green: #9ece6a;
+  --color-blue: #7aa2f7;
+  --color-purple: #bb9af7;
+  --color-pink: #f776c6;
+  --color-error: var(--color-red);
+  --color-brand: var(--color-blue);
   --color-brand-foreground: #15161e;
   --color-user-message: #252836;
   --color-input: #171722;
@@ -24,13 +31,13 @@
   --color-shadow: color-mix(in srgb, #0b0e14 22%, transparent);
   --color-backdrop: color-mix(in srgb, #08090f 48%, transparent);
   --project-color-neutral: var(--color-muted);
-  --project-color-red: #f7768e;
-  --project-color-orange: #ff9e64;
-  --project-color-yellow: #e0af68;
-  --project-color-green: #9ece6a;
-  --project-color-blue: #7aa2f7;
-  --project-color-purple: #bb9af7;
-  --project-color-pink: #f776c6;
+  --project-color-red: var(--color-red);
+  --project-color-orange: var(--color-orange);
+  --project-color-yellow: var(--color-yellow);
+  --project-color-green: var(--color-green);
+  --project-color-blue: var(--color-blue);
+  --project-color-purple: var(--color-purple);
+  --project-color-pink: var(--color-pink);
 }
 
 :root[data-theme="day"] {
@@ -44,9 +51,16 @@
   --color-foreground: #2e3338;
   --color-muted: #4c505e;
   --color-subtle: #505969;
-  --color-accent: #365aaa;
-  --color-error: #b7445d;
-  --color-brand: #365aaa;
+  --color-accent: var(--color-blue);
+  --color-red: #b7445d;
+  --color-orange: #b85c16;
+  --color-yellow: #8a6600;
+  --color-green: #477d32;
+  --color-blue: #365aaa;
+  --color-purple: #7351a2;
+  --color-pink: #aa467f;
+  --color-error: var(--color-red);
+  --color-brand: var(--color-blue);
   --color-brand-foreground: #ffffff;
   --color-user-message: #c4c7da;
   --color-input: #c2c2c7;
@@ -54,11 +68,155 @@
   --color-shadow: color-mix(in srgb, #2e3338 10%, transparent);
   --color-backdrop: color-mix(in srgb, #2e3338 38%, transparent);
   --project-color-neutral: var(--color-muted);
-  --project-color-red: #b7445d;
-  --project-color-orange: #b85c16;
-  --project-color-yellow: #8a6600;
-  --project-color-green: #477d32;
-  --project-color-blue: #365aaa;
-  --project-color-purple: #7351a2;
-  --project-color-pink: #aa467f;
+  --project-color-red: var(--color-red);
+  --project-color-orange: var(--color-orange);
+  --project-color-yellow: var(--color-yellow);
+  --project-color-green: var(--color-green);
+  --project-color-blue: var(--color-blue);
+  --project-color-purple: var(--color-purple);
+  --project-color-pink: var(--color-pink);
+}
+
+/* Semantic palette: use these roles instead of repeating color recipes in components. */
+:root {
+  --color-brand-hover: color-mix(
+    in srgb,
+    var(--color-brand) 92%,
+    var(--color-foreground)
+  );
+  --gradient-chat-footer: linear-gradient(
+    to bottom,
+    transparent,
+    var(--color-background) 22%
+  );
+
+  --color-success: var(--color-green);
+  --color-warning: var(--color-yellow);
+  --color-success-background: color-mix(
+    in srgb,
+    var(--color-success) 12%,
+    var(--color-surface)
+  );
+  --color-success-border: color-mix(
+    in srgb,
+    var(--color-success) 36%,
+    var(--color-border)
+  );
+  --color-success-foreground: color-mix(
+    in srgb,
+    var(--color-success) 78%,
+    var(--color-foreground)
+  );
+
+  --color-status-neutral-border: color-mix(
+    in srgb,
+    var(--color-muted) 36%,
+    var(--color-border)
+  );
+
+  --color-badge-background: color-mix(
+    in srgb,
+    var(--color-surface) 68%,
+    transparent
+  );
+  --color-badge-background-subtle: color-mix(
+    in srgb,
+    var(--color-surface) 72%,
+    transparent
+  );
+  --color-accent-badge-background: color-mix(
+    in srgb,
+    var(--color-accent) 12%,
+    var(--color-surface)
+  );
+  --color-accent-badge-border: color-mix(
+    in srgb,
+    var(--color-accent) 35%,
+    var(--color-border)
+  );
+  --color-accent-badge-background-strong: color-mix(
+    in srgb,
+    var(--color-accent) 16%,
+    var(--color-surface)
+  );
+  --color-accent-control-background: color-mix(
+    in srgb,
+    var(--color-accent) 12%,
+    transparent
+  );
+  --color-surface-raised-hover: color-mix(
+    in srgb,
+    var(--color-surface-raised) 88%,
+    var(--color-hover)
+  );
+  --color-blockquote-background: color-mix(
+    in srgb,
+    var(--color-surface-raised) 78%,
+    transparent
+  );
+  --color-table-row-background: color-mix(
+    in srgb,
+    var(--color-surface-raised) 46%,
+    transparent
+  );
+  --color-table-row-hover-background: color-mix(
+    in srgb,
+    var(--color-accent) 8%,
+    var(--color-surface)
+  );
+  --color-selection-background: var(--color-table-row-hover-background);
+
+  --color-danger-border: color-mix(
+    in srgb,
+    var(--color-error) 35%,
+    var(--color-border)
+  );
+  --color-danger-border-strong: color-mix(
+    in srgb,
+    var(--color-error) 45%,
+    var(--color-border)
+  );
+  --color-danger-background: color-mix(
+    in srgb,
+    var(--color-error) 11%,
+    var(--color-surface)
+  );
+  --color-danger-background-hover: color-mix(
+    in srgb,
+    var(--color-error) 18%,
+    var(--color-surface)
+  );
+  --color-danger-overlay: color-mix(
+    in srgb,
+    var(--color-error) 10%,
+    transparent
+  );
+
+  --color-focus-ring: color-mix(in srgb, var(--color-accent) 24%, transparent);
+  --color-focus-ring-input: color-mix(
+    in srgb,
+    var(--color-accent) 22%,
+    transparent
+  );
+  --color-focus-ring-subtle: color-mix(
+    in srgb,
+    var(--color-accent) 15%,
+    transparent
+  );
+  --color-focus-ring-soft: color-mix(
+    in srgb,
+    var(--color-accent) 10%,
+    transparent
+  );
+  --color-accent-focus-border: color-mix(
+    in srgb,
+    var(--color-accent) 55%,
+    var(--color-border)
+  );
+
+  --color-green-yellow: color-mix(
+    in srgb,
+    var(--color-green) 65%,
+    var(--color-yellow)
+  );
 }

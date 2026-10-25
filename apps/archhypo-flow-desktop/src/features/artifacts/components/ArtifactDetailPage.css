@@ -150,31 +150,27 @@
 }
 
 .artifact-detail-level[data-level="veryLow"] {
-  color: var(--project-color-green);
+  color: var(--color-green);
 }
 
 .artifact-detail-level[data-level="low"] {
-  color: color-mix(
-    in srgb,
-    var(--project-color-green) 65%,
-    var(--project-color-yellow)
-  );
+  color: var(--color-green-yellow);
 }
 
 .artifact-detail-level[data-level="medium"] {
-  color: var(--project-color-yellow);
+  color: var(--color-yellow);
 }
 
 .artifact-detail-level[data-level="high"] {
-  color: var(--project-color-orange);
+  color: var(--color-orange);
 }
 
 .artifact-detail-level[data-level="veryHigh"] {
-  color: var(--project-color-red);
+  color: var(--color-red);
 }
 
 .artifact-detail-nfr {
-  border-color: color-mix(in srgb, var(--color-accent) 35%, var(--color-border));
+  border-color: var(--color-accent-badge-border);
   color: var(--color-accent);
 }
 

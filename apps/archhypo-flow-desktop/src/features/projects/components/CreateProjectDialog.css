@@ -111,7 +111,7 @@
 .project-name-row > input:focus-visible,
 .project-instructions-field > textarea:focus-visible {
   border-color: var(--color-accent);
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 24%, transparent);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 1px;
 }
 

@@ -48,7 +48,7 @@
 
 .menu-item-danger:hover,
 .menu-item-danger:focus-visible {
-  background: color-mix(in srgb, var(--color-error) 10%, transparent);
+  background: var(--color-danger-overlay);
   color: var(--color-error);
 }
 
@@ -100,6 +100,32 @@
 .menu-radio-item .menu-radio-indicator svg {
   width: 16px;
   height: 16px;
+  color: var(--color-accent);
+}
+
+.menu-checkbox-item {
+  justify-content: space-between;
+}
+
+.menu-checkbox-item .menu-checkbox-indicator {
+  display: grid;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  place-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 4px;
+  color: var(--color-accent);
+}
+
+.menu-checkbox-item[aria-checked="true"] .menu-checkbox-indicator {
+  border-color: var(--color-accent);
+  background: var(--color-accent-control-background);
+}
+
+.menu-checkbox-item .menu-checkbox-indicator svg {
+  width: 14px;
+  height: 14px;
   color: var(--color-accent);
 }
 

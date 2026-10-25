@@ -55,27 +55,23 @@
 }
 
 .technical-plan-review-level[data-level="veryLow"] {
-  color: var(--project-color-green);
+  color: var(--color-green);
 }
 
 .technical-plan-review-level[data-level="low"] {
-  color: color-mix(
-    in srgb,
-    var(--project-color-green) 65%,
-    var(--project-color-yellow)
-  );
+  color: var(--color-green-yellow);
 }
 
 .technical-plan-review-level[data-level="medium"] {
-  color: var(--project-color-yellow);
+  color: var(--color-yellow);
 }
 
 .technical-plan-review-level[data-level="high"] {
-  color: var(--project-color-orange);
+  color: var(--color-orange);
 }
 
 .technical-plan-review-level[data-level="veryHigh"] {
-  color: var(--project-color-red);
+  color: var(--color-red);
 }
 
 .technical-plan-review-assessment p,

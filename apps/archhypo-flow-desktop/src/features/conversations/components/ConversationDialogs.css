@@ -64,7 +64,7 @@
 
 .conversation-dialog-input:focus {
   border-color: var(--color-accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 22%, transparent);
+  box-shadow: 0 0 0 2px var(--color-focus-ring-input);
 }
 
 .conversation-dialog-description {
@@ -123,15 +123,15 @@
 }
 
 .conversation-dialog-button.is-primary:hover:not(:disabled) {
-  filter: brightness(0.94);
+  background: var(--color-brand-hover);
 }
 
 .conversation-dialog-button.is-danger {
-  border-color: color-mix(in srgb, var(--color-error) 35%, var(--color-border));
-  background: color-mix(in srgb, var(--color-error) 11%, var(--color-surface));
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-background);
   color: var(--color-error);
 }
 
 .conversation-dialog-button.is-danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-error) 18%, var(--color-surface));
+  background: var(--color-danger-background-hover);
 }

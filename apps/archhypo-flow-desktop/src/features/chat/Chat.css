@@ -496,7 +496,7 @@
   margin: 15px 0;
   border-left: 3px solid var(--color-accent);
   border-radius: 0 8px 8px 0;
-  background: color-mix(in srgb, var(--color-surface-raised) 78%, transparent);
+  background: var(--color-blockquote-background);
   color: var(--color-muted);
   padding: 10px 14px;
 }
@@ -584,16 +584,16 @@
 }
 
 .chat-markdown-table tbody tr:nth-child(even) td {
-  background: color-mix(in srgb, var(--color-surface-raised) 46%, transparent);
+  background: var(--color-table-row-background);
 }
 
 .chat-markdown-table tbody tr:hover td {
-  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+  background: var(--color-table-row-hover-background);
 }
 
 .chat-markdown-table::selection,
 .chat-markdown-table ::selection {
-  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+  background: var(--color-selection-background);
   color: var(--color-foreground);
 }
 
@@ -641,11 +641,7 @@
 .chat-footer {
   position: sticky;
   bottom: 0;
-  background: linear-gradient(
-    to bottom,
-    color-mix(in srgb, var(--color-background) 0%, transparent),
-    var(--color-background) 22%
-  );
+  background: var(--gradient-chat-footer);
   padding: 20px 0 16px;
 }
 
@@ -663,8 +659,8 @@
 }
 
 .chat-composer:focus-within {
-  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 10%, transparent);
+  border-color: var(--color-accent-focus-border);
+  box-shadow: 0 0 0 2px var(--color-focus-ring-soft);
 }
 
 .chat-composer-input {
@@ -705,11 +701,11 @@
   border-radius: 50%;
   background: var(--color-brand);
   color: var(--color-brand-foreground);
-  transition: filter 140ms ease, transform 140ms ease;
+  transition: background-color 140ms ease, transform 140ms ease;
 }
 
 .chat-send-button:hover {
-  filter: brightness(1.08);
+  background: var(--color-brand-hover);
   transform: translateY(-1px);
 }
 

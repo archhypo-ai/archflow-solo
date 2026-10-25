@@ -92,11 +92,11 @@
 }
 
 .project-management-button.is-danger {
-  border-color: color-mix(in srgb, var(--color-error) 35%, var(--color-border));
-  background: color-mix(in srgb, var(--color-error) 11%, var(--color-surface));
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-background);
   color: var(--color-error);
 }
 
 .project-management-button.is-danger:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--color-error) 18%, var(--color-surface));
+  background: var(--color-danger-background-hover);
 }

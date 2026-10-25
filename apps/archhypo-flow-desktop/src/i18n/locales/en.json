@@ -34,6 +34,7 @@
     "pageTitle": "Artifacts",
     "count_one": "{{count}} artifact",
     "count_other": "{{count}} artifacts",
+    "filteredCount": "{{count}} of {{total}} artifacts",
     "loading": "Loading artifacts…",
     "loadError": "Could not load artifacts from the local service.",
     "retry": "Retry",
@@ -47,6 +48,20 @@
     "noProject": "No project",
     "plansLabel": "Technical plans",
     "noPlans": "No actions recorded",
+    "filters": {
+      "label": "Artifact filters",
+      "status": "Status",
+      "project": "Project",
+      "impact": "Impact",
+      "uncertainty": "Uncertainty",
+      "qualityAttribute": "Quality attribute",
+      "selectAll": "Select all",
+      "clearSelection": "Clear",
+      "emptyOptions": "No options available",
+      "clearAll": "Clear filters",
+      "noMatchesTitle": "No matching artifacts",
+      "noMatchesDescription": "Try changing or clearing some filters."
+    },
     "detail": {
       "loading": "Loading artifact…",
       "loadError": "Could not load this artifact.",

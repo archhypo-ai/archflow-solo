@@ -169,7 +169,7 @@
 
 .agent-instructions-editor:focus-visible {
   border-color: var(--color-accent);
-  outline: 2px solid color-mix(in srgb, var(--color-accent) 24%, transparent);
+  outline: 2px solid var(--color-focus-ring);
   outline-offset: 1px;
 }
 
@@ -192,7 +192,7 @@
 }
 
 .agent-settings-save:hover:not(:disabled) {
-  filter: brightness(1.08);
+  background: var(--color-brand-hover);
 }
 
 .agent-settings-save:disabled {
@@ -300,7 +300,13 @@
 }
 
 .settings-switch:hover {
-  filter: brightness(1.1);
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-raised-hover);
+}
+
+.settings-switch[aria-checked="true"]:hover {
+  border-color: var(--color-brand-hover);
+  background: var(--color-brand-hover);
 }
 
 .settings-switch:focus-visible {

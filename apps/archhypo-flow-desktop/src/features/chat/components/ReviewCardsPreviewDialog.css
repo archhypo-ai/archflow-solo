@@ -112,7 +112,7 @@
 }
 
 .review-preview-state.is-approved {
-  color: var(--project-color-green);
+  color: var(--color-success);
 }
 
 .review-preview-sample > .human-review-card {

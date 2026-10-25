@@ -114,3 +114,30 @@ export function MenuRadioItem({ checked, label, onClick }: MenuRadioItemProps) {
     </button>
   );
 }
+
+type MenuCheckboxItemProps = {
+  checked: boolean;
+  label: string;
+  onClick: () => void;
+};
+
+export function MenuCheckboxItem({
+  checked,
+  label,
+  onClick,
+}: MenuCheckboxItemProps) {
+  return (
+    <button
+      className="menu-item menu-checkbox-item"
+      type="button"
+      role="menuitemcheckbox"
+      aria-checked={checked}
+      onClick={onClick}
+    >
+      <span>{label}</span>
+      <span className="menu-checkbox-indicator" aria-hidden="true">
+        {checked && <Check size={14} />}
+      </span>
+    </button>
+  );
+}
