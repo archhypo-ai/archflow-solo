@@ -71,3 +71,33 @@ def test_legacy_checkpoint_approvals_are_restored_as_completed_cards() -> None:
         "technical_plan_review",
     ]
     assert [review["after_message_count"] for review in completed] == [1, 1]
+
+
+def test_chat_completed_reviews_only_include_approved_decisions() -> None:
+    snapshot = SimpleNamespace(
+        values={
+            "messages": [HumanMessage(content="Explore a database decision")],
+            "review_history": [
+                {
+                    "kind": "hypothesis_review",
+                    "review": {"kind": "hypothesis_review"},
+                    "decision": {
+                        "decision": "rejected",
+                        "reason": "Make it testable.",
+                    },
+                    "after_message_count": 1,
+                },
+                {
+                    "kind": "hypothesis_review",
+                    "review": {"kind": "hypothesis_review"},
+                    "decision": {"decision": "approved"},
+                    "after_message_count": 1,
+                },
+            ],
+        }
+    )
+
+    completed = _completed_reviews(snapshot)
+
+    assert len(completed) == 1
+    assert completed[0]["decision"] == {"decision": "approved"}

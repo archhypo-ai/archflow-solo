@@ -221,6 +221,86 @@ export function ArtifactDetailPage({
             ))}
           </ol>
         </section>
+
+        {artifact.reviewHistory.length > 0 && (
+          <section className="artifact-detail-section">
+            <h2>{t("artifacts.detail.reviewHistory")}</h2>
+            <ol className="artifact-detail-review-list">
+              {artifact.reviewHistory.map((entry, index) => {
+                const isHypothesisReview = entry.kind === "hypothesis_review";
+                const isApproved = entry.decision.decision === "approved";
+                const candidateTitle = isHypothesisReview
+                  ? entry.review.hypothesis?.title
+                  : undefined;
+                const candidateSummary = isHypothesisReview
+                  ? entry.review.hypothesis?.statement
+                  : entry.review.technical_plan?.rationale;
+                const planItemTitles = isHypothesisReview
+                  ? []
+                  : (entry.review.technical_plan?.items ?? [])
+                      .map((item) => item.title)
+                      .filter((title): title is string => Boolean(title));
+                const reason = entry.decision.reason?.trim();
+
+                return (
+                  <li
+                    className="artifact-detail-review-entry"
+                    key={`${entry.kind}-${index}`}
+                  >
+                    <article className="artifact-detail-review-card">
+                      <header>
+                        <div className="artifact-detail-review-heading">
+                          <span className="artifact-detail-review-number">
+                            {index + 1}
+                          </span>
+                          <h3>
+                            {t(
+                              isHypothesisReview
+                                ? "artifacts.detail.hypothesisReview"
+                                : "artifacts.detail.technicalPlanReview",
+                            )}
+                          </h3>
+                        </div>
+                        <span
+                          className={`artifact-detail-review-decision ${isApproved ? "is-approved" : "is-rejected"}`}
+                        >
+                          {t(
+                            isApproved
+                              ? "artifacts.detail.reviewApproved"
+                              : "artifacts.detail.reviewRejected",
+                          )}
+                        </span>
+                      </header>
+                      {candidateTitle && (
+                        <h4 className="artifact-detail-review-candidate-title">
+                          {candidateTitle}
+                        </h4>
+                      )}
+                      {candidateSummary && (
+                        <p className="artifact-detail-review-candidate-summary">
+                          {candidateSummary}
+                        </p>
+                      )}
+                      {planItemTitles.length > 0 && (
+                        <ul className="artifact-detail-review-plan-items">
+                          {planItemTitles.map((title, itemIndex) => (
+                            <li key={`${itemIndex}-${title}`}>{title}</li>
+                          ))}
+                        </ul>
+                      )}
+                      {reason && (
+                        <div className="artifact-detail-review-note">
+                          <span>{t("artifacts.detail.reviewNote")}</span>
+                          <p>{reason}</p>
+                        </div>
+                      )}
+                    </article>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        )}
       </div>
     </section>
   );

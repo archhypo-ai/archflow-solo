@@ -35,20 +35,20 @@ def hypothesis_review_node(
             decision.reason if decision.decision == "rejected" else None
         ),
     }
-    if decision.decision == "approved":
-        review_history = list(state.get("review_history", []))
-        review_history.append(
-            {
+    review_history = list(state.get("review_history", []))
+    review_history.append(
+        {
+            "kind": "hypothesis_review",
+            "cycle_id": state.get("cycle_id"),
+            "review": {
                 "kind": "hypothesis_review",
-                "review": {
-                    "kind": "hypothesis_review",
-                    "hypothesis": hypothesis.model_dump(mode="json"),
-                },
-                "decision": decision.model_dump(mode="json"),
-                "after_message_count": len(state.get("messages", [])),
-            }
-        )
-        update["review_history"] = review_history
+                "hypothesis": hypothesis.model_dump(mode="json"),
+            },
+            "decision": decision.model_dump(mode="json"),
+            "after_message_count": len(state.get("messages", [])),
+        }
+    )
+    update["review_history"] = review_history
     return update
 
 

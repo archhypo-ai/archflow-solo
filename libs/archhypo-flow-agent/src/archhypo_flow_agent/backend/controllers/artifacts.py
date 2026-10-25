@@ -143,6 +143,7 @@ def _to_detail(artifact: ArchHypoArtifactRecord) -> ArtifactDetailResponse:
         ),
         created_at=artifact.created_at,
         updated_at=artifact.updated_at,
+        review_history=artifact.review_history,
     )
 
 

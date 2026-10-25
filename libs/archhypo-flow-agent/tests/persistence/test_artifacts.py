@@ -75,7 +75,17 @@ def test_artifact_table_stores_the_exact_result_and_is_idempotent(tmp_path) -> N
         result = sample_result()
         routing = RequestRouting(intent="new_uncertainty")
         review_history = [
-            {"kind": "hypothesis_review", "decision": {"decision": "approved"}}
+            {
+                "kind": "hypothesis_review",
+                "decision": {
+                    "decision": "rejected",
+                    "reason": "Make the hypothesis testable.",
+                },
+            },
+            {
+                "kind": "hypothesis_review",
+                "decision": {"decision": "approved"},
+            },
         ]
         fields = {
             "cycle_id": "cycle-1",

@@ -156,6 +156,44 @@ def test_disabled_hitl_runs_all_stages_without_human_approval(checkpointed) -> N
         assert not any(task.interrupts for task in snapshot.tasks)
 
 
+def test_artifact_review_history_only_contains_its_cycle_decisions() -> None:
+    artifacts = InMemoryArtifactRepository()
+    graph = build_graph(
+        model=StubModel(),
+        system_one_client=StubSystemOneClient("new_uncertainty", "new_uncertainty"),
+        artifact_repository=artifacts,
+        checkpointer=MemorySaver(),
+    )
+    config = {"configurable": {"thread_id": "review-history-cycles"}}
+
+    graph.invoke(
+        {"messages": [HumanMessage(content="Investigate first uncertainty.")]},
+        config=config,
+    )
+    graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    first_result = graph.invoke(
+        Command(resume={"decision": "approved"}),
+        config=config,
+    )
+
+    graph.invoke(
+        {"messages": [HumanMessage(content="Investigate another uncertainty.")]},
+        config=config,
+    )
+    graph.invoke(Command(resume={"decision": "approved"}), config=config)
+    second_result = graph.invoke(
+        Command(resume={"decision": "approved"}),
+        config=config,
+    )
+
+    assert first_result["cycle_id"] != second_result["cycle_id"]
+    assert len(artifacts.records) == 2
+    assert [
+        record["cycle_id"] for record in artifacts.records[1]["review_history"]
+    ] == [second_result["cycle_id"], second_result["cycle_id"]]
+    assert len(second_result["review_history"]) == 4
+
+
 def test_hitl_can_be_reenabled_for_the_next_turn() -> None:
     graph = build_graph(
         model=StubModel(),
@@ -472,7 +510,32 @@ def test_rejected_hypothesis_is_reformulated_using_required_feedback() -> None:
     assert revised.statement != first_statement
     assert "Make the statement directly testable." in revised.statement
     assert graph.get_state(config).values.get("assessment") is None
-    assert graph.get_state(config).values.get("review_history", []) == []
+    rejected_history = graph.get_state(config).values["review_history"]
+    assert len(rejected_history) == 1
+    assert rejected_history[0]["decision"] == {
+        "decision": "rejected",
+        "reason": "Make the statement directly testable.",
+    }
+
+    second_statement = revised.statement
+    graph.invoke(
+        Command(
+            resume={
+                "decision": "rejected",
+                "reason": "Include a rollback criterion.",
+            }
+        ),
+        config=config,
+    )
+    revised_again = graph.get_state(config).values["hypothesis"]
+    assert revised_again.statement != second_statement
+    assert [
+        record["decision"]["reason"]
+        for record in graph.get_state(config).values["review_history"]
+    ] == [
+        "Make the statement directly testable.",
+        "Include a rollback criterion.",
+    ]
 
     graph.invoke(Command(resume={"decision": "approved"}), config=config)
     assert graph.get_state(config).values["assessment"].impact == "Medium"
@@ -483,7 +546,16 @@ def test_rejected_hypothesis_is_reformulated_using_required_feedback() -> None:
     assert graph.get_state(config).next == ()
     assert [
         record["kind"] for record in graph.get_state(config).values["review_history"]
-    ] == ["hypothesis_review", "technical_plan_review"]
+    ] == [
+        "hypothesis_review",
+        "hypothesis_review",
+        "hypothesis_review",
+        "technical_plan_review",
+    ]
+    assert [
+        record["decision"]["decision"]
+        for record in graph.get_state(config).values["review_history"]
+    ] == ["rejected", "rejected", "approved", "approved"]
 
 
 def test_rejected_technical_plan_is_regenerated_with_feedback() -> None:
@@ -528,6 +600,10 @@ def test_rejected_technical_plan_is_regenerated_with_feedback() -> None:
     assert revised_state.tasks[0].interrupts[0].value["kind"] == (
         "technical_plan_review"
     )
+    assert revised_state.values["review_history"][-1]["decision"] == {
+        "decision": "rejected",
+        "reason": "Add evidence that can trigger a rollback.",
+    }
     assert artifacts.records == []
     reviewed_payload = revised_state.tasks[0].interrupts[0].value
     assert "Add evidence that can trigger a rollback." in reviewed_payload[
@@ -538,9 +614,16 @@ def test_rejected_technical_plan_is_regenerated_with_feedback() -> None:
     assert result["messages"][-1].content == "Hello from the test agent."
     assert len(artifacts.records) == 1
     assert artifacts.records[0]["result"] == result["result"]
+    assert artifacts.records[0]["review_history"] == result["review_history"]
     assert [record["kind"] for record in result["review_history"]] == [
         "hypothesis_review",
         "technical_plan_review",
+        "technical_plan_review",
+    ]
+    assert [record["decision"]["decision"] for record in result["review_history"]] == [
+        "approved",
+        "rejected",
+        "approved",
     ]
 
 

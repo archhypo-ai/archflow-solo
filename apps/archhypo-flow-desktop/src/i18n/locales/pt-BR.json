@@ -73,6 +73,12 @@
       "assessment": "Avaliação",
       "nfr": "Atributo de qualidade",
       "technicalPlan": "Plano técnico",
+      "reviewHistory": "Histórico de revisão",
+      "hypothesisReview": "Revisão da hipótese",
+      "technicalPlanReview": "Revisão do plano técnico",
+      "reviewApproved": "Aprovado",
+      "reviewRejected": "Rejeitado",
+      "reviewNote": "Nota",
       "objective": "Objetivo",
       "tradeoff": "Trade-off"
     }

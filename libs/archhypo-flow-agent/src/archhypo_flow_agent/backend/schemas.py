@@ -117,6 +117,7 @@ class ArtifactDetailResponse(BaseModel):
     technical_plan: ArtifactTechnicalPlanResponse
     created_at: str
     updated_at: str
+    review_history: list[dict[str, object]] = Field(default_factory=list)
 
 
 class ArtifactStatusUpdateRequest(BaseModel):

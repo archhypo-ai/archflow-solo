@@ -42,7 +42,11 @@ def create_artifact_persistence_node(
             project_id=state.get("project_id"),
             result=result,
             routing=routing,
-            review_history=list(state.get("review_history", [])),
+            review_history=[
+                review
+                for review in state.get("review_history", [])
+                if isinstance(review, dict) and review.get("cycle_id") == cycle_id
+            ],
             hitl_enabled=state.get("hitl_enabled", True),
             chat_model=chat_model,
             system_one_model=system_one_model,

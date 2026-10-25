@@ -37,21 +37,21 @@ def technical_plan_review_node(
             decision.reason if decision.decision == "rejected" else None
         ),
     }
-    if decision.decision == "approved":
-        review_history = list(state.get("review_history", []))
-        review_history.append(
-            {
+    review_history = list(state.get("review_history", []))
+    review_history.append(
+        {
+            "kind": "technical_plan_review",
+            "cycle_id": state.get("cycle_id"),
+            "review": {
                 "kind": "technical_plan_review",
-                "review": {
-                    "kind": "technical_plan_review",
-                    "assessment": assessment.model_dump(mode="json"),
-                    "technical_plan": technical_plan.model_dump(mode="json"),
-                },
-                "decision": decision.model_dump(mode="json"),
-                "after_message_count": len(state.get("messages", [])),
-            }
-        )
-        update["review_history"] = review_history
+                "assessment": assessment.model_dump(mode="json"),
+                "technical_plan": technical_plan.model_dump(mode="json"),
+            },
+            "decision": decision.model_dump(mode="json"),
+            "after_message_count": len(state.get("messages", [])),
+        }
+    )
+    update["review_history"] = review_history
     return update
 
 

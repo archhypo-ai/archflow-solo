@@ -73,6 +73,12 @@
       "assessment": "Assessment",
       "nfr": "Quality attribute",
       "technicalPlan": "Technical plan",
+      "reviewHistory": "Review history",
+      "hypothesisReview": "Hypothesis review",
+      "technicalPlanReview": "Technical plan review",
+      "reviewApproved": "Approved",
+      "reviewRejected": "Rejected",
+      "reviewNote": "Note",
       "objective": "Objective",
       "tradeoff": "Trade-off"
     }

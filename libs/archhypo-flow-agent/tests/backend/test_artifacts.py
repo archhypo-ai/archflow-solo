@@ -136,8 +136,30 @@ def test_artifact_list_returns_card_summaries_and_filters_by_project() -> None:
 
 
 def test_artifact_detail_returns_full_result_and_status_can_be_updated() -> None:
+    review_history = [
+        {
+            "kind": "hypothesis_review",
+            "review": {
+                "kind": "hypothesis_review",
+                "hypothesis": {
+                    "title": "Validate peak ingestion capacity",
+                    "statement": "One server can handle the projected load.",
+                },
+            },
+            "decision": {
+                "decision": "rejected",
+                "reason": "Include a representative load test.",
+            },
+            "after_message_count": 1,
+        }
+    ]
     repository = InMemoryArtifactListRepository(
-        [artifact_record("artifact-1", project_id="project-1")]
+        [
+            replace(
+                artifact_record("artifact-1", project_id="project-1"),
+                review_history=review_history,
+            )
+        ]
     )
     service = AgentService(
         checkpointer=MemorySaver(),
@@ -167,8 +189,10 @@ def test_artifact_detail_returns_full_result_and_status_can_be_updated() -> None
         assert detail.json()["technical_plan"]["items"][0]["pattern"] == (
             "Architectural Spike"
         )
+        assert detail.json()["review_history"] == review_history
         assert updated.status_code == 200
         assert updated.json()["status"] == "closed"
+        assert updated.json()["review_history"] == review_history
         assert listed.json()[0]["status"] == "closed"
         assert invalid_status.status_code == 422
         assert missing.status_code == 404

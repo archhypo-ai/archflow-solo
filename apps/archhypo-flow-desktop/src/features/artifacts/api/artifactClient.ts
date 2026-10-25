@@ -1,5 +1,6 @@
 import type {
   ArtifactDetail,
+  ArtifactReviewHistoryEntry,
   ArtifactStatus,
   ArtifactSummary,
 } from "../types";
@@ -60,6 +61,7 @@ type BackendArtifactDetail = {
       tradeoff: string;
     }>;
   };
+  review_history?: ArtifactReviewHistoryEntry[];
   created_at: string;
   updated_at: string;
 };
@@ -149,6 +151,7 @@ function toArtifactDetail(artifact: BackendArtifactDetail): ArtifactDetail {
       uncertaintyJustification: artifact.assessment.uncertainty_justification,
     },
     technicalPlan: artifact.technical_plan,
+    reviewHistory: artifact.review_history ?? [],
     createdAt: artifact.created_at,
     updatedAt: artifact.updated_at,
   };

@@ -256,6 +256,132 @@
   overflow-wrap: anywhere;
 }
 
+.artifact-detail-review-list {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.artifact-detail-review-entry {
+  min-width: 0;
+}
+
+.artifact-detail-review-card {
+  display: grid;
+  min-width: 0;
+  gap: 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-surface-raised);
+  padding: 12px 14px;
+}
+
+.artifact-detail-review-card > header,
+.artifact-detail-review-heading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 9px;
+}
+
+.artifact-detail-review-card > header {
+  justify-content: space-between;
+}
+
+.artifact-detail-review-number {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  place-items: center;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.artifact-detail-review-heading h3 {
+  min-width: 0;
+  margin: 0;
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.artifact-detail-review-decision {
+  flex: 0 0 auto;
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.artifact-detail-review-decision.is-approved {
+  border-color: var(--color-success-border);
+  background: var(--color-success-background);
+  color: var(--color-success-foreground);
+}
+
+.artifact-detail-review-decision.is-rejected {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-background);
+  color: var(--color-error);
+}
+
+.artifact-detail-review-candidate-title,
+.artifact-detail-review-candidate-summary,
+.artifact-detail-review-plan-items,
+.artifact-detail-review-note > p {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.artifact-detail-review-candidate-title {
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.artifact-detail-review-candidate-summary,
+.artifact-detail-review-plan-items {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.artifact-detail-review-plan-items {
+  display: grid;
+  gap: 3px;
+  padding-left: 19px;
+}
+
+.artifact-detail-review-note {
+  display: grid;
+  gap: 3px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 8px;
+}
+
+.artifact-detail-review-note > span {
+  color: var(--color-subtle);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.artifact-detail-review-note > p {
+  color: var(--color-foreground);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
 .artifact-detail-section + .artifact-detail-section {
   border-top: 1px solid var(--color-border);
   padding-top: 18px;

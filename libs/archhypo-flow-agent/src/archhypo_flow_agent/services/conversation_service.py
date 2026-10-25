@@ -150,7 +150,9 @@ def _completed_reviews(snapshot: Any) -> list[dict[str, object]]:
     values = snapshot.values if isinstance(snapshot.values, dict) else {}
     history = values.get("review_history", [])
     completed = [
-        record for record in history if isinstance(record, dict)
+        record
+        for record in history
+        if isinstance(record, dict) and _review_was_approved(record)
     ] if isinstance(history, list) else []
     raw_messages = values.get("messages", [])
     messages = [
@@ -176,6 +178,14 @@ def _completed_reviews(snapshot: Any) -> list[dict[str, object]]:
             record.get("after_message_count", 0),
             0 if record.get("kind") == "hypothesis_review" else 1,
         ),
+    )
+
+
+def _review_was_approved(record: dict[str, object]) -> bool:
+    decision = record.get("decision")
+    return (
+        isinstance(decision, dict)
+        and decision.get("decision") == "approved"
     )
 
 
