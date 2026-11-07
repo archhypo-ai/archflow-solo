@@ -8,6 +8,7 @@ graph TD;
 	request_routing(request_routing)
 	architectural_uncertainty_discovery(architectural_uncertainty_discovery)
 	hypothesis_formulation(hypothesis_formulation)
+	context_sufficiency_assessment(context_sufficiency_assessment)
 	hypothesis_assessment(hypothesis_assessment)
 	hypothesis_review(hypothesis_review)
 	technical_plan_generation(technical_plan_generation)
@@ -15,14 +16,18 @@ graph TD;
 	artifact_persistence(artifact_persistence)
 	__end__([<p>__end__</p>]):::last
 	__start__ --> request_routing;
-	architectural_uncertainty_discovery --> hypothesis_formulation;
+	architectural_uncertainty_discovery -.-> context_sufficiency_assessment;
+	architectural_uncertainty_discovery -.-> hypothesis_formulation;
 	artifact_persistence --> response_generation\3amodel;
+	context_sufficiency_assessment -.-> __end__;
+	context_sufficiency_assessment -.-> hypothesis_formulation;
 	hypothesis_assessment --> technical_plan_generation;
 	hypothesis_formulation -.-> direct_response_generation\3amodel;
 	hypothesis_formulation -.-> hypothesis_review;
 	hypothesis_review -.-> hypothesis_assessment;
 	hypothesis_review -.-> hypothesis_formulation;
 	request_routing -.-> architectural_uncertainty_discovery;
+	request_routing -.-> context_sufficiency_assessment;
 	request_routing -.-> direct_response_generation\3amodel;
 	request_routing -.-> hypothesis_formulation;
 	technical_plan_generation --> technical_plan_review;

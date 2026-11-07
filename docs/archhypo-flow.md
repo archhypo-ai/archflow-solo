@@ -30,7 +30,11 @@ flowchart TD
     ROUTING -->|New uncertainty| DISCOVERY[architectural_uncertainty_discovery]
     ROUTING -->|Alternative or revised hypothesis| FORMULATION[hypothesis_formulation]
     ROUTING -->|Question, out of scope, or clarification| DIRECT[direct_response_generation]
-    DISCOVERY --> FORMULATION[hypothesis_formulation]
+    DISCOVERY -->|HITL enabled| SUFFICIENCY[context_sufficiency_assessment]
+    DISCOVERY -->|HITL disabled| FORMULATION[hypothesis_formulation]
+    SUFFICIENCY -->|Sufficient| FORMULATION
+    SUFFICIENCY -->|Needs clarification| WAIT[Ask in chat and await response]
+    WAIT -.->|Next message| SUFFICIENCY
     FORMULATION -->|Valid proposal| REVIEW{hypothesis_review}
     FORMULATION -->|Needs clarification| DIRECT
     REVIEW -->|Approved| ASSESSMENT[hypothesis_assessment]
@@ -61,6 +65,10 @@ flowchart TD
 3. **Discovery:** identifies one central architectural uncertainty from the
    conversation and execution context. It does not read source code, folders,
    or documents.
+   With HITL enabled, a context-sufficiency assessment follows: it asks one
+   prioritized question when essential context is missing and continues on the
+   next chat turn. With HITL disabled it is skipped, preserving the automated
+   path; formulation may still ask for clarification rather than invent facts.
 4. **Formulation:** produces one declarative, testable hypothesis. For an
    alternative it reuses the active uncertainty and includes only hypotheses
    associated with that uncertainty. Initial formulation, alternative, and
@@ -124,10 +132,17 @@ Technical Debt Management, and Tracer Bullets.
   requests, and requests requiring clarification do not enter the workflow.
 - Discovery uses conversation input only. It does not inspect repositories or
   documents.
-- If a request is ambiguous, direct response asks for clarification. A full
-  context-sufficiency interview is not implemented. Human review covers the
+- If a request is ambiguous, direct response asks for clarification. A focused
+  context-sufficiency interview can ask follow-up questions after discovery.
+  Human review covers the
   hypothesis and assessment/technical plan; assessment does not yet use
   multi-label quality tags.
+- Interview questions use the existing chat and custom SSE protocol, not an
+  AG-UI integration. While an interview is pending, the next chat message is
+  treated as its answer.
+- Rejecting a hypothesis revises the hypothesis while preserving the selected
+  uncertainty. Feedback that also challenges that uncertainty is not yet
+  handled as a separate uncertainty revision.
 - A new user message cannot interrupt a pending review card; the user must
   approve or reject that review first. Explanations alongside a pending card are
   deferred.

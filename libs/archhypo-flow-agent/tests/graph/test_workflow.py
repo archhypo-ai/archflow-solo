@@ -90,7 +90,9 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
     assert saved["result"] == result["result"]
     assert saved["hitl_enabled"] is True
     assert result["routing"].route == "architectural_uncertainty_discovery"
-    assert result["discovery"].uncertainty == "Hello"
+    assert result["discovery"].uncertainty == (
+        "The architectural behavior is not yet confirmed."
+    )
     assert result["hypothesis"].statement
     assert result["assessment"].impact == "Medium"
     assert result["technical_plan"].items[0].pattern == "Architectural Spike"
@@ -103,6 +105,7 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
         "request_routing",
         "direct_response_generation",
         "architectural_uncertainty_discovery",
+        "context_sufficiency_assessment",
         "hypothesis_formulation",
         "hypothesis_review",
         "hypothesis_assessment",

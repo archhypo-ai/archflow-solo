@@ -8,6 +8,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 RequestRoute = Literal[
     "architectural_uncertainty_discovery",
+    "context_sufficiency_assessment",
     "hypothesis_formulation",
     "direct_response_generation",
 ]
