@@ -194,7 +194,7 @@
     "applicationDescription": "Informações do aplicativo e versão.",
     "appVersion": "Versão do aplicativo",
     "hitl": "Aprovação humana (HITL)",
-    "hitlDescription": "Desligue para pular as aprovações da hipótese e do plano técnico nas próximas requisições. HITL_ENABLED=false também desativa as aprovações.",
+    "hitlDescription": "Desligue para pular a entrevista de contexto e as aprovações da hipótese e do plano nas próximas requisições. HITL_ENABLED=false também desativa essas etapas.",
     "hitlSaveError": "Não foi possível salvar esta preferência. Tente novamente.",
     "version": "{{version}}",
     "appearance": "Aparência",

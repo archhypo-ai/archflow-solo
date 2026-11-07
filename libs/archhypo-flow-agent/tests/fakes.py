@@ -18,6 +18,7 @@ from archhypo_flow_agent.core import (
     TechnicalPlan,
     TechnicalPlanReview,
 )
+from archhypo_flow_agent.graph.nodes.context_sufficiency import ContextSufficiency
 from archhypo_flow_agent.providers import (
     SystemOneAnswer,
     SystemOneError,
@@ -124,6 +125,11 @@ def structured_output(schema, value):
     else:
         messages = []
 
+    if schema is ContextSufficiency:
+        return schema(
+            status="sufficient",
+            uncertainty="The architectural behavior is not yet confirmed.",
+        )
     if schema is HypothesisProposal:
         return schema(hypothesis=structured_output(Hypothesis, value))
     if schema is HypothesisNovelty:
@@ -210,9 +216,7 @@ def structured_output(schema, value):
         material = _human_material(value)
         marker = "Human review feedback (address this directly):\n"
         feedback = (
-            material.split(marker, maxsplit=1)[1].strip()
-            if marker in material
-            else ""
+            material.split(marker, maxsplit=1)[1].strip() if marker in material else ""
         )
         description = "Test the assumption with a small experiment."
         rationale = "A small experiment can reduce uncertainty before commitment."

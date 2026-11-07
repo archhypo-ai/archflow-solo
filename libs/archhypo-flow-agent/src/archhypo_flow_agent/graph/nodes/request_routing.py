@@ -35,6 +35,10 @@ def create_request_routing_node(
         state: AgentState,
         runtime: Runtime[AgentRunContext] | None = None,
     ) -> dict[str, object]:
+        if state.get("interview_pending"):
+            return {
+                "hitl_enabled": human_review_enabled(runtime),
+            }
         latest_message = latest_user_input(state["messages"])
         current_analysis = analysis_context(state)
         decision = system_one_client.decide(
@@ -77,6 +81,12 @@ def create_request_routing_node(
 def route_request(state: AgentState) -> RequestRoute:
     """Return the next node selected by the validated routing contract."""
 
+    if state.get("interview_pending"):
+        return (
+            "context_sufficiency_assessment"
+            if state.get("hitl_enabled", True)
+            else "hypothesis_formulation"
+        )
     routing = state.get("routing")
     if routing is None:
         raise ValueError("request routing is required")
@@ -124,6 +134,9 @@ def _prepare_route(
         "artifact_id": None,
         "result_history": result_history,
         "formulation_question": None,
+        "interview_pending": False,
+        "context_sufficiency": None,
+        "interview_start": max(0, len(state["messages"]) - 1),
         "hypothesis_review": None,
         "hypothesis_feedback": None,
         "assessment": None,

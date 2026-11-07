@@ -28,6 +28,11 @@ from archhypo_flow_agent.graph.nodes import (
     route_request,
     technical_plan_review_node,
 )
+from archhypo_flow_agent.graph.nodes.context_sufficiency import (
+    create_context_sufficiency_node,
+    route_after_discovery,
+    route_after_sufficiency,
+)
 from archhypo_flow_agent.persistence import ArchHypoArtifactRepository
 from archhypo_flow_agent.providers import SystemOneClient
 
@@ -74,6 +79,9 @@ def build_graph(
         create_hypothesis_formulation_node(model),
     )
     workflow.add_node(
+        "context_sufficiency_assessment", create_context_sufficiency_node(model)
+    )
+    workflow.add_node(
         "hypothesis_assessment",
         create_hypothesis_assessment_node(model),
     )
@@ -104,11 +112,21 @@ def build_graph(
                 "architectural_uncertainty_discovery"
             ),
             "hypothesis_formulation": "hypothesis_formulation",
+            "context_sufficiency_assessment": "context_sufficiency_assessment",
             "direct_response_generation": "direct_response_generation",
         },
     )
     workflow.add_edge("direct_response_generation", END)
-    workflow.add_edge("architectural_uncertainty_discovery", "hypothesis_formulation")
+    workflow.add_conditional_edges(
+        "architectural_uncertainty_discovery",
+        route_after_discovery,
+        ["context_sufficiency_assessment", "hypothesis_formulation"],
+    )
+    workflow.add_conditional_edges(
+        "context_sufficiency_assessment",
+        route_after_sufficiency,
+        {"__end__": END, "hypothesis_formulation": "hypothesis_formulation"},
+    )
     workflow.add_conditional_edges(
         "hypothesis_formulation",
         route_after_hypothesis_formulation,

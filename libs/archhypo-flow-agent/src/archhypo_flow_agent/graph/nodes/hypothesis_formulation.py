@@ -44,6 +44,17 @@ def create_hypothesis_formulation_node(model: BaseChatModel):
             "Latest user request:\n"
             f"{latest_user_input(state['messages'])}"
         )
+        start = state.get("interview_start")
+        if start is not None and state.get("context_sufficiency"):
+            material += "\n\nInterview conversation (user-provided context):\n"
+            material += json.dumps(
+                [
+                    {"role": message.type, "content": message.content}
+                    for message in state["messages"][start:]
+                ],
+                ensure_ascii=False,
+                default=str,
+            )
         previous = state.get("hypothesis")
         known_hypotheses = _previous_hypotheses(state, include_current=not feedback)
         if intent == "alternative_hypothesis":
@@ -87,7 +98,12 @@ def create_hypothesis_formulation_node(model: BaseChatModel):
                 {"system_prompt": system_prompt, "material": retry_material}
             )
             if proposal.clarification_question is not None:
-                return {"formulation_question": proposal.clarification_question}
+                update: dict[str, object] = {
+                    "formulation_question": proposal.clarification_question,
+                }
+                if state.get("interview_pending"):
+                    update["interview_pending"] = False
+                return update
 
             hypothesis = proposal.hypothesis
             if hypothesis is None:
@@ -132,6 +148,7 @@ def create_hypothesis_formulation_node(model: BaseChatModel):
                 "hypothesis": hypothesis,
                 "uncertainty": hypothesis.uncertainty,
                 "formulation_question": None,
+                "interview_pending": False,
                 "hypothesis_feedback": None,
                 "hypothesis_review": None,
                 "assessment": None,
@@ -152,7 +169,7 @@ def create_hypothesis_formulation_node(model: BaseChatModel):
             "the available information. Which other assumption or architectural "
             "alternative should we investigate for this same uncertainty?"
         )
-        return {"formulation_question": question}
+        return {"formulation_question": question, "interview_pending": False}
 
     return formulate
 
