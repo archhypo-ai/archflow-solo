@@ -1,6 +1,7 @@
 import type { ChatModelAdapter, ThreadMessage } from "@assistant-ui/react";
 import type { AppLanguage } from "../../../i18n";
 import { streamChatMessage } from "../api/chatClient";
+import { attachmentFolder } from "./documentAttachmentAdapter";
 import type {
   HumanReviewDecision,
   PendingHumanReview,
@@ -61,6 +62,18 @@ export function createChatModelAdapter({
         .reverse()
         .find((message): message is UserMessage => message.role === "user");
       const text = latestUserMessage ? textFromMessage(latestUserMessage) : "";
+      const attachments = (latestUserMessage?.attachments ?? []).flatMap((attachment) =>
+        attachment.content.flatMap((part) => {
+          if (part.type !== "file" || !part.data.startsWith("data:")) return [];
+          const encoded = part.data.split(",", 2)[1];
+          const folder = attachmentFolder(attachment.file);
+          return encoded ? [{
+            name: attachment.name,
+            data: encoded,
+            ...(folder ? { folder_id: folder.id, folder_name: folder.name } : {}),
+          }] : [];
+        }),
+      );
       const hypothesisReview = latestUserMessage
         ? reviewDecisionFromMessage(latestUserMessage, "hypothesisReview")
         : undefined;
@@ -68,7 +81,7 @@ export function createChatModelAdapter({
         ? reviewDecisionFromMessage(latestUserMessage, "technicalPlanReview")
         : undefined;
       const isReviewAction = Boolean(hypothesisReview || technicalPlanReview);
-      if (!text && !isReviewAction) return;
+      if (!text && !isReviewAction && !attachments.length) return;
 
       const content: AssistantPart[] = [];
       let phase = "thinking";
@@ -98,6 +111,7 @@ export function createChatModelAdapter({
         abortSignal,
         hypothesisReview,
         technicalPlanReview,
+        attachments,
       )) {
         switch (event.type) {
           case "conversation_started":

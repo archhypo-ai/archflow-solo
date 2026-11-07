@@ -103,6 +103,7 @@ def test_graph_runs_the_minimum_archhypo_path_before_responding() -> None:
     graph_diagram = graph.get_graph().draw_mermaid()
     stages = [
         "request_routing",
+        "documentary_research",
         "direct_response_generation",
         "architectural_uncertainty_discovery",
         "context_sufficiency_assessment",
@@ -247,11 +248,7 @@ def test_direct_question_keeps_the_completed_archhypo_result() -> None:
     completed_result = completed["result"]
 
     direct = graph.invoke(
-        {
-            "messages": [
-                HumanMessage(content="Why is the impact rated Medium?")
-            ]
-        },
+        {"messages": [HumanMessage(content="Why is the impact rated Medium?")]},
         config=config,
     )
 
@@ -303,6 +300,7 @@ def test_unrepairable_assessment_keeps_approved_hypothesis_checkpoint() -> None:
     class MalformedAssessmentModel(StubModel):
         def with_structured_output(self, schema, **kwargs):
             if schema is HypothesisAssessment:
+
                 def omit_required_justification(_input):
                     assessment_calls[0] += 1
                     return HypothesisAssessment.model_validate(
@@ -476,9 +474,7 @@ def test_request_intent_maps_to_its_graph_destination(intent, route) -> None:
 
 
 def test_legacy_route_checkpoint_is_upgraded_to_request_intent() -> None:
-    routing = RequestRouting.model_validate(
-        {"route": "direct_response_generation"}
-    )
+    routing = RequestRouting.model_validate({"route": "direct_response_generation"})
 
     assert routing.intent == "contextual_question"
 
@@ -578,9 +574,7 @@ def test_rejected_technical_plan_is_regenerated_with_feedback() -> None:
     first_state = graph.get_state(config)
     first_assessment = first_state.values["assessment"]
     first_plan = first_state.values["technical_plan"]
-    assert first_state.tasks[0].interrupts[0].value["kind"] == (
-        "technical_plan_review"
-    )
+    assert first_state.tasks[0].interrupts[0].value["kind"] == ("technical_plan_review")
     assert artifacts.records == []
 
     graph.invoke(
@@ -609,9 +603,10 @@ def test_rejected_technical_plan_is_regenerated_with_feedback() -> None:
     }
     assert artifacts.records == []
     reviewed_payload = revised_state.tasks[0].interrupts[0].value
-    assert "Add evidence that can trigger a rollback." in reviewed_payload[
-        "technical_plan"
-    ]["items"][0]["description"]
+    assert (
+        "Add evidence that can trigger a rollback."
+        in reviewed_payload["technical_plan"]["items"][0]["description"]
+    )
 
     result = graph.invoke(Command(resume={"decision": "approved"}), config=config)
     assert result["messages"][-1].content == "Hello from the test agent."

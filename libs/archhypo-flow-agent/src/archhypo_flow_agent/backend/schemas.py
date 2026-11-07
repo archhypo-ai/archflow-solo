@@ -214,6 +214,7 @@ class ThreadMessageResponse(BaseModel):
     role: Literal["user", "assistant"]
     content: str
     tool_calls: list[ToolCallRecord] = Field(default_factory=list)
+    attachments: list[dict[str, str | int]] = Field(default_factory=list)
 
 
 class ThreadResponse(ThreadSummaryResponse):

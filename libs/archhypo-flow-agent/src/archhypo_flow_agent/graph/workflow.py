@@ -33,6 +33,10 @@ from archhypo_flow_agent.graph.nodes.context_sufficiency import (
     route_after_discovery,
     route_after_sufficiency,
 )
+from archhypo_flow_agent.graph.nodes.documentary_research import (
+    create_documentary_research_node,
+    route_entry,
+)
 from archhypo_flow_agent.persistence import ArchHypoArtifactRepository
 from archhypo_flow_agent.providers import SystemOneClient
 
@@ -60,6 +64,7 @@ def build_graph(
         tools=tools,
     )
     workflow = StateGraph(AgentState, context_schema=AgentRunContext)
+    workflow.add_node("documentary_research", create_documentary_research_node(model))
     workflow.add_node(
         "request_routing",
         create_request_routing_node(system_one_client),
@@ -103,7 +108,10 @@ def build_graph(
         "response_generation",
         create_response_generation_node(response_agent),
     )
-    workflow.add_edge(START, "request_routing")
+    workflow.add_conditional_edges(
+        START, route_entry, ["request_routing", "documentary_research"]
+    )
+    workflow.add_edge("documentary_research", END)
     workflow.add_conditional_edges(
         "request_routing",
         route_request,

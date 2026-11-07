@@ -11,6 +11,7 @@ class ConversationMessage:
     role: Literal["user", "assistant"]
     content: str
     tool_calls: list[ToolCallRecord] = field(default_factory=list)
+    attachments: list[dict[str, str | int]] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)

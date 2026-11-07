@@ -9,6 +9,7 @@ import type { AppLanguage } from "../../i18n";
 import { getConversation, type StoredChatMessage } from "../conversations";
 import type { Project } from "../projects/types";
 import { createChatModelAdapter } from "./adapters/chatModelAdapter";
+import { DocumentAttachmentAdapter } from "./adapters/documentAttachmentAdapter";
 import { ChatThread } from "./components/ChatThread";
 import type {
   CompletedHumanReview,
@@ -71,6 +72,24 @@ function toInitialMessages(
     initialMessages.push({
       id: `${threadId}-${index}`,
       role: message.role,
+      ...(message.role === "user" ? {
+        metadata: { custom: {
+          attachmentSizes: (message.attachments ?? []).map((attachment) => attachment.size_bytes ?? null),
+          attachmentFolders: (message.attachments ?? []).map((attachment) => (
+            attachment.folder_id && attachment.folder_name
+              ? { id: attachment.folder_id, name: attachment.folder_name }
+              : null
+          )),
+        } },
+        attachments: (message.attachments ?? []).map((attachment, attachmentIndex) => ({
+          id: `${threadId}-${index}-attachment-${attachmentIndex}`,
+          type: "document" as const,
+          name: attachment.name,
+          contentType: "application/octet-stream",
+          status: { type: "complete" as const },
+          content: [],
+        })),
+      } : {}),
       content: [
         ...(message.role === "assistant"
           ? (message.tool_calls ?? []).map((call) => ({
@@ -199,7 +218,10 @@ function LoadedChat({
       onConversationUpdated,
     ],
   );
-  const runtime = useLocalRuntime(chatModel, { initialMessages });
+  const attachmentAdapter = useMemo(() => new DocumentAttachmentAdapter(), []);
+  const runtime = useLocalRuntime(chatModel, {
+    initialMessages, adapters: { attachments: attachmentAdapter },
+  });
 
   return (
     <AssistantRuntimeProvider runtime={runtime}>
