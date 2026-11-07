@@ -7,6 +7,22 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from .archhypo import Hypothesis, HypothesisReview, TechnicalPlanReview
 
 
+class DocumentAttachment(BaseModel):
+    """A user-approved document sent with one chat message."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    name: str = Field(min_length=1, max_length=255)
+    data: str = Field(min_length=1, max_length=7_000_000)
+    folder_id: str | None = Field(default=None, min_length=1, max_length=128)
+    folder_name: str | None = Field(default=None, min_length=1, max_length=255)
+
+    @model_validator(mode="after")
+    def require_folder_pair(self) -> "DocumentAttachment":
+        if (self.folder_id is None) != (self.folder_name is None):
+            raise ValueError("folder_id and folder_name must be provided together")
+        return self
+
+
 class ChatRequest(BaseModel):
     """One user message addressed to a conversation thread."""
 
@@ -20,6 +36,7 @@ class ChatRequest(BaseModel):
     hitl_enabled: bool = True
     hypothesis_review: HypothesisReview | None = None
     technical_plan_review: TechnicalPlanReview | None = None
+    attachments: list[DocumentAttachment] = Field(default_factory=list, max_length=20)
 
     @field_validator("thread_id")
     @classmethod
@@ -41,8 +58,11 @@ class ChatRequest(BaseModel):
             not self.message.strip()
             and self.hypothesis_review is None
             and self.technical_plan_review is None
+            and not self.attachments
         ):
             raise ValueError("message must not be blank")
+        if self.attachments and (self.hypothesis_review or self.technical_plan_review):
+            raise ValueError("documents cannot be attached to a review decision")
         return self
 
 

@@ -113,7 +113,34 @@ def project_messages(messages: Sequence[BaseMessage]) -> list[ConversationMessag
             if _is_legacy_review_approval(content):
                 continue
             projected.append(
-                ConversationMessage(role="user", content=content)
+                ConversationMessage(
+                    role="user",
+                    content=content,
+                    attachments=[
+                        {
+                            "name": item["name"],
+                            **(
+                                {"size_bytes": item["size_bytes"]}
+                                if isinstance(item.get("size_bytes"), int)
+                                and item["size_bytes"] >= 0
+                                else {}
+                            ),
+                            **(
+                                {
+                                    "folder_id": item["folder_id"],
+                                    "folder_name": item["folder_name"],
+                                }
+                                if isinstance(item.get("folder_id"), str)
+                                and isinstance(item.get("folder_name"), str)
+                                else {}
+                            ),
+                        }
+                        for item in message.additional_kwargs.get(
+                            "document_attachments", []
+                        )
+                        if isinstance(item, dict) and isinstance(item.get("name"), str)
+                    ],
+                )
             )
             continue
 

@@ -146,7 +146,16 @@ Technical Debt Management, and Tracer Bullets.
 - A new user message cannot interrupt a pending review card; the user must
   approve or reject that review first. Explanations alongside a pending card are
   deferred.
-- No Deep Agent, documentary research agent, multi-label quality tagging,
+- Documentary attachments are analyzed by a Deep Agent as a separate chat turn.
+  Text from `.md`, `.txt`, and the main body of `.docx` is extracted; legacy
+  `.doc` is currently rejected because no converter is bundled. The attachment
+  names are displayed in the conversation; extracted text is persisted in the
+  thread checkpoint. The current documentary route answers directly and does
+  not automatically feed evidence into hypothesis formulation.
+- The Deep Agent receives only extracted attachments, not access to the selected
+  filesystem folder. Accepted extensions do not prove that documents are free
+  of source snippets, sensitive data, or malicious instructions.
+- No multi-label quality tagging,
   semantic dossier, new database table, or artifact interface was added.
 - Completed results and hypothesis alternatives are preserved in checkpoint
   state, but there is no independently managed ArchHypo artifact lifecycle or

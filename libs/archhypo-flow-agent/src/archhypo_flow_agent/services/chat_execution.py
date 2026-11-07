@@ -1,5 +1,7 @@
 """Execute ReAct chat turns and stream their visible progress."""
 
+import base64
+import binascii
 import json
 from collections.abc import Iterator
 from threading import Lock
@@ -21,6 +23,7 @@ from .chat_projection import (
     tool_calls_from_messages,
     tool_result_value,
 )
+from .document_extraction import DocumentExtractionError, extract_document
 
 
 class ReviewStateError(ValueError):
@@ -132,7 +135,8 @@ class ChatExecutionService:
                 title=(
                     metadata.title if metadata else title_from_message(request.message)
                 ),
-                user_message=request.message,
+                user_message=request.message
+                or (", ".join(item.name for item in request.attachments)),
                 project_id=(metadata.project_id if metadata else request.project_id),
             )
             yield stream_event_data(
@@ -145,7 +149,7 @@ class ChatExecutionService:
             emitted_results = set(previous_tool_ids)
             pending_calls: set[str] = set()
 
-            for _, mode, update in self._graph.stream(
+            for namespace, mode, update in self._graph.stream(
                 graph_input,
                 config=config,
                 context=run_context,
@@ -153,6 +157,10 @@ class ChatExecutionService:
                 subgraphs=True,
             ):
                 if mode != "updates":
+                    continue
+                if any(
+                    str(part).startswith("documentary_research:") for part in namespace
+                ):
                     continue
                 yield from self._tool_events_from_update(
                     update,
@@ -229,9 +237,50 @@ class ChatExecutionService:
         request: ChatRequest,
         config: dict[str, object],
     ) -> None:
+        documents = []
+        total = 0
+        for attachment in request.attachments:
+            try:
+                data = base64.b64decode(attachment.data, validate=True)
+            except (ValueError, binascii.Error) as error:
+                raise DocumentExtractionError("Invalid attachment encoding.") from error
+            total += len(data)
+            if total > 20 * 1024 * 1024:
+                raise DocumentExtractionError(
+                    "Attachments exceed the total size limit."
+                )
+            document = extract_document(attachment.name, data)
+            item = {
+                "name": document.name,
+                "text": document.text,
+                "size_bytes": len(data),
+            }
+            if attachment.folder_id is not None and attachment.folder_name is not None:
+                item.update(
+                    folder_id=attachment.folder_id, folder_name=attachment.folder_name
+                )
+            documents.append(item)
+        text = request.message.strip()
+        if not text and documents:
+            text = (
+                "Analise os documentos anexados."
+                if request.language == "pt-BR"
+                else "Analyze the attached documents."
+            )
         self._graph.update_state(
             config,
-            {"messages": [HumanMessage(content=request.message)]},
+            {
+                "messages": [
+                    HumanMessage(
+                        content=text,
+                        additional_kwargs={
+                            "document_attachments": documents,
+                        }
+                        if documents
+                        else {},
+                    )
+                ]
+            },
             as_node="__start__",
         )
 
@@ -249,11 +298,10 @@ class ChatExecutionService:
         for task in getattr(snapshot, "tasks", ()):
             for pending_interrupt in task.interrupts:
                 payload = pending_interrupt.value
-                if (
-                    isinstance(payload, dict)
-                    and payload.get("kind")
-                    in {"hypothesis_review", "technical_plan_review"}
-                ):
+                if isinstance(payload, dict) and payload.get("kind") in {
+                    "hypothesis_review",
+                    "technical_plan_review",
+                }:
                     return pending_interrupt.id, payload
         return None
 
@@ -356,8 +404,7 @@ def _review_prompt(language: str, kind: str) -> str:
         if language == "pt-BR":
             return "Revise a avaliação e o plano técnico antes de concluir."
         return (
-            "Review the assessment and technical plan before completing "
-            "the workflow."
+            "Review the assessment and technical plan before completing the workflow."
         )
     if language == "pt-BR":
         return "Revise a hipótese proposta antes de continuar."

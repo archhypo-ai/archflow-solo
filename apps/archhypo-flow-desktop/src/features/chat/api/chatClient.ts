@@ -15,6 +15,7 @@ export async function* streamChatMessage(
   signal: AbortSignal,
   hypothesisReview?: HypothesisReviewDecision,
   technicalPlanReview?: TechnicalPlanReviewDecision,
+  attachments?: Array<{ name: string; data: string; folder_id?: string; folder_name?: string }>,
 ): AsyncGenerator<ChatStreamEvent> {
   const global_context = await getGlobalContext();
   const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
@@ -31,6 +32,7 @@ export async function* streamChatMessage(
       project_id: projectId,
       global_context,
       hitl_enabled: getHitlEnabled(),
+      ...(attachments?.length ? { attachments } : {}),
       ...(hypothesisReview ? { hypothesis_review: hypothesisReview } : {}),
       ...(technicalPlanReview
         ? { technical_plan_review: technicalPlanReview }

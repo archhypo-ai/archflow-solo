@@ -56,6 +56,7 @@ def get_thread(
                 role=message.role,
                 content=message.content,
                 tool_calls=message.tool_calls,
+                attachments=message.attachments,
             )
             for message in conversation.messages
         ],

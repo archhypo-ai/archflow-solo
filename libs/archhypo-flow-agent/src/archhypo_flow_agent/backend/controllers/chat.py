@@ -12,6 +12,7 @@ from archhypo_flow_agent.core import ChatRequest, ChatResponse, StructuredOutput
 from archhypo_flow_agent.persistence import ArtifactPersistenceError
 from archhypo_flow_agent.providers import SystemOneError
 from archhypo_flow_agent.services.chat_execution import ReviewStateError
+from archhypo_flow_agent.services.document_extraction import DocumentExtractionError
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -37,6 +38,8 @@ def send_message(
 
     try:
         return agent_service.respond(payload)
+    except DocumentExtractionError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
     except ReviewStateError as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
     except LookupError as error:
@@ -92,6 +95,11 @@ def stream_message(
             for event in agent_service.stream(payload, run_id=run_id):
                 yield ServerSentEvent(event="chat", data=event)
         except ReviewStateError as error:
+            yield ServerSentEvent(
+                event="chat",
+                data=_stream_error_data(run_id, payload.thread_id, str(error)),
+            )
+        except DocumentExtractionError as error:
             yield ServerSentEvent(
                 event="chat",
                 data=_stream_error_data(run_id, payload.thread_id, str(error)),
@@ -171,5 +179,6 @@ def _artifact_persistence_error_message() -> str:
         "The ArchHypo result was generated but could not be saved. "
         "The conversation state was preserved; retry the turn."
     )
+
 
 __all__ = ["router"]
