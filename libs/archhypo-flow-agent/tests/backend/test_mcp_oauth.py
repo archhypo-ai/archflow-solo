@@ -1,6 +1,8 @@
 import asyncio
 import json
 import logging
+from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -11,6 +13,7 @@ from mcp.shared.auth import OAuthToken
 
 from archhypo_flow_agent.backend.app import _OAuthCallbackLogFilter
 from archhypo_flow_agent.backend.controllers.mcps import router
+from archhypo_flow_agent.backend.oauth_page import _STRINGS
 from archhypo_flow_agent.services.mcp_manager import MCPManager
 from archhypo_flow_agent.services.mcp_oauth import (
     KeyringTokenStorage,
@@ -132,6 +135,78 @@ def test_callback_rejects_unknown_state_and_is_one_time():
             == 400
         )
         assert client.get("/api/mcps/oauth/callback").status_code == 400
+
+
+def test_callback_assets_match_desktop_design_system():
+    root = Path(__file__).resolve().parents[4]
+    desktop = root / "apps/archhypo-flow-desktop/src"
+    assets = root / "libs/archhypo-flow-agent/src/archhypo_flow_agent/backend/assets"
+    assert (assets / "tokens.css").read_bytes() == (
+        desktop / "theme/tokens.css"
+    ).read_bytes()
+    assert (assets / "app-icon.png").read_bytes() == (
+        desktop / "features/chat/assets/archhypo-flow-image.png"
+    ).read_bytes()
+
+
+def test_callback_translations_have_matching_keys():
+    assert set(_STRINGS["pt-BR"]) == set(_STRINGS["en"])
+
+
+def test_authorization_presentation_updates_only_pending_state():
+    application = FastAPI()
+    application.state.mcp_manager = MCPManager()
+    application.state.mcp_manager.oauth.pending["pending"] = None
+    application.include_router(router)
+    with TestClient(application) as client:
+        payload = {"state": "pending", "theme": "night", "language": "pt-BR"}
+        assert (
+            client.post("/api/mcps/oauth/presentation", json=payload).status_code == 204
+        )
+        assert application.state.mcp_manager.oauth.presentation["pending"] == (
+            "night",
+            "pt-BR",
+        )
+        assert (
+            client.post(
+                "/api/mcps/oauth/presentation", json={**payload, "state": "unknown"}
+            ).status_code
+            == 404
+        )
+
+
+def test_callback_page_uses_app_theme_and_language_without_reflecting_secrets():
+    application = FastAPI()
+    application.state.mcp_manager = SimpleNamespace(
+        oauth=SimpleNamespace(
+            presentation={"valid": ("day", "pt-BR")},
+            complete=lambda state, code, error: state == "valid",
+        )
+    )
+    application.include_router(router)
+    with TestClient(application) as client:
+        response = client.get(
+            "/api/mcps/oauth/callback",
+            params={"state": "valid", "code": "secret-code"},
+            headers={"Accept-Language": "en"},
+        )
+        assert response.status_code == 200
+        assert 'data-theme="day"' in response.text
+        assert 'lang="pt-BR"' in response.text
+        assert "Autorização recebida" in response.text
+        assert "data:image/png;base64," in response.text
+        assert "secret-code" not in response.text
+        assert "no-store" in response.headers["cache-control"]
+        assert "default-src 'none'" in response.headers["content-security-policy"]
+        failure = client.get(
+            "/api/mcps/oauth/callback",
+            params={"state": "invalid", "code": "secret-code"},
+            headers={"Accept-Language": "en"},
+        )
+        assert failure.status_code == 400
+        assert "Authorization not completed" in failure.text
+        assert 'data-theme="system"' in failure.text
+        assert "secret-code" not in failure.text
 
 
 def test_oauth_callback_is_one_time_and_cancellation_cleans_up():

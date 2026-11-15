@@ -89,9 +89,16 @@ class OAuthCoordinator:
 
     def __init__(self) -> None:
         self.pending: dict[str, asyncio.Future[tuple[str, str | None]]] = {}
+        self.presentation: dict[str, tuple[str | None, str | None]] = {}
 
     def create_provider(
-        self, server_id: str, url: str, on_redirect
+        self,
+        server_id: str,
+        url: str,
+        on_redirect,
+        *,
+        theme: str | None = None,
+        language: str | None = None,
     ) -> OAuthClientProvider:
         future: asyncio.Future[tuple[str, str | None]] = (
             asyncio.get_running_loop().create_future()
@@ -114,6 +121,7 @@ class OAuthCoordinator:
                 raise ValueError("OAuth authorization request has no state")
             state_holder.append(state)
             self.pending[state] = future
+            self.presentation[state] = (theme, language)
             await on_redirect(authorization_url)
 
         async def callback() -> tuple[str, str | None]:
@@ -122,6 +130,7 @@ class OAuthCoordinator:
             finally:
                 for state in state_holder:
                     self.pending.pop(state, None)
+                    self.presentation.pop(state, None)
 
         metadata = OAuthClientMetadata.model_validate(
             {
@@ -142,6 +151,7 @@ class OAuthCoordinator:
 
     def complete(self, state: str, code: str, error: str) -> bool:
         future = self.pending.pop(state, None)
+        self.presentation.pop(state, None)
         if future is None or future.done():
             return False
         if error:

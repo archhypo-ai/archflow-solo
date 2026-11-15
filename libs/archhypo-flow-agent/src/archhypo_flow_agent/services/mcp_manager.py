@@ -140,17 +140,32 @@ class MCPManager:
             server_id, {"status": "disconnected", "tools": [], "error": None}
         )
 
-    async def connect(self, server_id: str, config: ServerConfig) -> None:
+    async def connect(
+        self,
+        server_id: str,
+        config: ServerConfig,
+        *,
+        theme: str | None = None,
+        language: str | None = None,
+    ) -> None:
         if server_id in self.tasks and not self.tasks[server_id].done():
             return
         self.configurations[server_id] = config.model_copy(deep=True)
         self.states[server_id] = {"status": "connecting", "tools": [], "error": None}
         stop = asyncio.Event()
         self.stops[server_id] = stop
-        self.tasks[server_id] = asyncio.create_task(self._run(server_id, config, stop))
+        self.tasks[server_id] = asyncio.create_task(
+            self._run(server_id, config, stop, theme=theme, language=language)
+        )
 
     async def _run(
-        self, server_id: str, config: ServerConfig, stop: asyncio.Event
+        self,
+        server_id: str,
+        config: ServerConfig,
+        stop: asyncio.Event,
+        *,
+        theme: str | None = None,
+        language: str | None = None,
     ) -> None:
         try:
             async with AsyncExitStack() as stack:
@@ -176,7 +191,9 @@ class MCPManager:
                             "authorization_url": url,
                         }
 
-                    auth = self.oauth.create_provider(server_id, config.url, redirect)
+                    auth = self.oauth.create_provider(
+                        server_id, config.url, redirect, theme=theme, language=language
+                    )
                     if config.transport == "sse":
                         streams = await stack.enter_async_context(
                             sse_client(config.url, auth=auth)

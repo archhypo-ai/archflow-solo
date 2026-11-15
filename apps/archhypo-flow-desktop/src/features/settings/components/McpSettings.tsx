@@ -27,7 +27,7 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 export function McpSettings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const s = t("settingsPages.mcps", { returnObjects: true }) as typeof en.settingsPages.mcps;
   const [servers, setServers] = useState<Server[]>([]);
   const [search, setSearch] = useState("");
@@ -45,14 +45,19 @@ export function McpSettings() {
     finally { setLoading(false); }
   }, [s.failure]);
   useEffect(() => { void load(); const timer = window.setInterval(() => void load(), 2500); return () => window.clearInterval(timer); }, [load]);
+  const prepareAuthorization = useCallback(async (url: string) => {
+    const state = new URL(url).searchParams.get("state");
+    if (!state) return;
+    await request(`${API}/oauth/presentation`, { method: "POST", body: JSON.stringify({ state, theme: document.documentElement.dataset.theme ?? "", language: i18n.resolvedLanguage ?? "" }) });
+  }, [i18n.resolvedLanguage]);
   useEffect(() => {
     for (const server of servers) {
       const url = server.authorization_url;
       if (server.status !== "authorizing" || !url || openedAuthorizations.current.has(url)) continue;
       openedAuthorizations.current.add(url);
-      if (isTauri()) void openUrl(url).catch(() => setError(s.oauthOpenError));
+      if (isTauri()) void prepareAuthorization(url).catch(() => {}).then(() => openUrl(url)).catch(() => setError(s.oauthOpenError));
     }
-  }, [servers, s.oauthOpenError]);
+  }, [servers, prepareAuthorization, s.oauthOpenError]);
   useEffect(() => {
     if (!form) return;
     const key = (event: KeyboardEvent) => {
@@ -89,7 +94,8 @@ export function McpSettings() {
   }
   async function action(server: Server, actionName: "connect" | "disconnect") {
     setError("");
-    try { await request(`${API}/${encodeURIComponent(server.id)}/${actionName}`, { method: "POST" }); await load(); }
+    const query = actionName === "connect" ? `?${new URLSearchParams({ theme: document.documentElement.dataset.theme ?? "", language: i18n.resolvedLanguage ?? "" })}` : "";
+    try { await request(`${API}/${encodeURIComponent(server.id)}/${actionName}${query}`, { method: "POST" }); await load(); }
     catch (err) { setError(err instanceof Error ? err.message : s.failure); }
   }
   async function remove(server: Server) {
@@ -116,7 +122,7 @@ export function McpSettings() {
     {current ? <>
       <div className="mcp-detail-header"><button className="mcp-back" type="button" onClick={() => setSelected(null)} aria-label={s.back} title={s.back}><ArrowLeft size={18} aria-hidden="true" /></button><div><h2>{current.id}</h2><p>{current.transport}</p></div><span className={`mcp-status is-${current.status}`}><span />{status(current)}</span></div>
       <div className="mcp-detail-actions">{connectButton(current)} <button className="mcp-button" type="button" onClick={() => edit(current)}><Pencil size={14} /> {s.edit}</button><button className="mcp-button mcp-delete" type="button" onClick={() => void remove(current)}><Trash2 size={14} /> {s.delete}</button></div>
-      {current.status === "authorizing" && current.authorization_url && <p className="mcp-hint">{s.oauthWaiting} <a href={current.authorization_url} target="_blank" rel="noopener noreferrer" onClick={(event) => { if (!isTauri()) return; event.preventDefault(); void openUrl(current.authorization_url!).catch(() => setError(s.oauthOpenError)); }}>{s.oauthOpen}</a></p>}
+      {current.status === "authorizing" && current.authorization_url && <p className="mcp-hint">{s.oauthWaiting} <a href={current.authorization_url} target="_blank" rel="noopener noreferrer" onClick={(event) => { const url = current.authorization_url!; if (!isTauri()) { void prepareAuthorization(url).catch(() => {}); return; } event.preventDefault(); void prepareAuthorization(url).catch(() => {}).then(() => openUrl(url)).catch(() => setError(s.oauthOpenError)); }}>{s.oauthOpen}</a></p>}
       {current.transport !== "stdio" && <button className="mcp-button" type="button" onClick={() => void forgetAuthorization(current)}>{s.oauthForget}</button>}
       {current.status === "disconnected" && current.transport === "stdio" && <p className="mcp-hint">{s.executeNotice}</p>}
       {current.error && <p className="skills-error" role="alert">{current.error_code === "oauth_keyring" ? s.oauthKeyringError : current.error_code === "oauth_failed" ? s.oauthError : current.error}</p>}

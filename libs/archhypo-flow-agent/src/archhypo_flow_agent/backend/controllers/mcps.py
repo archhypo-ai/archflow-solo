@@ -2,7 +2,9 @@
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 
+from archhypo_flow_agent.backend.oauth_page import render_oauth_page
 from archhypo_flow_agent.services.mcp_manager import (
     MCPManager,
     ServerConfig,
@@ -52,28 +54,41 @@ async def oauth_callback(
     request: Request, state: str = "", code: str = "", error: str = ""
 ) -> HTMLResponse:
     manager: MCPManager = request.app.state.mcp_manager
+    theme, language = manager.oauth.presentation.get(state, (None, None))
     accepted = bool(state) and manager.oauth.complete(state, code, error)
-    portuguese = request.headers.get("accept-language", "").lower().startswith("pt")
-    if accepted and not error and code:
-        message = (
-            "Autorização recebida. Você pode fechar esta janela."
-            if portuguese
-            else "Authorization received. You can close this window."
-        )
-    else:
-        message = (
-            "Autorização inválida ou recusada. Volte ao aplicativo."
-            if portuguese
-            else "Invalid or declined authorization. Return to the application."
-        )
+    page = render_oauth_page(
+        success=bool(accepted and not error and code),
+        language=language or request.headers.get("accept-language", "en"),
+        theme=theme,
+    )
     return HTMLResponse(
-        message,
+        page,
         status_code=200 if accepted else 400,
         headers={
             "Cache-Control": "no-store",
             "Referrer-Policy": "no-referrer",
-            "Content-Security-Policy": "default-src 'none'",
+            "Content-Security-Policy": (
+                "default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
+                "base-uri 'none'; frame-ancestors 'none'"
+            ),
         },
+    )
+
+
+class OAuthPresentation(BaseModel):
+    state: str
+    theme: str
+    language: str
+
+
+@router.post("/oauth/presentation", status_code=204)
+async def oauth_presentation(payload: OAuthPresentation, request: Request) -> None:
+    manager: MCPManager = request.app.state.mcp_manager
+    if payload.state not in manager.oauth.pending:
+        raise HTTPException(404, "Authorization request not found")
+    manager.oauth.presentation[payload.state] = (
+        payload.theme if payload.theme in {"day", "night"} else None,
+        payload.language if payload.language in {"pt-BR", "en"} else None,
     )
 
 
@@ -132,7 +147,12 @@ async def delete_server(server_id: str, request: Request) -> None:
 
 
 @router.post("/{server_id}/connect")
-async def connect_server(server_id: str, request: Request) -> dict:
+async def connect_server(
+    server_id: str,
+    request: Request,
+    theme: str | None = None,
+    language: str | None = None,
+) -> dict:
     configs = _configs()
     if server_id not in configs:
         raise HTTPException(404, "Server not found")
@@ -140,7 +160,12 @@ async def connect_server(server_id: str, request: Request) -> dict:
     if not configs[server_id].auto_connect:
         configs[server_id].auto_connect = True
         _write(configs)
-    await manager.connect(server_id, configs[server_id])
+    await manager.connect(
+        server_id,
+        configs[server_id],
+        theme=theme if theme in {"day", "night"} else None,
+        language=language if language in {"pt-BR", "en"} else None,
+    )
     return _entry(server_id, configs[server_id], manager)
 
 

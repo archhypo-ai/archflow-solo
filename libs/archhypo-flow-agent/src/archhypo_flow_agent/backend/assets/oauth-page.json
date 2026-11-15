@@ -1,0 +1,18 @@
+{
+  "pt-BR": {
+    "successTitle": "Autorização recebida",
+    "successDescription": "Volte ao ArchHypo Flow para concluir a conexão com o servidor MCP.",
+    "successHint": "Você pode fechar esta janela com segurança.",
+    "errorTitle": "Autorização não concluída",
+    "errorDescription": "A autorização foi recusada, expirou ou é inválida.",
+    "errorHint": "Volte ao ArchHypo Flow e tente conectar novamente."
+  },
+  "en": {
+    "successTitle": "Authorization received",
+    "successDescription": "Return to ArchHypo Flow to finish connecting to the MCP server.",
+    "successHint": "You can safely close this window.",
+    "errorTitle": "Authorization not completed",
+    "errorDescription": "The authorization was declined, expired, or invalid.",
+    "errorHint": "Return to ArchHypo Flow and try connecting again."
+  }
+}
