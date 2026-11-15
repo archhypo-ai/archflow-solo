@@ -53,13 +53,19 @@ async def add_server(payload: ServerInput, request: Request) -> dict:
     return _entry(payload.id, config, request.app.state.mcp_manager)
 
 
-@router.post("/folder")
-async def folder() -> dict[str, str]:
-    path = config_path().parent
+@router.post("/file")
+def configuration_file() -> dict[str, str]:
+    path = config_path()
     try:
-        path.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with path.open("x", encoding="utf-8") as stream:
+                stream.write('{\n  "mcpServers": {}\n}\n')
+        except FileExistsError:
+            if not path.is_file():
+                raise HTTPException(400, "mcp.json is not a file") from None
     except OSError as error:
-        raise HTTPException(500, "Could not create configuration folder") from error
+        raise HTTPException(500, "Could not create mcp.json") from error
     return {"path": str(path)}
 
 

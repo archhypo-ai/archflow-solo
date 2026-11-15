@@ -19,6 +19,19 @@ def app() -> FastAPI:
     return application
 
 
+def test_edit_file_creates_missing_file_and_preserves_existing(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    path = tmp_path / ".archhypoflow/mcp.json"
+    with TestClient(app()) as client:
+        response = client.post("/api/mcps/file")
+        assert response.status_code == 200
+        assert response.json() == {"path": str(path)}
+        assert json.loads(path.read_text()) == {"mcpServers": {}}
+        path.write_text("invalid but user-owned content", encoding="utf-8")
+        assert client.post("/api/mcps/file").status_code == 200
+        assert path.read_text(encoding="utf-8") == "invalid but user-owned content"
+
+
 def test_config_crud_and_transport_validation(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path))
     with TestClient(app()) as client:
