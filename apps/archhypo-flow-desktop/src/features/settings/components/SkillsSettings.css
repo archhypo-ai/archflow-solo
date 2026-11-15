@@ -10,12 +10,8 @@
 .skills-toolbar-actions { display: flex; align-items: center; gap: 8px; }
 .skills-page .skills-folder-button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; background: var(--color-sidebar); white-space: nowrap; }
 .skills-page .skills-folder-button:hover { background: var(--color-hover); }
-.skills-add-wrap { position: relative; }
 .skills-page .skills-primary, .skill-editor .skills-primary { display: inline-flex; align-items: center; gap: 5px; padding: 8px 12px; background: var(--color-foreground); color: var(--color-surface); }
-.skills-add-menu { position: absolute; z-index: 3; right: 0; top: calc(100% + 6px); min-width: 180px; background: var(--color-sidebar); border: 1px solid var(--color-border); border-radius: 8px; padding: 4px; box-shadow: 0 8px 24px #0004; }
-.skills-add-menu button { display: flex; align-items: center; gap: 9px; text-align: left; width: 100%; padding: 9px; }
-.skills-add-menu button:hover:not(:disabled), .skill-file-list button:hover { background: var(--color-border); }
-.skills-add-menu button:disabled { opacity: .5; cursor: not-allowed; }
+.skill-file-list button:hover { background: var(--color-border); }
 .skills-empty { padding: 40px 0; text-align: center; opacity: .6; }
 .skills-page .skills-item { display: flex; align-items: center; width: 100%; text-align: left; gap: 14px; padding: 16px 10px; border-radius: 8px; border-bottom: 1px solid var(--color-border); }
 .skills-item:hover { background: var(--color-hover); }

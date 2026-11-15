@@ -1,4 +1,4 @@
-import { BookOpen, ChevronDown, Code2, Eye, FilePlus2, FolderOpen, Plus, Search, Trash2, Upload, X } from "lucide-react";
+import { BookOpen, Code2, Eye, FilePlus2, FolderOpen, Plus, Search, Trash2, X } from "lucide-react";
 import { isTauri } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { useEffect, useRef, useState } from "react";
@@ -12,8 +12,8 @@ type Skill = { name: string; description: string; error: string };
 type SkillDetail = Skill & { files: Record<string, string>; revision: string; unavailable: string[] };
 const API = "http://127.0.0.1:8765/api/skills";
 const labels = {
-  pt: { title: "Skills", subtitle: "Gerencie as instruções e referências disponíveis na aplicação.", search: "Buscar skills", add: "Adicionar", folder: "Pasta", folderError: "Não foi possível abrir a pasta de skills.", folderDesktopOnly: "Abrir a pasta está disponível apenas no aplicativo desktop.", create: "Criar skill", upload: "Enviar skill", editSkill: "Editar skill", deleteSkill: "Excluir skill", confirmDelete: "Excluir a skill {name} e todos os seus arquivos?", saveChanges: "Salvar alterações", conflict: "A skill foi alterada no disco. Feche e abra novamente antes de salvar.", unavailable: "Arquivos não editáveis serão preservados ao salvar:", skillUnavailable: "SKILL.md não pode ser editado, mas a skill pode ser excluída.", empty: "Nenhuma skill encontrada.", name: "Nome da skill", nameHint: "Use letras minúsculas, números e hífens.", description: "Descrição", instructions: "Escreva as instruções da skill em Markdown...", addFile: "Adicionar arquivo", filePath: "references/arquivo.md", cancel: "Cancelar", save: "Criar", saving: "Criando...", draft: "Rascunho", preview: "Pré-visualizar", edit: "Editar", remove: "Remover arquivo", required: "Preencha nome, descrição e instruções.", invalid: "Skill inválida", error: "Não foi possível carregar as skills.", exists: "Uma skill com este nome já existe.", pathInvalid: "Use um caminho relativo válido e único." },
-  en: { title: "Skills", subtitle: "Manage the instructions and references available in the application.", search: "Search skills", add: "Add", folder: "Folder", folderError: "Could not open the skills folder.", folderDesktopOnly: "Opening the folder is only available in the desktop app.", create: "Create skill", upload: "Upload skill", editSkill: "Edit skill", deleteSkill: "Delete skill", confirmDelete: "Delete skill {name} and all its files?", saveChanges: "Save changes", conflict: "The skill changed on disk. Close and reopen it before saving.", unavailable: "Files that cannot be edited will be preserved when saving:", skillUnavailable: "SKILL.md cannot be edited, but the skill can be deleted.", empty: "No skills found.", name: "Skill name", nameHint: "Use lowercase letters, numbers and hyphens.", description: "Description", instructions: "Write the skill instructions in Markdown...", addFile: "Add file", filePath: "references/file.md", cancel: "Cancel", save: "Create", saving: "Creating...", draft: "Draft", preview: "Preview", edit: "Edit", remove: "Remove file", required: "Enter a name, description and instructions.", invalid: "Invalid skill", error: "Could not load skills.", exists: "A skill with this name already exists.", pathInvalid: "Use a valid, unique relative path." },
+  pt: { title: "Skills", subtitle: "Gerencie as instruções e referências disponíveis na aplicação.", search: "Buscar skills", add: "Adicionar", folder: "Pasta", folderError: "Não foi possível abrir a pasta de skills.", folderDesktopOnly: "Abrir a pasta está disponível apenas no aplicativo desktop.", create: "Criar skill", editSkill: "Editar skill", deleteSkill: "Excluir skill", confirmDelete: "Excluir a skill {name} e todos os seus arquivos?", saveChanges: "Salvar alterações", conflict: "A skill foi alterada no disco. Feche e abra novamente antes de salvar.", unavailable: "Arquivos não editáveis serão preservados ao salvar:", skillUnavailable: "SKILL.md não pode ser editado, mas a skill pode ser excluída.", empty: "Nenhuma skill encontrada.", name: "Nome da skill", nameHint: "Use letras minúsculas, números e hífens.", description: "Descrição", instructions: "Escreva as instruções da skill em Markdown...", addFile: "Adicionar arquivo", filePath: "references/arquivo.md", cancel: "Cancelar", save: "Criar", saving: "Criando...", draft: "Rascunho", preview: "Pré-visualizar", edit: "Editar", remove: "Remover arquivo", required: "Preencha nome, descrição e instruções.", invalid: "Skill inválida", error: "Não foi possível carregar as skills.", exists: "Uma skill com este nome já existe.", pathInvalid: "Use um caminho relativo válido e único." },
+  en: { title: "Skills", subtitle: "Manage the instructions and references available in the application.", search: "Search skills", add: "Add", folder: "Folder", folderError: "Could not open the skills folder.", folderDesktopOnly: "Opening the folder is only available in the desktop app.", create: "Create skill", editSkill: "Edit skill", deleteSkill: "Delete skill", confirmDelete: "Delete skill {name} and all its files?", saveChanges: "Save changes", conflict: "The skill changed on disk. Close and reopen it before saving.", unavailable: "Files that cannot be edited will be preserved when saving:", skillUnavailable: "SKILL.md cannot be edited, but the skill can be deleted.", empty: "No skills found.", name: "Skill name", nameHint: "Use lowercase letters, numbers and hyphens.", description: "Description", instructions: "Write the skill instructions in Markdown...", addFile: "Add file", filePath: "references/file.md", cancel: "Cancel", save: "Create", saving: "Creating...", draft: "Draft", preview: "Preview", edit: "Edit", remove: "Remove file", required: "Enter a name, description and instructions.", invalid: "Invalid skill", error: "Could not load skills.", exists: "A skill with this name already exists.", pathInvalid: "Use a valid, unique relative path." },
 };
 
 export function SkillsSettings() {
@@ -23,7 +23,6 @@ export function SkillsSettings() {
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
   const [folderError, setFolderError] = useState("");
-  const [menu, setMenu] = useState(false);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<SkillDetail | null>(null);
   const [name, setName] = useState("");
@@ -35,7 +34,6 @@ export function SkillsSettings() {
   const [saving, setSaving] = useState(false);
   const [draftError, setDraftError] = useState("");
   const lineNumbersRef = useRef<HTMLDivElement>(null);
-  const addMenuRef = useRef<HTMLDivElement>(null);
   const pageRef = useRef<HTMLDivElement>(null);
 
   async function loadSkills() {
@@ -56,24 +54,15 @@ export function SkillsSettings() {
     return () => { container.style.overflowY = previousOverflow; };
   }, [creating]);
   useEffect(() => {
-    if (!menu) return;
-    const handleOutsideClick = (event: PointerEvent) => {
-      if (event.target instanceof Node && !addMenuRef.current?.contains(event.target)) setMenu(false);
-    };
-    document.addEventListener("pointerdown", handleOutsideClick);
-    return () => document.removeEventListener("pointerdown", handleOutsideClick);
-  }, [menu]);
-  useEffect(() => {
-    if (!menu && !creating) return;
+    if (!creating) return;
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.stopPropagation();
-      if (menu) setMenu(false);
-      else if (!saving) setCreating(false);
+      if (!saving) setCreating(false);
     };
     document.addEventListener("keydown", handleEscape, true);
     return () => document.removeEventListener("keydown", handleEscape, true);
-  }, [menu, creating, saving]);
+  }, [creating, saving]);
   async function openFolder() {
     setFolderError("");
     if (!isTauri()) { setFolderError(s.folderDesktopOnly); return; }
@@ -86,7 +75,7 @@ export function SkillsSettings() {
   }
   function startCreate() {
     setEditing(null); setName(""); setDescription(""); setFiles({ "SKILL.md": "" }); setActiveFile("SKILL.md");
-    setNewFile(null); setPreview(false); setDraftError(""); setMenu(false); setCreating(true);
+    setNewFile(null); setPreview(false); setDraftError(""); setCreating(true);
   }
   async function openSkill(skill: Skill) {
     setError("");
@@ -133,8 +122,7 @@ export function SkillsSettings() {
     <p className="settings-page-description">{s.subtitle}</p>
     <div className="skills-toolbar"><div className="skills-search"><Search size={16} /><input aria-label={s.search} placeholder={s.search} value={search} onChange={(e) => setSearch(e.target.value)} /></div>
       <div className="skills-toolbar-actions"><button className="skills-folder-button" type="button" onClick={() => void openFolder()}><FolderOpen size={16} /> {s.folder}</button>
-      <div ref={addMenuRef} className="skills-add-wrap"><button className="skills-primary" type="button" aria-expanded={menu} onClick={() => setMenu(!menu)}><Plus size={16} /> {s.add} <ChevronDown size={14} /></button>
-        {menu && <div className="skills-add-menu"><button type="button" onClick={startCreate}><FilePlus2 size={16} />{s.create}</button><button type="button" disabled><Upload size={16} />{s.upload}</button></div>}</div></div></div>
+      <button className="skills-primary" type="button" onClick={startCreate}><Plus size={16} /> {s.add}</button></div></div>
     {folderError && <p className="skills-error" role="alert">{folderError}</p>}
     {error && <p className="skills-error" role="alert">{error}</p>}
     {!error && visible.length === 0 ? <p className="skills-empty">{s.empty}</p> : <div className="skills-list">{visible.map((skill) => <button type="button" className="skills-item" key={skill.name} onClick={() => void openSkill(skill)}><span className="skills-item-icon"><BookOpen size={18} /></span><span className="skills-item-content"><strong>{skill.name}</strong><span>{skill.error ? `${s.invalid}: ${skill.error}` : skill.description}</span></span></button>)}</div>}
