@@ -1,4 +1,4 @@
-import { BookOpen, Bot, Cable, ChevronDown, Puzzle, Settings2, X } from "lucide-react";
+import { BookOpen, Bot, Cable, ChevronDown, Puzzle, Settings2, Wrench, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../../i18n";
@@ -7,16 +7,17 @@ import { AgentSettings } from "./AgentSettings";
 import { GeneralSettings } from "./GeneralSettings";
 import { SkillsSettings } from "./SkillsSettings";
 import { McpSettings } from "./McpSettings";
+import { ToolsSettings } from "./ToolsSettings";
 import "./SettingsDialog.css";
 
-type PluginSection = "skills" | "mcps";
+type PluginSection = "skills" | "mcps" | "tools";
 type SettingsSection = "general" | "agents" | PluginSection;
 type SettingsEntry = "general" | "agents" | "plugins";
 const LAST_PLUGIN_SECTION_KEY = "archhypo-flow-last-plugin-section";
 
 function lastPluginSection(): PluginSection {
-  try { return localStorage.getItem(LAST_PLUGIN_SECTION_KEY) === "mcps" ? "mcps" : "skills"; }
-  catch { return "skills"; }
+  try { const saved = localStorage.getItem(LAST_PLUGIN_SECTION_KEY); return saved === "mcps" || saved === "skills" ? saved : "tools"; }
+  catch { return "tools"; }
 }
 
 type SettingsDialogProps = {
@@ -58,8 +59,8 @@ export function SettingsDialog({
   const [activeSection, setActiveSection] = useState<SettingsSection>("general");
   const [pluginsExpanded, setPluginsExpanded] = useState(true);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const ActiveSectionIcon = activeSection === "general" ? Settings2 : activeSection === "agents" ? Bot : activeSection === "skills" ? BookOpen : Cable;
-  const activeSectionTitle = activeSection === "skills" ? "Skills" : activeSection === "mcps" ? "MCPs" : t(
+  const ActiveSectionIcon = activeSection === "general" ? Settings2 : activeSection === "agents" ? Bot : activeSection === "skills" ? BookOpen : activeSection === "mcps" ? Cable : Wrench;
+  const activeSectionTitle = activeSection === "skills" ? "Skills" : activeSection === "mcps" ? "MCPs" : activeSection === "tools" ? "Tools" : t(
     activeSection === "general" ? "settings.general" : "settings.agents",
   );
 
@@ -125,12 +126,13 @@ export function SettingsDialog({
               <span>{t("settings.agents")}</span>
             </button>
             <button className="settings-nav-item settings-plugin-trigger" type="button" aria-expanded={pluginsExpanded} aria-controls="settings-plugin-sections" onClick={() => {
-              if (pluginsExpanded && (activeSection === "skills" || activeSection === "mcps")) setPluginsExpanded(false);
+              if (pluginsExpanded && (activeSection === "skills" || activeSection === "mcps" || activeSection === "tools")) setPluginsExpanded(false);
               else { setPluginsExpanded(true); selectPluginSection(lastPluginSection()); }
             }}>
               <Puzzle size={16} aria-hidden="true" /><span>Plugins</span><ChevronDown size={15} className={pluginsExpanded ? "" : "is-collapsed"} aria-hidden="true" />
             </button>
             {pluginsExpanded && <div className="settings-plugin-sections" id="settings-plugin-sections">
+              <button className={`settings-nav-item settings-plugin-item${activeSection === "tools" ? " is-active" : ""}`} type="button" aria-current={activeSection === "tools" ? "page" : undefined} onClick={() => selectPluginSection("tools")}><Wrench size={16} aria-hidden="true" /><span>Tools</span></button>
               <button className={`settings-nav-item settings-plugin-item${activeSection === "skills" ? " is-active" : ""}`} type="button" aria-current={activeSection === "skills" ? "page" : undefined} onClick={() => selectPluginSection("skills")}><BookOpen size={16} aria-hidden="true" /><span>Skills</span></button>
               <button className={`settings-nav-item settings-plugin-item${activeSection === "mcps" ? " is-active" : ""}`} type="button" aria-current={activeSection === "mcps" ? "page" : undefined} onClick={() => selectPluginSection("mcps")}><Cable size={16} aria-hidden="true" /><span>MCPs</span></button>
             </div>}
@@ -174,6 +176,8 @@ export function SettingsDialog({
               <SkillsSettings />
             ) : activeSection === "mcps" ? (
               <McpSettings />
+            ) : activeSection === "tools" ? (
+              <ToolsSettings />
             ) : (
               <AgentSettings
                 globalContext={globalContext}

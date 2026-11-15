@@ -71,7 +71,7 @@ class AgentService:
             or (self._persistence.artifacts if self._persistence is not None else None)
         )
         self._artifact_repository = artifacts
-        active_tools = _resolve_tools(tools)
+        active_tools = [tavily_search] if tools is None else _resolve_tools(tools)
 
         try:
             if model is not None and artifacts is None:
@@ -82,6 +82,7 @@ class AgentService:
                 build_graph(
                     model,
                     tools=active_tools,
+                    dynamic_tavily=tools is None,
                     checkpointer=active_checkpointer,
                     system_one_client=system_one_client,
                     artifact_repository=artifacts,

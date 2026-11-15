@@ -10,7 +10,7 @@ from typing import Annotated, Any, Literal
 from langchain_core.tools import tool
 from pydantic import BaseModel, Field, field_validator
 
-from archhypo_flow_agent.config import settings
+from archhypo_flow_agent.config.tool_config import get_key, is_available
 
 logger = logging.getLogger(__name__)
 
@@ -103,8 +103,7 @@ def _tavily_client(api_key: str) -> Any:
         from tavily import TavilyClient
     except ImportError as error:
         raise RuntimeError(
-            "Tavily is not installed. Install it with "
-            "`uv sync --extra research`."
+            "Tavily is not installed. Install it with `uv sync --extra research`."
         ) from error
     return TavilyClient(api_key=api_key)
 
@@ -166,18 +165,13 @@ def tavily_search(
     not request or return raw page content.
     """
 
-    api_key = (
-        settings.tavily_api_key.get_secret_value().strip()
-        if settings.tavily_api_key is not None
-        else ""
-    )
-    if not api_key:
+    if not is_available("tavily"):
         return _unavailable(
             "Tavily search is not configured. No external search was performed."
         )
 
     try:
-        client = _tavily_client(api_key)
+        client = _tavily_client(get_key("tavily"))
     except RuntimeError as error:
         return _unavailable(str(error))
 

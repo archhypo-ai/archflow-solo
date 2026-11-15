@@ -6,11 +6,13 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.graph import END, START, StateGraph
+from langgraph.runtime import Runtime
 
 from archhypo_flow_agent.agents import (
     build_direct_response_agent,
     build_response_generation_agent,
 )
+from archhypo_flow_agent.config.tool_config import is_available
 from archhypo_flow_agent.core import AgentRunContext, AgentState
 from archhypo_flow_agent.graph.nodes import (
     create_architectural_uncertainty_discovery_node,
@@ -50,6 +52,7 @@ def build_graph(
     system_one_model_id: str | None = None,
     tools: Sequence[BaseTool] = (),
     checkpointer: BaseCheckpointSaver | None = None,
+    dynamic_tavily: bool = False,
 ):
     """Build the routed direct-response and ArchHypo workflows.
 
@@ -59,10 +62,32 @@ def build_graph(
     human review. Graph construction owns no storage.
     """
 
-    response_agent = build_response_generation_agent(
-        model,
-        tools=tools,
+    response_node = create_response_generation_node(
+        build_response_generation_agent(model, tools=tools)
     )
+    direct_node = create_direct_response_generation_node(
+        build_direct_response_agent(model, tools=tools)
+    )
+    if dynamic_tavily:
+        without_tavily = [tool for tool in tools if tool.name != "tavily_search"]
+        plain_response = create_response_generation_node(
+            build_response_generation_agent(model, tools=without_tavily)
+        )
+        plain_direct = create_direct_response_generation_node(
+            build_direct_response_agent(model, tools=without_tavily)
+        )
+        with_response, with_direct = response_node, direct_node
+
+        def response_node(state: AgentState, runtime: Runtime[AgentRunContext]):
+            return (with_response if is_available("tavily") else plain_response)(
+                state, runtime
+            )
+
+        def direct_node(state: AgentState, runtime: Runtime[AgentRunContext]):
+            return (with_direct if is_available("tavily") else plain_direct)(
+                state, runtime
+            )
+
     workflow = StateGraph(AgentState, context_schema=AgentRunContext)
     workflow.add_node("documentary_research", create_documentary_research_node(model))
     workflow.add_node(
@@ -71,9 +96,7 @@ def build_graph(
     )
     workflow.add_node(
         "direct_response_generation",
-        create_direct_response_generation_node(
-            build_direct_response_agent(model, tools=tools)
-        ),
+        direct_node,
     )
     workflow.add_node(
         "architectural_uncertainty_discovery",
@@ -106,7 +129,7 @@ def build_graph(
     )
     workflow.add_node(
         "response_generation",
-        create_response_generation_node(response_agent),
+        response_node,
     )
     workflow.add_conditional_edges(
         START, route_entry, ["request_routing", "documentary_research"]

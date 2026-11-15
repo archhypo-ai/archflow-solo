@@ -61,6 +61,16 @@ and preserved when saving. Skills with an uneditable SKILL.md can be deleted but
 not saved from the editor. Skills are not stored in SQLite or loaded into agents
 by this gallery. Upload and agent integration are not implemented yet.
 
+## Tools gallery
+
+Settings → Plugins → Tools lists Tavily and Exa. The enabled setting is stored
+in `~/.archhypoflow/tools/<tool-id>.json`; API keys are stored in the operating
+system credential store, which must be available and unlocked. Existing
+`TAVILY_API_KEY` and `EXA_API_KEY` environment variables are supported as
+fallbacks. Configured means a non-empty key exists, not that it was validated.
+Tavily is available to direct and final response agents when enabled and
+configured. Exa search is implemented but not exposed to agents yet.
+
 ## MCP gallery
 
 Settings → Plugins → MCPs manages `~/.archhypoflow/mcp.json`. Servers can be

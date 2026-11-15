@@ -1,7 +1,7 @@
 .skills-page { max-width: 900px; }
 .skill-editor label { display: block; font-size: 14px; font-weight: 500; }
 .skill-editor input, .skill-editor textarea, .skills-search { color: inherit; background: var(--color-sidebar); border: 1px solid var(--color-border); border-radius: 8px; }
-.skills-page button, .skill-editor button { cursor: pointer; color: inherit; border: 0; border-radius: 7px; background: transparent; }
+.skills-page button:where(:not(.settings-switch)), .skill-editor button { cursor: pointer; color: inherit; border: 0; border-radius: 7px; background: transparent; }
 .skill-editor footer button { padding: 8px 14px; background: var(--color-sidebar); }
 .skill-editor small { font-size: 12px; opacity: .65; margin: 7px 0 20px; }
 .skills-toolbar { display: flex; justify-content: space-between; gap: 12px; margin: 26px 0 12px; }
