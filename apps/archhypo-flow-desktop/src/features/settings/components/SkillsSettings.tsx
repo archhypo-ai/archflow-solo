@@ -1,4 +1,4 @@
-import { BookOpen, Code2, Eye, FilePlus2, FolderOpen, Plus, Search, Trash2, X } from "lucide-react";
+import { BookOpen, ChevronRight, Code2, Eye, FilePlus2, FolderOpen, Plus, Search, Trash2, X } from "lucide-react";
 import { isTauri } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { useEffect, useRef, useState } from "react";
@@ -125,7 +125,7 @@ export function SkillsSettings() {
       <button className="skills-primary" type="button" onClick={startCreate}><Plus size={16} /> {s.add}</button></div></div>
     {folderError && <p className="skills-error" role="alert">{folderError}</p>}
     {error && <p className="skills-error" role="alert">{error}</p>}
-    {!error && visible.length === 0 ? <p className="skills-empty">{s.empty}</p> : <div className="skills-list">{visible.map((skill) => <button type="button" className="skills-item" key={skill.name} onClick={() => void openSkill(skill)}><span className="skills-item-icon"><BookOpen size={18} /></span><span className="skills-item-content"><strong>{skill.name}</strong><span>{skill.error ? `${s.invalid}: ${skill.error}` : skill.description}</span></span></button>)}</div>}
+    {!error && visible.length === 0 ? <p className="skills-empty">{s.empty}</p> : <div className="skills-list">{visible.map((skill) => <button type="button" className="skills-item" key={skill.name} onClick={() => void openSkill(skill)}><span className="skills-item-icon"><BookOpen size={18} /></span><span className="skills-item-content"><strong>{skill.name}</strong><span>{skill.error ? `${s.invalid}: ${skill.error}` : skill.description}</span></span><ChevronRight className="skills-item-chevron" size={16} aria-hidden="true" /></button>)}</div>}
     {creating && createPortal(<div className="skill-editor-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget && !saving) setCreating(false); }}><section className="skill-editor" role="dialog" aria-modal="true" aria-labelledby="skill-editor-title" onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); if (!saving) setCreating(false); } }}>
       <header><strong id="skill-editor-title">{editing ? s.editSkill : s.create}</strong><button type="button" aria-label={s.cancel} onClick={() => setCreating(false)}><X size={18} /></button></header>
       <label>{s.name}<input autoFocus disabled={!!editing} value={name} onChange={(e) => setName(e.target.value)} placeholder="weekly-status-report" maxLength={64} /></label><small>{s.nameHint}{name && ` · /${name}`}</small>

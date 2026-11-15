@@ -61,6 +61,22 @@ and preserved when saving. Skills with an uneditable SKILL.md can be deleted but
 not saved from the editor. Skills are not stored in SQLite or loaded into agents
 by this gallery. Upload and agent integration are not implemented yet.
 
+## MCP gallery
+
+Settings → Plugins → MCPs manages `~/.archhypoflow/mcp.json`. Servers can be
+configured with stdio, SSE, or streamable HTTP, and manually connected to list
+their tools. Connections remain open until disconnected or the backend stops;
+servers are not started automatically or made available to agents yet. The
+folder is independent of `ARCHHYPO_FLOW_STORAGE_ROOT`.
+
+For stdio, environment entries may reference the backend environment using
+`${VARIABLE}`. Literal values entered in the form are saved in `mcp.json`; do
+not put secrets there. The child inherits the MCP SDK's standard environment
+and explicitly configured entries. Connecting a stdio server executes the
+configured local command. For a manual test, configure `npx` with arguments
+`-y` and `@modelcontextprotocol/server-everything` (this downloads and runs
+third-party code; pin a version for repeatability).
+
 ## Development
 
 ```bash

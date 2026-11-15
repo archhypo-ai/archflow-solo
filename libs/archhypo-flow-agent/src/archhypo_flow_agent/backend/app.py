@@ -13,6 +13,7 @@ from archhypo_flow_agent.backend.controllers import (
     projects_router,
     threads_router,
 )
+from archhypo_flow_agent.backend.controllers.mcps import router as mcps_router
 from archhypo_flow_agent.backend.controllers.skills import router as skills_router
 from archhypo_flow_agent.config import settings
 from archhypo_flow_agent.providers import (
@@ -20,6 +21,7 @@ from archhypo_flow_agent.providers import (
     create_system_one_client,
 )
 from archhypo_flow_agent.services import AgentService
+from archhypo_flow_agent.services.mcp_manager import MCPManager
 
 
 def create_app(agent_service: AgentService | None = None) -> FastAPI:
@@ -52,6 +54,7 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
         try:
             yield
         finally:
+            await application.state.mcp_manager.close()
             if owns_service:
                 application.state.agent_service.close()
 
@@ -60,6 +63,7 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
+    application.state.mcp_manager = MCPManager()
     application.add_middleware(
         CORSMiddleware,
         allow_origins=[
@@ -72,6 +76,7 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Content-Type"],
     )
+    application.include_router(mcps_router)
     application.include_router(skills_router)
     application.include_router(health_router)
     application.include_router(artifacts_router)
