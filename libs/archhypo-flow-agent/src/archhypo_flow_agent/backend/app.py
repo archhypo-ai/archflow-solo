@@ -15,11 +15,12 @@ from archhypo_flow_agent.backend.controllers import (
     threads_router,
 )
 from archhypo_flow_agent.backend.controllers.mcps import router as mcps_router
+from archhypo_flow_agent.backend.controllers.providers import router as providers_router
 from archhypo_flow_agent.backend.controllers.skills import router as skills_router
 from archhypo_flow_agent.backend.controllers.tool_catalog import (
     router as tool_catalog_router,
 )
-from archhypo_flow_agent.config import settings
+from archhypo_flow_agent.config.provider_config import effective_provider_settings
 from archhypo_flow_agent.providers import (
     create_openrouter_model,
     create_system_one_client,
@@ -38,13 +39,17 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
         owns_service = agent_service is None
         if agent_service is None:
             try:
-                system_one_client = create_system_one_client(settings)
+                configuration = effective_provider_settings()
+                system_one_client = create_system_one_client(configuration)
                 application.state.agent_service = AgentService(
-                    model=create_openrouter_model(),
+                    model=create_openrouter_model(configuration),
                     system_one_client=system_one_client,
+                    chat_model_id=configuration.openrouter_model,
+                    system_one_model_id=configuration.system_one_model,
+                    configuration=configuration,
                 )
                 application.state.chat_configuration_error = None
-            except ValueError as error:
+            except (OSError, ValueError) as error:
                 application.state.agent_service = AgentService()
                 application.state.chat_configuration_error = str(error)
         else:
@@ -85,7 +90,9 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
         allow_credentials=False,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Content-Type"],
+        expose_headers=["X-Model-Cache"],
     )
+    application.include_router(providers_router)
     application.include_router(tool_catalog_router)
     application.include_router(mcps_router)
     application.include_router(skills_router)

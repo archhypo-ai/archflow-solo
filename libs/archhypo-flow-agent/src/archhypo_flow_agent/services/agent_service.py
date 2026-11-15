@@ -11,7 +11,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
 
-from archhypo_flow_agent.config import settings
+from archhypo_flow_agent.config import AgentSettings, settings
 from archhypo_flow_agent.core import ChatRequest, ChatResponse
 from archhypo_flow_agent.graph import build_graph, build_history_graph
 from archhypo_flow_agent.observability import Observability, build_observability
@@ -51,6 +51,9 @@ class AgentService:
         tools: Sequence[BaseTool] | None = None,
         system_one_client: SystemOneClient | None = None,
         artifact_repository: ArchHypoArtifactRepository | None = None,
+        chat_model_id: str | None = None,
+        system_one_model_id: str | None = None,
+        configuration: AgentSettings | None = None,
     ) -> None:
         if model is not None and system_one_client is None:
             raise ValueError("A SystemOne client is required for request routing.")
@@ -66,9 +69,8 @@ class AgentService:
 
         conversations = self._persistence.conversations if self._persistence else None
         projects = self._persistence.projects if self._persistence else None
-        artifacts = (
-            artifact_repository
-            or (self._persistence.artifacts if self._persistence is not None else None)
+        artifacts = artifact_repository or (
+            self._persistence.artifacts if self._persistence is not None else None
         )
         self._artifact_repository = artifacts
         active_tools = [tavily_search] if tools is None else _resolve_tools(tools)
@@ -86,8 +88,9 @@ class AgentService:
                     checkpointer=active_checkpointer,
                     system_one_client=system_one_client,
                     artifact_repository=artifacts,
-                    chat_model_id=settings.openrouter_model,
-                    system_one_model_id=settings.system_one_model,
+                    chat_model_id=chat_model_id or settings.openrouter_model,
+                    system_one_model_id=system_one_model_id
+                    or settings.system_one_model,
                 )
                 if model is not None
                 else build_history_graph(active_checkpointer)
@@ -98,7 +101,7 @@ class AgentService:
 
         self._chat: ChatExecutionService | None = None
         if model is not None:
-            self._observability = build_observability(settings)
+            self._observability = build_observability(configuration or settings)
             assert self._observability is not None
             self._chat = ChatExecutionService(
                 graph,

@@ -61,6 +61,28 @@ and preserved when saving. Skills with an uneditable SKILL.md can be deleted but
 not saved from the editor. Skills are not stored in SQLite or loaded into agents
 by this gallery. Upload and agent integration are not implemented yet.
 
+## Provider settings
+
+Settings → Providers → Models configures the OpenRouter API key and
+model identifiers. The key is stored in the system credential store and takes
+precedence over `OPENROUTER_API_KEY`; model selections are stored in
+`~/.archhypoflow/providers.json` and take precedence over `OPENROUTER_MODEL`
+and `SYSTEM_ONE_MODEL`. Restart the application to apply changes. The public
+model catalog requires no key. The System One selector queries OpenRouter's
+`output_modalities=decisions` catalog and only lists entries advertising the
+`/api/alpha/decisions` endpoint. Listing does not guarantee account access or
+support for every decision question type. The last successful model catalogs
+are cached separately in `~/.archhypoflow/cache/openrouter/general.json` and
+`decisions.json`, including input and output prices. If refreshing fails, the
+UI indicates that cached data may be stale.
+
+Settings → Providers → Observability configures Langfuse and LangSmith. Keys
+are stored in the system credential store, falling back to the corresponding
+environment variables; enablement is stored in `providers.json`. Changes take
+effect after restarting the application. Optional endpoints and project names
+continue to use environment variables. Configured means keys are present, not
+that credentials or provider connectivity have been verified.
+
 ## Tools gallery
 
 Settings → Plugins → Tools lists Tavily and Exa. The enabled setting is stored

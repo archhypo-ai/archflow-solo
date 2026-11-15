@@ -1,4 +1,4 @@
-import { BookOpen, Bot, Cable, ChevronDown, Puzzle, Settings2, Wrench, X } from "lucide-react";
+import { Activity, BookOpen, Bot, Cable, ChevronDown, Cpu, Puzzle, Server, Settings2, Wrench, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../../i18n";
@@ -8,11 +8,13 @@ import { GeneralSettings } from "./GeneralSettings";
 import { SkillsSettings } from "./SkillsSettings";
 import { McpSettings } from "./McpSettings";
 import { ToolsSettings } from "./ToolsSettings";
+import { ModelsSettings } from "./ProviderSettings";
+import { ObservabilitySettings } from "./ObservabilitySettings";
 import "./SettingsDialog.css";
 
 type PluginSection = "skills" | "mcps" | "tools";
-type SettingsSection = "general" | "agents" | PluginSection;
-type SettingsEntry = "general" | "agents" | "plugins";
+type SettingsSection = "general" | "agents" | "models" | "observability" | PluginSection;
+type SettingsEntry = "general" | "agents" | "plugins" | "providers";
 const LAST_PLUGIN_SECTION_KEY = "archhypo-flow-last-plugin-section";
 
 function lastPluginSection(): PluginSection {
@@ -58,9 +60,10 @@ export function SettingsDialog({
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState<SettingsSection>("general");
   const [pluginsExpanded, setPluginsExpanded] = useState(true);
+  const [providersExpanded, setProvidersExpanded] = useState(true);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const ActiveSectionIcon = activeSection === "general" ? Settings2 : activeSection === "agents" ? Bot : activeSection === "skills" ? BookOpen : activeSection === "mcps" ? Cable : Wrench;
-  const activeSectionTitle = activeSection === "skills" ? "Skills" : activeSection === "mcps" ? "MCPs" : activeSection === "tools" ? "Tools" : t(
+  const ActiveSectionIcon = activeSection === "general" ? Settings2 : activeSection === "agents" ? Bot : activeSection === "models" ? Cpu : activeSection === "observability" ? Activity : activeSection === "skills" ? BookOpen : activeSection === "mcps" ? Cable : Wrench;
+  const activeSectionTitle = activeSection === "models" ? "Models" : activeSection === "observability" ? "Observability" : activeSection === "skills" ? "Skills" : activeSection === "mcps" ? "MCPs" : activeSection === "tools" ? "Tools" : t(
     activeSection === "general" ? "settings.general" : "settings.agents",
   );
 
@@ -74,6 +77,9 @@ export function SettingsDialog({
     if (initialSection === "plugins") {
       setPluginsExpanded(true);
       setActiveSection(lastPluginSection());
+    } else if (initialSection === "providers") {
+      setProvidersExpanded(true);
+      setActiveSection("models");
     } else setActiveSection(initialSection);
   }, [open, initialSection]);
 
@@ -125,6 +131,14 @@ export function SettingsDialog({
               <Bot size={16} aria-hidden="true" />
               <span>{t("settings.agents")}</span>
             </button>
+            <button className="settings-nav-item settings-plugin-trigger" type="button" aria-expanded={providersExpanded} aria-controls="settings-provider-sections" onClick={() => {
+              if (providersExpanded && (activeSection === "models" || activeSection === "observability")) setProvidersExpanded(false);
+              else { setProvidersExpanded(true); setActiveSection("models"); }
+            }}><Server size={16} aria-hidden="true" /><span>Providers</span><ChevronDown size={15} className={providersExpanded ? "" : "is-collapsed"} aria-hidden="true" /></button>
+            {providersExpanded && <div className="settings-plugin-sections" id="settings-provider-sections">
+              <button className={`settings-nav-item settings-plugin-item${activeSection === "models" ? " is-active" : ""}`} type="button" aria-current={activeSection === "models" ? "page" : undefined} onClick={() => setActiveSection("models")}><Cpu size={16} aria-hidden="true" /><span>Models</span></button>
+              <button className={`settings-nav-item settings-plugin-item${activeSection === "observability" ? " is-active" : ""}`} type="button" aria-current={activeSection === "observability" ? "page" : undefined} onClick={() => setActiveSection("observability")}><Activity size={16} aria-hidden="true" /><span>Observability</span></button>
+            </div>}
             <button className="settings-nav-item settings-plugin-trigger" type="button" aria-expanded={pluginsExpanded} aria-controls="settings-plugin-sections" onClick={() => {
               if (pluginsExpanded && (activeSection === "skills" || activeSection === "mcps" || activeSection === "tools")) setPluginsExpanded(false);
               else { setPluginsExpanded(true); selectPluginSection(lastPluginSection()); }
@@ -172,6 +186,10 @@ export function SettingsDialog({
                   onLanguageChange={onLanguageChange}
                 />
               </>
+            ) : activeSection === "models" ? (
+              <ModelsSettings />
+            ) : activeSection === "observability" ? (
+              <ObservabilitySettings />
             ) : activeSection === "skills" ? (
               <SkillsSettings />
             ) : activeSection === "mcps" ? (

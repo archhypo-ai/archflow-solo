@@ -109,7 +109,7 @@ export function McpSettings() {
       {current.error && <p className="skills-error" role="alert">{current.error}</p>}
       <h3>{s.tools}{current.status === "connected" ? ` (${current.tools.length})` : ""}</h3>
       {current.status !== "connected" ? <p className="mcp-hint">{s.notDiscovered}</p> : current.tools.length === 0 ? <p className="mcp-hint">{s.none}</p> : <div className="mcp-tools">{current.tools.map((tool) => <details className="mcp-tool" key={tool.name}><summary><strong>{tool.name}</strong><span>{tool.description}</span></summary><div><small>{s.schema}</small><pre>{JSON.stringify(tool.inputSchema, null, 2)}</pre></div></details>)}</div>}
-      <h3>{s.config}</h3><div className="mcp-config"><FileJson size={15} /><code>{current.transport === "stdio" ? [current.command, ...current.args].join(" ") : current.url}</code></div>
+      <div className="mcp-config"><FileJson size={15} /><code>{current.transport === "stdio" ? [current.command, ...current.args].join(" ") : current.url}</code></div>
     </> : <>
       <p className="settings-page-description">{s.description}</p>
       <div className="skills-toolbar"><div className="skills-search"><Search size={16} aria-hidden="true" /><input aria-label={s.search} placeholder={s.search} value={search} onChange={(event) => setSearch(event.target.value)} /></div><div className="skills-toolbar-actions"><button className="skills-folder-button" type="button" onClick={() => void editConfigFile()}><Pencil size={16} />{s.fileEdit}</button><button className="skills-primary" type="button" onClick={() => { setEditing(false); setFormError(""); setForm(emptyForm()); }}><Plus size={16} />{s.add}</button></div></div>

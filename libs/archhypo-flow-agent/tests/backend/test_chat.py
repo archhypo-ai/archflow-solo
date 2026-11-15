@@ -272,7 +272,9 @@ def test_missing_system_one_configuration_keeps_history_available(
         openrouter_api_key="test-key",
         system_one_model=model_name,
     )
-    monkeypatch.setattr(app_module, "settings", configuration)
+    monkeypatch.setattr(
+        app_module, "effective_provider_settings", lambda: configuration
+    )
     monkeypatch.setattr(
         app_module,
         "AgentService",

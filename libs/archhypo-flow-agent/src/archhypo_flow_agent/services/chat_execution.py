@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from langchain_core.messages import BaseMessage, HumanMessage
 from langgraph.types import Command
+from langsmith import tracing_context
 
 from archhypo_flow_agent.core import ChatRequest, ChatResponse, Hypothesis
 from archhypo_flow_agent.observability import Observability
@@ -46,7 +47,8 @@ class ChatExecutionService:
         self._observability = observability
 
     def respond(self, request: ChatRequest) -> ChatResponse:
-        with self._lock:
+        # Explicit callbacks own tracing, even when environment auto-tracing is set.
+        with self._lock, tracing_context(enabled=False):
             metadata, run_context = self._context_resolver.resolve(request)
             config = self._graph_config(
                 request,
@@ -112,7 +114,7 @@ class ChatExecutionService:
         run_id: str | None = None,
     ) -> Iterator[dict[str, object]]:
         active_run_id = run_id or uuid4().hex
-        with self._lock:
+        with self._lock, tracing_context(enabled=False):
             metadata, run_context = self._context_resolver.resolve(request)
             config = self._graph_config(
                 request,

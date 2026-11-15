@@ -51,7 +51,7 @@ function App() {
   const [projectSettingsTarget, setProjectSettingsTarget] = useState<Project | null>(null);
   const [deleteProjectTarget, setDeleteProjectTarget] = useState<Project | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsSection, setSettingsSection] = useState<"general" | "plugins">("general");
+  const [settingsSection, setSettingsSection] = useState<"general" | "plugins" | "providers">("general");
   const [reviewCardsPreviewOpen, setReviewCardsPreviewOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [globalContext, setGlobalContext] = useState("");
@@ -290,6 +290,7 @@ function App() {
         }
         onSettingsOpen={() => { setSettingsSection("general"); setSettingsOpen(true); }}
         onPluginsOpen={() => { setSettingsSection("plugins"); setSettingsOpen(true); }}
+        onProvidersOpen={() => { setSettingsSection("providers"); setSettingsOpen(true); }}
         onLogoutClick={() => setReviewCardsPreviewOpen(true)}
       />
       <main className="main-panel">

@@ -13,6 +13,7 @@ import {
   Pin,
   PinOff,
   Settings2,
+  Server,
   Trash2,
   SquarePen,
 } from "lucide-react";
@@ -48,6 +49,7 @@ type SidebarProps = {
   onLanguageChange: (language: AppLanguage) => void;
   onSettingsOpen: () => void;
   onPluginsOpen: () => void;
+  onProvidersOpen: () => void;
   onLogoutClick: () => void;
 };
 
@@ -75,6 +77,7 @@ export function Sidebar({
   onLanguageChange,
   onSettingsOpen,
   onPluginsOpen,
+  onProvidersOpen,
   onLogoutClick,
 }: SidebarProps) {
   const { t } = useTranslation();
@@ -262,6 +265,9 @@ export function Sidebar({
         >
           <Layers size={17} aria-hidden="true" />
           <span>{t("sidebar.artifacts")}</span>
+        </button>
+        <button className="sidebar-action-button" onClick={onProvidersOpen} type="button" aria-label="Providers" title="Providers">
+          <Server size={17} aria-hidden="true" /><span>Providers</span>
         </button>
         <button className="sidebar-action-button" onClick={onPluginsOpen} type="button" aria-label="Plugins" title="Plugins">
           <Puzzle size={17} aria-hidden="true" /><span>Plugins</span>
