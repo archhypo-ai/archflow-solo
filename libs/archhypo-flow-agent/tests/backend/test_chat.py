@@ -278,7 +278,9 @@ def test_missing_system_one_configuration_keeps_history_available(
     monkeypatch.setattr(
         app_module,
         "AgentService",
-        lambda: AgentService(database_path=tmp_path / "history-only.sqlite"),
+        lambda **kwargs: AgentService(
+            database_path=tmp_path / "history-only.sqlite", **kwargs
+        ),
     )
 
     with TestClient(create_app()) as client:

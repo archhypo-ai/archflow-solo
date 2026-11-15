@@ -46,6 +46,10 @@ class ChatExecutionService:
         self._lock = lock
         self._observability = observability
 
+    def replace_graph(self, graph: Any) -> None:
+        """Replace the graph while the owning service holds the shared lock."""
+        self._graph = graph
+
     def respond(self, request: ChatRequest) -> ChatResponse:
         # Explicit callbacks own tracing, even when environment auto-tracing is set.
         with self._lock, tracing_context(enabled=False):

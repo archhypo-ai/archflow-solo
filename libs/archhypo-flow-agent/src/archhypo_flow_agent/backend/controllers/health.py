@@ -9,7 +9,12 @@ router = APIRouter(tags=["health"])
 
 @router.get("/health", response_model=HealthResponse)
 def health(request: Request) -> HealthResponse:
-    configuration_error = request.app.state.chat_configuration_error
+    service = request.app.state.agent_service
+    configuration_error = (
+        service.runtime_configuration_error()
+        if getattr(service, "dynamic_provider_settings", False)
+        else request.app.state.chat_configuration_error
+    )
     return HealthResponse(
         agent_ready=configuration_error is None,
         configuration_error=configuration_error,

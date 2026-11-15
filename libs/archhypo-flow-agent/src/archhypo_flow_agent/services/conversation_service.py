@@ -34,6 +34,10 @@ class ConversationService:
         self._persistence = persistence
         self._lock = lock
 
+    def replace_graph(self, graph: Any) -> None:
+        """Replace the graph while the owning service holds the shared lock."""
+        self._graph = graph
+
     def list(self) -> list[ConversationSummary]:
         if self._conversations is None:
             return []

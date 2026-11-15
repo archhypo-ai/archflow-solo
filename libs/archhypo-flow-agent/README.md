@@ -67,7 +67,9 @@ Settings → Providers → Models configures the OpenRouter API key and
 model identifiers. The key is stored in the system credential store and takes
 precedence over `OPENROUTER_API_KEY`; model selections are stored in
 `~/.archhypoflow/providers.json` and take precedence over `OPENROUTER_MODEL`
-and `SYSTEM_ONE_MODEL`. Restart the application to apply changes. The public
+and `SYSTEM_ONE_MODEL`. Changes to the OpenRouter key and models take effect
+on the next message, including in existing conversations. Each turn uses a fixed
+configuration snapshot. The public
 model catalog requires no key. The System One selector queries OpenRouter's
 `output_modalities=decisions` catalog and only lists entries advertising the
 `/api/alpha/decisions` endpoint. Listing does not guarantee account access or

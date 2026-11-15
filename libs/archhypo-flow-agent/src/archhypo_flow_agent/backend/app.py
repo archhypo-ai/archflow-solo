@@ -47,10 +47,13 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
                     chat_model_id=configuration.openrouter_model,
                     system_one_model_id=configuration.system_one_model,
                     configuration=configuration,
+                    provider_settings_resolver=effective_provider_settings,
                 )
                 application.state.chat_configuration_error = None
             except (OSError, ValueError) as error:
-                application.state.agent_service = AgentService()
+                application.state.agent_service = AgentService(
+                    provider_settings_resolver=effective_provider_settings
+                )
                 application.state.chat_configuration_error = str(error)
         else:
             application.state.agent_service = agent_service

@@ -11,6 +11,7 @@ from archhypo_flow_agent.backend.dependencies import AgentServiceDependency
 from archhypo_flow_agent.core import ChatRequest, ChatResponse, StructuredOutputError
 from archhypo_flow_agent.persistence import ArtifactPersistenceError
 from archhypo_flow_agent.providers import SystemOneError
+from archhypo_flow_agent.services import AgentService, ChatNotConfiguredError
 from archhypo_flow_agent.services.chat_execution import ReviewStateError
 from archhypo_flow_agent.services.document_extraction import DocumentExtractionError
 
@@ -22,6 +23,12 @@ _ROUTING_ERROR_MESSAGE = (
 )
 
 
+def _configuration_error(request: Request, service: AgentService) -> str | None:
+    if service.dynamic_provider_settings:
+        return service.runtime_configuration_error()
+    return request.app.state.chat_configuration_error
+
+
 @router.post("/chat", response_model=ChatResponse)
 def send_message(
     payload: ChatRequest,
@@ -30,14 +37,14 @@ def send_message(
 ) -> ChatResponse:
     """Run one OpenRouter chat turn and persist it in SQLite."""
 
-    if request.app.state.chat_configuration_error is not None:
-        raise HTTPException(
-            status_code=503,
-            detail=request.app.state.chat_configuration_error,
-        )
+    configuration_error = _configuration_error(request, agent_service)
+    if configuration_error is not None:
+        raise HTTPException(status_code=503, detail=configuration_error)
 
     try:
         return agent_service.respond(payload)
+    except ChatNotConfiguredError as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
     except DocumentExtractionError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     except ReviewStateError as error:
@@ -82,11 +89,9 @@ def stream_message(
 ) -> Iterator[ServerSentEvent]:
     """Stream tool progress and the completed reply as server-sent events."""
 
-    if request.app.state.chat_configuration_error is not None:
-        raise HTTPException(
-            status_code=503,
-            detail=request.app.state.chat_configuration_error,
-        )
+    configuration_error = _configuration_error(request, agent_service)
+    if configuration_error is not None:
+        raise HTTPException(status_code=503, detail=configuration_error)
 
     run_id = uuid4().hex
 
@@ -94,6 +99,11 @@ def stream_message(
         try:
             for event in agent_service.stream(payload, run_id=run_id):
                 yield ServerSentEvent(event="chat", data=event)
+        except ChatNotConfiguredError as error:
+            yield ServerSentEvent(
+                event="chat",
+                data=_stream_error_data(run_id, payload.thread_id, str(error)),
+            )
         except ReviewStateError as error:
             yield ServerSentEvent(
                 event="chat",

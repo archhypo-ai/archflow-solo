@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator, Sequence
+import hashlib
+from collections.abc import Callable, Iterator, Sequence
 from pathlib import Path
 from threading import Lock
 from typing import Literal
@@ -25,7 +26,11 @@ from archhypo_flow_agent.persistence.sqlite import (
     SQLitePersistence,
     open_sqlite_persistence,
 )
-from archhypo_flow_agent.providers import SystemOneClient
+from archhypo_flow_agent.providers import (
+    SystemOneClient,
+    create_openrouter_model,
+    create_system_one_client,
+)
 from archhypo_flow_agent.tools import tavily_search
 
 from .chat_context import ChatContextResolver
@@ -54,10 +59,14 @@ class AgentService:
         chat_model_id: str | None = None,
         system_one_model_id: str | None = None,
         configuration: AgentSettings | None = None,
+        provider_settings_resolver: Callable[[], AgentSettings] | None = None,
     ) -> None:
         if model is not None and system_one_client is None:
             raise ValueError("A SystemOne client is required for request routing.")
         self._lock = Lock()
+        self._runtime_lock = Lock()
+        self._provider_settings_resolver = provider_settings_resolver
+        self._runtime_signature: tuple | None = None
         self._persistence: SQLitePersistence | None = None
         self._observability: Observability | None = None
         self._artifact_repository: ArchHypoArtifactRepository | None = None
@@ -74,6 +83,15 @@ class AgentService:
         )
         self._artifact_repository = artifacts
         active_tools = [tavily_search] if tools is None else _resolve_tools(tools)
+        self._active_checkpointer = active_checkpointer
+        self._active_tools = active_tools
+        self._dynamic_tavily = tools is None
+        if (
+            model is not None
+            and configuration is not None
+            and provider_settings_resolver
+        ):
+            self._runtime_signature = _provider_signature(configuration)
 
         try:
             if model is not None and artifacts is None:
@@ -124,9 +142,12 @@ class AgentService:
         return self._chat is not None
 
     def respond(self, request: ChatRequest) -> ChatResponse:
-        if self._chat is None:
-            raise ChatNotConfiguredError("A chat model is not configured.")
-        return self._chat.respond(request)
+        with self._runtime_lock:
+            with self._lock:
+                self._refresh_runtime()
+            if self._chat is None:
+                raise ChatNotConfiguredError("A chat model is not configured.")
+            return self._chat.respond(request)
 
     def stream(
         self,
@@ -134,9 +155,73 @@ class AgentService:
         *,
         run_id: str | None = None,
     ) -> Iterator[dict[str, object]]:
+        # Hold the same lock for the entire stream so a later request cannot
+        # replace clients while this turn is still running.
+        with self._runtime_lock:
+            with self._lock:
+                self._refresh_runtime()
+            if self._chat is None:
+                raise ChatNotConfiguredError("A chat model is not configured.")
+            yield from self._chat.stream(request, run_id=run_id)
+
+    @property
+    def dynamic_provider_settings(self) -> bool:
+        return self._provider_settings_resolver is not None
+
+    def runtime_configuration_error(self) -> str | None:
+        if self._provider_settings_resolver is None:
+            return None if self.chat_ready else "A chat model is not configured."
+        try:
+            configuration = self._provider_settings_resolver()
+            configuration.require_openrouter_api_key()
+            configuration.require_system_one_model()
+        except (OSError, ValueError) as error:
+            return str(error)
+        return None
+
+    def _refresh_runtime(self) -> None:
+        if self._provider_settings_resolver is None:
+            return
+        try:
+            configuration = self._provider_settings_resolver()
+            signature = _provider_signature(configuration)
+            if signature == self._runtime_signature:
+                return
+            system_one = create_system_one_client(configuration)
+            model = create_openrouter_model(configuration)
+            if self._artifact_repository is None:
+                raise ValueError(
+                    "An artifact repository is required for ArchHypo chat."
+                )
+            graph = build_graph(
+                model,
+                tools=self._active_tools,
+                dynamic_tavily=self._dynamic_tavily,
+                checkpointer=self._active_checkpointer,
+                system_one_client=system_one,
+                artifact_repository=self._artifact_repository,
+                chat_model_id=configuration.openrouter_model,
+                system_one_model_id=configuration.system_one_model,
+            )
+        except (OSError, ValueError) as error:
+            raise ChatNotConfiguredError(str(error)) from error
+        if self._observability is None:
+            self._observability = build_observability(configuration)
         if self._chat is None:
-            raise ChatNotConfiguredError("A chat model is not configured.")
-        return self._chat.stream(request, run_id=run_id)
+            conversations = (
+                self._persistence.conversations if self._persistence else None
+            )
+            projects = self._persistence.projects if self._persistence else None
+            self._chat = ChatExecutionService(
+                graph,
+                ChatContextResolver(conversations, projects),
+                self._lock,
+                self._observability,
+            )
+        else:
+            self._chat.replace_graph(graph)
+        self._conversations.replace_graph(graph)
+        self._runtime_signature = signature
 
     def list_conversations(self) -> list[ConversationSummary]:
         return self._conversations.list()
@@ -236,13 +321,25 @@ class AgentService:
         return self._projects.delete(project_id)
 
     def close(self) -> None:
-        with self._lock:
+        with self._runtime_lock, self._lock:
             if self._observability is not None:
                 self._observability.close()
                 self._observability = None
             if self._persistence is not None:
                 self._persistence.close()
                 self._persistence = None
+
+
+def _provider_signature(configuration: AgentSettings) -> tuple:
+    key = configuration.require_openrouter_api_key()
+    system_model = configuration.require_system_one_model()
+    return (
+        hashlib.sha256(key.encode("utf-8")).digest(),
+        configuration.openrouter_model,
+        system_model,
+        configuration.system_one_endpoint,
+        configuration.system_one_timeout,
+    )
 
 
 def _resolve_tools(tools: Sequence[BaseTool] | None) -> list[BaseTool]:
