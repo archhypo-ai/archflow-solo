@@ -6,7 +6,7 @@ The desktop app starts the local FastAPI chat service alongside Vite during deve
 
 The desktop's default chat backend is `libs/archhypo-flow-agent`. Its default graph now runs every message through the ArchHypo discovery, hypothesis formulation, assessment, and technical planning stages before the existing final response stage. The former single-node chat graph is no longer used as the default workflow; the response-generation agent remains only to produce the final user-facing reply. See [`docs/archhypo-flow.md`](../../docs/archhypo-flow.md).
 
-By default, the database is stored at `~/.local/share/archhypo-flow/runtime/checkpoints.sqlite`. Override the storage root with `ARCHHYPO_FLOW_STORAGE_ROOT`.
+By default, the database is stored at `~/.archhypoflow/runtime/checkpoints.sqlite`. Override the storage root with `ARCHHYPO_FLOW_STORAGE_ROOT`. Databases at the previous `~/.local/share/archhypo-flow/runtime/` location are not migrated or deleted automatically.
 
 ## Human approval (HITL)
 

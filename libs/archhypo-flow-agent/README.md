@@ -70,7 +70,7 @@ uv run pytest
 uv run ruff check .
 ```
 
-The local API exposes `POST /api/chat`, the streaming `POST /api/chat/stream` endpoint used by the desktop UI, `GET /api/threads`, and `GET /api/threads/{thread_id}`. The streaming endpoint sends tool-call starts and results as they occur before the final reply. LangGraph checkpoints and conversation metadata share one SQLite database, defaulting to `~/.local/share/archhypo-flow/runtime/checkpoints.sqlite`; override the storage root with `ARCHHYPO_FLOW_STORAGE_ROOT`.
+The local API exposes `POST /api/chat`, the streaming `POST /api/chat/stream` endpoint used by the desktop UI, `GET /api/threads`, and `GET /api/threads/{thread_id}`. The streaming endpoint sends tool-call starts and results as they occur before the final reply. LangGraph checkpoints and conversation metadata share one SQLite database, defaulting to `~/.archhypoflow/runtime/checkpoints.sqlite`; override the storage root with `ARCHHYPO_FLOW_STORAGE_ROOT`. Existing databases at the previous `~/.local/share/archhypo-flow/runtime/` location are not migrated or deleted automatically.
 
 The desktop API uses `ChatOpenRouter` from the configured provider factory. Set `OPENROUTER_API_KEY` and `SYSTEM_ONE_MODEL`, and optionally `OPENROUTER_MODEL`, in this package's `.env`; the development launcher starts the backend with this directory as its working directory. If a required setting is missing, conversation history remains available, but chat requests return a configuration error instead of a fake reply.
 

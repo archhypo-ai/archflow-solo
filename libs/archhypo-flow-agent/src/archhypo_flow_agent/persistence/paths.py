@@ -11,9 +11,7 @@ def _storage_root() -> Path:
     if configured:
         return Path(configured).expanduser()
 
-    data_home = os.getenv("XDG_DATA_HOME")
-    base = Path(data_home).expanduser() if data_home else Path.home() / ".local/share"
-    return base / "archhypo-flow"
+    return Path.home() / ".archhypoflow"
 
 
 STORAGE_ROOT = _storage_root()
