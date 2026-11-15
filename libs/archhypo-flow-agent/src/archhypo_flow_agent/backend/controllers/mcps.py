@@ -48,6 +48,7 @@ async def add_server(payload: ServerInput, request: Request) -> dict:
     if payload.id in configs:
         raise HTTPException(409, "Server ID already exists")
     config = ServerConfig.model_validate(payload.model_dump(exclude={"id"}))
+    config.auto_connect = False
     configs[payload.id] = config
     _write(configs)
     return _entry(payload.id, config, request.app.state.mcp_manager)
@@ -79,6 +80,7 @@ async def update_server(server_id: str, payload: ServerInput, request: Request) 
     manager: MCPManager = request.app.state.mcp_manager
     await manager.disconnect(server_id)
     config = ServerConfig.model_validate(payload.model_dump(exclude={"id"}))
+    config.auto_connect = configs[server_id].auto_connect
     configs[server_id] = config
     _write(configs)
     return _entry(server_id, config, manager)
@@ -100,6 +102,9 @@ async def connect_server(server_id: str, request: Request) -> dict:
     if server_id not in configs:
         raise HTTPException(404, "Server not found")
     manager: MCPManager = request.app.state.mcp_manager
+    if not configs[server_id].auto_connect:
+        configs[server_id].auto_connect = True
+        _write(configs)
     await manager.connect(server_id, configs[server_id])
     return _entry(server_id, configs[server_id], manager)
 
@@ -110,5 +115,8 @@ async def disconnect_server(server_id: str, request: Request) -> dict:
     if server_id not in configs:
         raise HTTPException(404, "Server not found")
     manager: MCPManager = request.app.state.mcp_manager
+    if configs[server_id].auto_connect:
+        configs[server_id].auto_connect = False
+        _write(configs)
     await manager.disconnect(server_id)
     return _entry(server_id, configs[server_id], manager)

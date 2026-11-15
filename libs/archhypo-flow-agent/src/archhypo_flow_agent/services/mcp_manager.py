@@ -26,6 +26,7 @@ class ServerConfig(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     transport: Literal["stdio", "sse", "streamable-http"] = "stdio"
+    auto_connect: bool = False
     command: str = ""
     args: list[str] = Field(default_factory=list)
     env: dict[str, str] = Field(default_factory=dict)
@@ -119,6 +120,12 @@ class MCPManager:
         self.tasks: dict[str, asyncio.Task] = {}
         self.stops: dict[str, asyncio.Event] = {}
         self.configurations: dict[str, ServerConfig] = {}
+
+    async def connect_on_startup(self) -> None:
+        """Schedule configured servers without waiting for network or processes."""
+        for server_id, config in read_config().items():
+            if config.auto_connect:
+                await self.connect(server_id, config)
 
     def status(self, server_id: str) -> dict:
         return self.states.get(

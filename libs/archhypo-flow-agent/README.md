@@ -65,9 +65,13 @@ by this gallery. Upload and agent integration are not implemented yet.
 
 Settings → Plugins → MCPs manages `~/.archhypoflow/mcp.json`. Servers can be
 configured with stdio, SSE, or streamable HTTP, and manually connected to list
-their tools. Connections remain open until disconnected or the backend stops;
-servers are not started automatically or made available to agents yet. The
-folder is independent of `ARCHHYPO_FLOW_STORAGE_ROOT`.
+their tools. Adding a server does not connect it automatically. After the user
+selects Connect, the application records `auto_connect: true` in `mcp.json` and
+attempts to connect on subsequent backend startups. Selecting Disconnect also
+removes that preference, so the server remains disconnected on later startups.
+Connections run in the background and close when the backend stops; tools are not
+made available to agents yet. The folder is independent of
+`ARCHHYPO_FLOW_STORAGE_ROOT`.
 
 For stdio, environment entries may reference the backend environment using
 `${VARIABLE}`. Literal values entered in the form are saved in `mcp.json`; do

@@ -1,5 +1,6 @@
 """FastAPI application for the local ArchHypo Flow chat runtime."""
 
+import logging
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -22,6 +23,8 @@ from archhypo_flow_agent.providers import (
 )
 from archhypo_flow_agent.services import AgentService
 from archhypo_flow_agent.services.mcp_manager import MCPManager
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(agent_service: AgentService | None = None) -> FastAPI:
@@ -52,6 +55,10 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
                 )
             )
         try:
+            try:
+                await application.state.mcp_manager.connect_on_startup()
+            except ValueError as error:
+                logger.warning("Could not load MCP configuration: %s", error)
             yield
         finally:
             await application.state.mcp_manager.close()

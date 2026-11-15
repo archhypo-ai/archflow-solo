@@ -3,11 +3,13 @@ import socket
 import subprocess
 import sys
 import time
+from types import SimpleNamespace
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from archhypo_flow_agent.backend.app import create_app
 from archhypo_flow_agent.backend.controllers.mcps import router
 from archhypo_flow_agent.services.mcp_manager import MCPManager
 
@@ -30,6 +32,90 @@ def test_edit_file_creates_missing_file_and_preserves_existing(tmp_path, monkeyp
         path.write_text("invalid but user-owned content", encoding="utf-8")
         assert client.post("/api/mcps/file").status_code == 200
         assert path.read_text(encoding="utf-8") == "invalid but user-owned content"
+
+
+def test_startup_connects_only_after_manual_connection(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    script = tmp_path / "server.py"
+    script.write_text("""from mcp.server.fastmcp import FastMCP
+mcp = FastMCP("startup")
+@mcp.tool()
+def echo(message: str) -> str:
+    return message
+mcp.run(transport="stdio")
+""")
+    path = tmp_path / ".archhypoflow/mcp.json"
+    path.parent.mkdir()
+    path.write_text(
+        json.dumps(
+            {
+                "mcpServers": {
+                    "default": {"command": sys.executable, "args": [str(script)]},
+                    "disabled": {"command": sys.executable, "args": [str(script)]},
+                    "failing": {
+                        "command": "nonexistent-mcp-command",
+                        "auto_connect": True,
+                    },
+                }
+            }
+        )
+    )
+    application = create_app(agent_service=SimpleNamespace(chat_ready=False))
+    with TestClient(application) as client:
+        assert {item["id"]: item["status"] for item in client.get("/api/mcps").json()}[
+            "default"
+        ] == "disconnected"
+        assert client.post("/api/mcps/default/connect").status_code == 200
+        assert (
+            json.loads(path.read_text())["mcpServers"]["default"]["auto_connect"]
+            is True
+        )
+        for _ in range(100):
+            servers = {item["id"]: item for item in client.get("/api/mcps").json()}
+            if (
+                servers["default"]["status"] == "connected"
+                and servers["failing"]["status"] == "error"
+            ):
+                break
+            time.sleep(0.05)
+        assert servers["default"]["status"] == "connected"
+        assert servers["default"]["tools"][0]["name"] == "echo"
+        assert servers["disabled"]["status"] == "disconnected"
+        assert servers["failing"]["status"] == "error"
+    assert not application.state.mcp_manager.tasks
+    restarted = create_app(agent_service=SimpleNamespace(chat_ready=False))
+    with TestClient(restarted) as client:
+        for _ in range(100):
+            servers = {item["id"]: item for item in client.get("/api/mcps").json()}
+            if servers["default"]["status"] == "connected":
+                break
+            time.sleep(0.05)
+        assert servers["default"]["status"] == "connected"
+        assert servers["disabled"]["status"] == "disconnected"
+        assert (
+            client.post("/api/mcps/default/disconnect").json()["status"]
+            == "disconnected"
+        )
+        assert not json.loads(path.read_text())["mcpServers"]["default"].get(
+            "auto_connect", False
+        )
+    assert not restarted.state.mcp_manager.tasks
+    final_app = create_app(agent_service=SimpleNamespace(chat_ready=False))
+    with TestClient(final_app) as client:
+        servers = {item["id"]: item for item in client.get("/api/mcps").json()}
+        assert servers["default"]["status"] == "disconnected"
+        assert servers["disabled"]["status"] == "disconnected"
+
+
+def test_invalid_config_does_not_prevent_application_startup(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    path = tmp_path / ".archhypoflow/mcp.json"
+    path.parent.mkdir()
+    path.write_text("invalid json")
+    with TestClient(
+        create_app(agent_service=SimpleNamespace(chat_ready=False))
+    ) as client:
+        assert client.get("/api/mcps").status_code == 400
 
 
 def test_config_crud_and_transport_validation(tmp_path, monkeypatch):
