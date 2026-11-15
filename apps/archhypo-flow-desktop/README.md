@@ -22,6 +22,16 @@ the visual switch is on. Neither option creates synthetic approval history.
 
 Run the preference tests with `npm test` (Node.js 22.18+).
 
+## Interface translations
+
+Application-authored interface text belongs in both `src/i18n/locales/en.json` and
+`src/i18n/locales/pt-BR.json`, including accessible labels, placeholders, and
+examples. Use `useTranslation()` instead of choosing language-specific strings
+in components. `npm test` and `npm run build` check catalog parity, literal
+translation keys, and common hard-coded JSX text and labels. These static checks
+cannot detect every dynamically assembled string or translate content supplied
+by users, models, MCP servers, or backend errors; review those paths separately.
+
 ## Development
 
 Install the Python agent dependencies once, then run the desktop app:

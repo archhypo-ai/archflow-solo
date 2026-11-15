@@ -5,20 +5,17 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import ReactMarkdown from "react-markdown";
 import { useTranslation } from "react-i18next";
+import type en from "../../../i18n/locales/en.json";
 import remarkGfm from "remark-gfm";
 import "./SkillsSettings.css";
 
 type Skill = { name: string; description: string; error: string };
 type SkillDetail = Skill & { files: Record<string, string>; revision: string; unavailable: string[] };
 const API = "http://127.0.0.1:8765/api/skills";
-const labels = {
-  pt: { title: "Skills", subtitle: "Gerencie as instruções e referências disponíveis na aplicação.", search: "Buscar skills", add: "Adicionar", folder: "Pasta", folderError: "Não foi possível abrir a pasta de skills.", folderDesktopOnly: "Abrir a pasta está disponível apenas no aplicativo desktop.", create: "Criar skill", editSkill: "Editar skill", deleteSkill: "Excluir skill", confirmDelete: "Excluir a skill {name} e todos os seus arquivos?", saveChanges: "Salvar alterações", conflict: "A skill foi alterada no disco. Feche e abra novamente antes de salvar.", unavailable: "Arquivos não editáveis serão preservados ao salvar:", skillUnavailable: "SKILL.md não pode ser editado, mas a skill pode ser excluída.", empty: "Nenhuma skill encontrada.", name: "Nome da skill", nameHint: "Use letras minúsculas, números e hífens.", description: "Descrição", instructions: "Escreva as instruções da skill em Markdown...", addFile: "Adicionar arquivo", filePath: "references/arquivo.md", cancel: "Cancelar", save: "Criar", saving: "Criando...", draft: "Rascunho", preview: "Pré-visualizar", edit: "Editar", remove: "Remover arquivo", required: "Preencha nome, descrição e instruções.", invalid: "Skill inválida", error: "Não foi possível carregar as skills.", exists: "Uma skill com este nome já existe.", pathInvalid: "Use um caminho relativo válido e único." },
-  en: { title: "Skills", subtitle: "Manage the instructions and references available in the application.", search: "Search skills", add: "Add", folder: "Folder", folderError: "Could not open the skills folder.", folderDesktopOnly: "Opening the folder is only available in the desktop app.", create: "Create skill", editSkill: "Edit skill", deleteSkill: "Delete skill", confirmDelete: "Delete skill {name} and all its files?", saveChanges: "Save changes", conflict: "The skill changed on disk. Close and reopen it before saving.", unavailable: "Files that cannot be edited will be preserved when saving:", skillUnavailable: "SKILL.md cannot be edited, but the skill can be deleted.", empty: "No skills found.", name: "Skill name", nameHint: "Use lowercase letters, numbers and hyphens.", description: "Description", instructions: "Write the skill instructions in Markdown...", addFile: "Add file", filePath: "references/file.md", cancel: "Cancel", save: "Create", saving: "Creating...", draft: "Draft", preview: "Preview", edit: "Edit", remove: "Remove file", required: "Enter a name, description and instructions.", invalid: "Invalid skill", error: "Could not load skills.", exists: "A skill with this name already exists.", pathInvalid: "Use a valid, unique relative path." },
-};
 
 export function SkillsSettings() {
-  const { i18n } = useTranslation();
-  const s = i18n.resolvedLanguage?.startsWith("pt") ? labels.pt : labels.en;
+  const { t } = useTranslation();
+  const s = t("settingsPages.skills", { returnObjects: true }) as typeof en.settingsPages.skills;
   const [skills, setSkills] = useState<Skill[]>([]);
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
@@ -128,7 +125,7 @@ export function SkillsSettings() {
     {!error && visible.length === 0 ? <p className="skills-empty">{s.empty}</p> : <div className="skills-list">{visible.map((skill) => <button type="button" className="skills-item" key={skill.name} onClick={() => void openSkill(skill)}><span className="skills-item-icon"><BookOpen size={18} /></span><span className="skills-item-content"><strong>{skill.name}</strong><span>{skill.error ? `${s.invalid}: ${skill.error}` : skill.description}</span></span><ChevronRight className="skills-item-chevron" size={16} aria-hidden="true" /></button>)}</div>}
     {creating && createPortal(<div className="skill-editor-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget && !saving) setCreating(false); }}><section className="skill-editor" role="dialog" aria-modal="true" aria-labelledby="skill-editor-title" onKeyDown={(e) => { if (e.key === "Escape") { e.stopPropagation(); if (!saving) setCreating(false); } }}>
       <header><strong id="skill-editor-title">{editing ? s.editSkill : s.create}</strong><button type="button" aria-label={s.cancel} onClick={() => setCreating(false)}><X size={18} /></button></header>
-      <label>{s.name}<input autoFocus disabled={!!editing} value={name} onChange={(e) => setName(e.target.value)} placeholder="weekly-status-report" maxLength={64} /></label><small>{s.nameHint}{name && ` · /${name}`}</small>
+      <label>{s.name}<input autoFocus disabled={!!editing} value={name} onChange={(e) => setName(e.target.value)} placeholder={s.nameExample} maxLength={64} /></label><small>{s.nameHint}{name && ` · /${name}`}</small>
       <label>{s.description}<textarea className="skill-description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={1024} /></label>
       {editing?.error && <p className="skills-error" role="status">{s.invalid}: {editing.error}</p>}
       {editing && editing.unavailable.length > 0 && <details className="skill-unavailable"><summary>{editing.unavailable.includes("SKILL.md") ? s.skillUnavailable : `${s.unavailable} (${editing.unavailable.length})`}</summary><ul>{editing.unavailable.map((file) => <li key={file}>{file}</li>)}</ul></details>}

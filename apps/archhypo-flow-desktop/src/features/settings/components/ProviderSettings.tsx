@@ -27,15 +27,12 @@ import togetherIcon from "../../../assets/model-providers/together.svg?raw";
 import typesafeIcon from "../../../assets/model-providers/typesafe.png";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type en from "../../../i18n/locales/en.json";
 import "./ProviderSettings.css";
 
 type Config = { configured: boolean; openrouter_model: string; system_one_model: string };
 type Model = { id: string; name: string; pricing?: { prompt?: string; completion?: string } };
 const API = "http://127.0.0.1:8765/api/providers/openrouter";
-const labels = {
-  pt: { description: "Configure os modelos usados pelo aplicativo.", key: "Chave do OpenRouter", existing: "Chave configurada — digite para substituir", enter: "Insira a chave de API", env: "Também é possível usar OPENROUTER_API_KEY. A chave salva tem prioridade.", chat: "Modelo padrão", defaultHint: "O modelo padrão será usado quando um modelo alternativo não estiver definido no agente.", system: "Modelo padrão do System One", select: "Pesquise ou informe o identificador do modelo", custom: "Usar identificador informado", noModels: "Nenhum modelo encontrado.", priceInput: "Entrada", priceOutput: "Saída", priceMissing: "Não informado", pricingOpen: "Abrir catálogo de modelos do OpenRouter no navegador", compatibility: "Lista de modelos de decisão do OpenRouter. A disponibilidade para sua conta não é verificada.", save: "Salvar", saving: "Salvando...", saved: "Configuração salva.", restart: "As alterações são aplicadas na próxima mensagem.", loadError: "Não foi possível carregar a configuração.", catalogError: "Não foi possível carregar o catálogo. Você ainda pode informar os identificadores manualmente.", cacheNotice: "Não foi possível atualizar o catálogo. Exibindo modelos salvos anteriormente.", saveError: "Não foi possível salvar a configuração.", keyringError: "Não foi possível acessar o gerenciador de credenciais do sistema. Verifique se está disponível e desbloqueado.", loading: "Carregando...", show: "Mostrar chave", hide: "Ocultar chave", obs: "A configuração de Langfuse e LangSmith pela interface ainda não está disponível. As configurações existentes por variáveis de ambiente continuam funcionando." },
-  en: { description: "Configure the models used by the application.", key: "OpenRouter API key", existing: "Key configured — enter a new key to replace it", enter: "Enter API key", env: "You can also use OPENROUTER_API_KEY. The saved key takes precedence.", chat: "Default model", defaultHint: "The default model is used when an alternative model is not specified for the agent.", system: "Default System One model", select: "Search or enter a model identifier", custom: "Use entered identifier", noModels: "No models found.", priceInput: "Input", priceOutput: "Output", priceMissing: "Not available", pricingOpen: "Open the OpenRouter model catalog in your browser", compatibility: "OpenRouter decision models. Availability for your account is not verified.", save: "Save", saving: "Saving...", saved: "Settings saved.", restart: "Changes take effect on the next message.", loadError: "Could not load provider settings.", catalogError: "Could not load the catalog. You can still enter model identifiers manually.", cacheNotice: "Could not refresh the catalog. Showing previously saved models.", saveError: "Could not save provider settings.", keyringError: "Could not access the system credential store. Check that it is available and unlocked.", loading: "Loading...", show: "Show key", hide: "Hide key", obs: "Configuring Langfuse and LangSmith in the interface is not available yet. Existing environment variable configuration still works." },
-};
 
 const providerIcons: Record<string, string> = {
   openai: openaiIcon, anthropic: anthropicIcon, google: googleIcon,
@@ -55,22 +52,23 @@ function ModelIcon({ modelId }: { modelId: string }) {
   return <span className="provider-model-icon" aria-hidden="true">{provider === "typesafe" ? <img className="provider-model-image" src={typesafeIcon} alt="" /> : icon ? <span className="provider-model-logo" dangerouslySetInnerHTML={{ __html: icon }} /> : <Cpu size={17} />}</span>;
 }
 
-function priceText(value: string | undefined, missing: string): string {
+function priceText(value: string | undefined, missing: string, format: string, locale: string): string {
   if (value === undefined || !value.trim()) return missing;
   const price = Number(value);
   if (!Number.isFinite(price) || price < 0) return missing;
-  return `US$ ${(price * 1_000_000).toLocaleString("en-US", { maximumFractionDigits: 6 })} / 1M tokens`;
+  return format.replace("{{value}}", (price * 1_000_000).toLocaleString(locale, { maximumFractionDigits: 6 }));
 }
 
 function ModelSelector({ id, label, value, models, onChange, hintId }: { id: string; label: string; value: string; models: Model[]; onChange: (value: string) => void; hintId?: string }) {
   const s = useLabels();
+  const { i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const root = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const selected = models.find((model) => model.id === value);
-  function priceTooltip(model: Model | undefined) { return `${s.priceInput}: ${priceText(model?.pricing?.prompt, s.priceMissing)}\n${s.priceOutput}: ${priceText(model?.pricing?.completion, s.priceMissing)}`; }
+  function priceTooltip(model: Model | undefined) { const price = (value: string | undefined) => priceText(value, s.priceMissing, s.pricePerMillion, i18n.resolvedLanguage ?? "pt-BR"); return `${s.priceInput}: ${price(model?.pricing?.prompt)}\n${s.priceOutput}: ${price(model?.pricing?.completion)}`; }
   const filtered = models.filter((model) => `${model.name} ${model.id}`.toLowerCase().includes(query.trim().toLowerCase()));
   const custom = query.trim() && !models.some((model) => model.id === query.trim()) ? query.trim() : "";
   const options = [...filtered.map((model) => model.id), ...(custom ? [custom] : [])];
@@ -97,8 +95,8 @@ function ModelSelector({ id, label, value, models, onChange, hintId }: { id: str
 }
 
 function useLabels() {
-  const { i18n } = useTranslation();
-  return i18n.resolvedLanguage?.startsWith("pt") ? labels.pt : labels.en;
+  const { t } = useTranslation();
+  return t("settingsPages.providers", { returnObjects: true }) as typeof en.settingsPages.providers;
 }
 
 export function ModelsSettings() {

@@ -63,9 +63,7 @@ export function SettingsDialog({
   const [providersExpanded, setProvidersExpanded] = useState(true);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const ActiveSectionIcon = activeSection === "general" ? Settings2 : activeSection === "agents" ? Bot : activeSection === "models" ? Cpu : activeSection === "observability" ? Activity : activeSection === "skills" ? BookOpen : activeSection === "mcps" ? Cable : Wrench;
-  const activeSectionTitle = activeSection === "models" ? "Models" : activeSection === "observability" ? "Observability" : activeSection === "skills" ? "Skills" : activeSection === "mcps" ? "MCPs" : activeSection === "tools" ? "Tools" : t(
-    activeSection === "general" ? "settings.general" : "settings.agents",
-  );
+  const activeSectionTitle = t(`settings.${activeSection}`);
 
   function selectPluginSection(section: PluginSection) {
     setActiveSection(section);
@@ -134,21 +132,21 @@ export function SettingsDialog({
             <button className="settings-nav-item settings-plugin-trigger" type="button" aria-expanded={providersExpanded} aria-controls="settings-provider-sections" onClick={() => {
               if (providersExpanded && (activeSection === "models" || activeSection === "observability")) setProvidersExpanded(false);
               else { setProvidersExpanded(true); setActiveSection("models"); }
-            }}><Server size={16} aria-hidden="true" /><span>Providers</span><ChevronDown size={15} className={providersExpanded ? "" : "is-collapsed"} aria-hidden="true" /></button>
+            }}><Server size={16} aria-hidden="true" /><span>{t("settings.providers")}</span><ChevronDown size={15} className={providersExpanded ? "" : "is-collapsed"} aria-hidden="true" /></button>
             {providersExpanded && <div className="settings-plugin-sections" id="settings-provider-sections">
-              <button className={`settings-nav-item settings-plugin-item${activeSection === "models" ? " is-active" : ""}`} type="button" aria-current={activeSection === "models" ? "page" : undefined} onClick={() => setActiveSection("models")}><Cpu size={16} aria-hidden="true" /><span>Models</span></button>
-              <button className={`settings-nav-item settings-plugin-item${activeSection === "observability" ? " is-active" : ""}`} type="button" aria-current={activeSection === "observability" ? "page" : undefined} onClick={() => setActiveSection("observability")}><Activity size={16} aria-hidden="true" /><span>Observability</span></button>
+              <button className={`settings-nav-item settings-plugin-item${activeSection === "models" ? " is-active" : ""}`} type="button" aria-current={activeSection === "models" ? "page" : undefined} onClick={() => setActiveSection("models")}><Cpu size={16} aria-hidden="true" /><span>{t("settings.models")}</span></button>
+              <button className={`settings-nav-item settings-plugin-item${activeSection === "observability" ? " is-active" : ""}`} type="button" aria-current={activeSection === "observability" ? "page" : undefined} onClick={() => setActiveSection("observability")}><Activity size={16} aria-hidden="true" /><span>{t("settings.observability")}</span></button>
             </div>}
             <button className="settings-nav-item settings-plugin-trigger" type="button" aria-expanded={pluginsExpanded} aria-controls="settings-plugin-sections" onClick={() => {
               if (pluginsExpanded && (activeSection === "skills" || activeSection === "mcps" || activeSection === "tools")) setPluginsExpanded(false);
               else { setPluginsExpanded(true); selectPluginSection(lastPluginSection()); }
             }}>
-              <Puzzle size={16} aria-hidden="true" /><span>Plugins</span><ChevronDown size={15} className={pluginsExpanded ? "" : "is-collapsed"} aria-hidden="true" />
+              <Puzzle size={16} aria-hidden="true" /><span>{t("settings.plugins")}</span><ChevronDown size={15} className={pluginsExpanded ? "" : "is-collapsed"} aria-hidden="true" />
             </button>
             {pluginsExpanded && <div className="settings-plugin-sections" id="settings-plugin-sections">
-              <button className={`settings-nav-item settings-plugin-item${activeSection === "tools" ? " is-active" : ""}`} type="button" aria-current={activeSection === "tools" ? "page" : undefined} onClick={() => selectPluginSection("tools")}><Wrench size={16} aria-hidden="true" /><span>Tools</span></button>
-              <button className={`settings-nav-item settings-plugin-item${activeSection === "skills" ? " is-active" : ""}`} type="button" aria-current={activeSection === "skills" ? "page" : undefined} onClick={() => selectPluginSection("skills")}><BookOpen size={16} aria-hidden="true" /><span>Skills</span></button>
-              <button className={`settings-nav-item settings-plugin-item${activeSection === "mcps" ? " is-active" : ""}`} type="button" aria-current={activeSection === "mcps" ? "page" : undefined} onClick={() => selectPluginSection("mcps")}><Cable size={16} aria-hidden="true" /><span>MCPs</span></button>
+              <button className={`settings-nav-item settings-plugin-item${activeSection === "tools" ? " is-active" : ""}`} type="button" aria-current={activeSection === "tools" ? "page" : undefined} onClick={() => selectPluginSection("tools")}><Wrench size={16} aria-hidden="true" /><span>{t("settings.tools")}</span></button>
+              <button className={`settings-nav-item settings-plugin-item${activeSection === "skills" ? " is-active" : ""}`} type="button" aria-current={activeSection === "skills" ? "page" : undefined} onClick={() => selectPluginSection("skills")}><BookOpen size={16} aria-hidden="true" /><span>{t("settings.skills")}</span></button>
+              <button className={`settings-nav-item settings-plugin-item${activeSection === "mcps" ? " is-active" : ""}`} type="button" aria-current={activeSection === "mcps" ? "page" : undefined} onClick={() => selectPluginSection("mcps")}><Cable size={16} aria-hidden="true" /><span>{t("settings.mcps")}</span></button>
             </div>}
           </nav>
         </aside>

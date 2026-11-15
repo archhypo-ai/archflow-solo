@@ -1,21 +1,18 @@
 import { Activity, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type en from "../../../i18n/locales/en.json";
 import "./SkillsSettings.css";
 import "./McpSettings.css";
 import "./ToolsSettings.css";
 
 type Provider = { id: "langfuse" | "langsmith"; name: string; enabled: boolean; configured: boolean; keys: Record<string, boolean> };
 const API = "http://127.0.0.1:8765/api/providers/observability";
-const labels = {
-  pt: { description: "Gerencie os provedores de observabilidade.", back: "Voltar para Observability", configured: "Configurado", notConfigured: "Não configurado", disabled: "Desligado", enabled: "Provedor ligado", config: "Configuração", publicKey: "Chave pública", secretKey: "Chave secreta", apiKey: "Chave de API", existing: "Chave configurada — digite para substituir", enter: "Insira a chave", hint: "Também é possível usar a variável de ambiente", precedence: "A chave salva tem prioridade.", restart: "As alterações são aplicadas ao reiniciar o aplicativo.", saving: "Salvando...", save: "Salvar", saved: "Configuração salva.", error: "Não foi possível acessar a configuração.", keyringError: "Não foi possível acessar o gerenciador de credenciais do sistema. Verifique se está disponível e desbloqueado.", loading: "Carregando...", show: "Mostrar chave", hide: "Ocultar chave", optional: "Endpoint e projeto podem ser configurados por variáveis de ambiente." },
-  en: { description: "Manage observability providers.", back: "Back to Observability", configured: "Configured", notConfigured: "Not configured", disabled: "Disabled", enabled: "Provider enabled", config: "Configuration", publicKey: "Public key", secretKey: "Secret key", apiKey: "API key", existing: "Key configured — enter a new key to replace it", enter: "Enter key", hint: "You can also use the environment variable", precedence: "The saved key takes precedence.", restart: "Changes take effect after restarting the application.", saving: "Saving...", save: "Save", saved: "Settings saved.", error: "Could not access provider settings.", keyringError: "Could not access the system credential store. Check that it is available and unlocked.", loading: "Loading...", show: "Show key", hide: "Hide key", optional: "Endpoint and project can be configured using environment variables." },
-};
 const fields = { langfuse: ["public_key", "secret_key"], langsmith: ["api_key"] } as const;
 
 export function ObservabilitySettings() {
-  const { i18n } = useTranslation();
-  const s = i18n.resolvedLanguage?.startsWith("pt") ? labels.pt : labels.en;
+  const { t } = useTranslation();
+  const s = t("settingsPages.observability", { returnObjects: true }) as typeof en.settingsPages.observability;
   const [providers, setProviders] = useState<Provider[]>([]);
   const [selected, setSelected] = useState<Provider["id"] | null>(null);
   const [enabled, setEnabled] = useState(false);

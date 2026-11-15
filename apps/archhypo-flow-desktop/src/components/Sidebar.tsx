@@ -231,7 +231,7 @@ export function Sidebar({
         >
           <PanelLeft size={17} aria-hidden="true" />
         </button>
-        <strong className="sidebar-brand">ArchHypo Flow</strong>
+        <strong className="sidebar-brand">{t("sidebar.brand")}</strong>
       </div>
       <div className="sidebar-primary-actions">
         <button
@@ -266,11 +266,11 @@ export function Sidebar({
           <Layers size={17} aria-hidden="true" />
           <span>{t("sidebar.artifacts")}</span>
         </button>
-        <button className="sidebar-action-button" onClick={onProvidersOpen} type="button" aria-label="Providers" title="Providers">
-          <Server size={17} aria-hidden="true" /><span>Providers</span>
+        <button className="sidebar-action-button" onClick={onProvidersOpen} type="button" aria-label={t("settings.providers")} title={t("settings.providers")}>
+          <Server size={17} aria-hidden="true" /><span>{t("settings.providers")}</span>
         </button>
-        <button className="sidebar-action-button" onClick={onPluginsOpen} type="button" aria-label="Plugins" title="Plugins">
-          <Puzzle size={17} aria-hidden="true" /><span>Plugins</span>
+        <button className="sidebar-action-button" onClick={onPluginsOpen} type="button" aria-label={t("settings.plugins")} title={t("settings.plugins")}>
+          <Puzzle size={17} aria-hidden="true" /><span>{t("settings.plugins")}</span>
         </button>
       </div>
 

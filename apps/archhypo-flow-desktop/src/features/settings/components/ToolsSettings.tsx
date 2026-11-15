@@ -1,20 +1,17 @@
 import { ArrowLeft, Eye, EyeOff, Search, Wrench } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type en from "../../../i18n/locales/en.json";
 import "./SkillsSettings.css";
 import "./McpSettings.css";
 import "./ToolsSettings.css";
 
 type Tool = { id: "tavily" | "exa"; name: string; api_key_env: string; enabled: boolean; configured: boolean };
 const API = "http://127.0.0.1:8765/api/tool-catalog";
-const labels = {
-  pt: { description: "Gerencie as ferramentas disponíveis.", search: "Buscar tools", searchDescription: "Pesquisa na web", back: "Voltar para Tools", configuration: "Configuração", key: "Chave de API", existing: "Chave configurada — digite para substituir", enter: "Insira a chave de API", envHint: "Também é possível usar a variável de ambiente", envPriority: "A chave salva tem prioridade.", save: "Salvar", saving: "Salvando...", saved: "Salvo.", error: "Não foi possível acessar a configuração da tool.", keyringError: "Não foi possível acessar o gerenciador de credenciais do sistema. Verifique se ele está disponível e desbloqueado.", loading: "Carregando...", empty: "Nenhuma tool encontrada.", configured: "Configurada", notConfigured: "Não configurada", disabled: "Desligada", enabled: "Ferramenta ligada", show: "Mostrar chave", hide: "Ocultar chave" },
-  en: { description: "Manage available tools.", search: "Search tools", searchDescription: "Web search", back: "Back to Tools", configuration: "Configuration", key: "API key", existing: "Key configured — enter a new key to replace it", enter: "Enter API key", envHint: "You can also use the environment variable", envPriority: "The saved key takes precedence.", save: "Save", saving: "Saving...", saved: "Saved.", error: "Could not access the tool configuration.", keyringError: "Could not access the system credential store. Check that it is available and unlocked.", loading: "Loading...", empty: "No tools found.", configured: "Configured", notConfigured: "Not configured", disabled: "Disabled", enabled: "Tool enabled", show: "Show key", hide: "Hide key" },
-};
 
 export function ToolsSettings() {
-  const { i18n } = useTranslation();
-  const s = i18n.resolvedLanguage?.startsWith("pt") ? labels.pt : labels.en;
+  const { t } = useTranslation();
+  const s = t("settingsPages.tools", { returnObjects: true }) as typeof en.settingsPages.tools;
   const [tools, setTools] = useState<Tool[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [key, setKey] = useState("");
