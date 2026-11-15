@@ -1,4 +1,4 @@
-import { BookOpen, Bot, Settings2, X } from "lucide-react";
+import { BookOpen, Bot, Cable, ChevronDown, Puzzle, Settings2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../../i18n";
@@ -6,13 +6,22 @@ import type { ThemePreference } from "../../../theme/types";
 import { AgentSettings } from "./AgentSettings";
 import { GeneralSettings } from "./GeneralSettings";
 import { SkillsSettings } from "./SkillsSettings";
+import { McpSettings } from "./McpSettings";
 import "./SettingsDialog.css";
 
-type SettingsSection = "general" | "agents" | "skills";
+type PluginSection = "skills" | "mcps";
+type SettingsSection = "general" | "agents" | PluginSection;
+type SettingsEntry = "general" | "agents" | "plugins";
+const LAST_PLUGIN_SECTION_KEY = "archhypo-flow-last-plugin-section";
+
+function lastPluginSection(): PluginSection {
+  try { return localStorage.getItem(LAST_PLUGIN_SECTION_KEY) === "mcps" ? "mcps" : "skills"; }
+  catch { return "skills"; }
+}
 
 type SettingsDialogProps = {
   open: boolean;
-  initialSection?: SettingsSection;
+  initialSection?: SettingsEntry;
   theme: ThemePreference;
   language: AppLanguage;
   hitlEnabled: boolean;
@@ -47,13 +56,25 @@ export function SettingsDialog({
 }: SettingsDialogProps) {
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState<SettingsSection>("general");
+  const [pluginsExpanded, setPluginsExpanded] = useState(true);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const ActiveSectionIcon = activeSection === "general" ? Settings2 : activeSection === "agents" ? Bot : BookOpen;
-  const activeSectionTitle = activeSection === "skills" ? "Skills" : t(
+  const ActiveSectionIcon = activeSection === "general" ? Settings2 : activeSection === "agents" ? Bot : activeSection === "skills" ? BookOpen : Cable;
+  const activeSectionTitle = activeSection === "skills" ? "Skills" : activeSection === "mcps" ? "MCPs" : t(
     activeSection === "general" ? "settings.general" : "settings.agents",
   );
 
-  useEffect(() => { if (open) setActiveSection(initialSection); }, [open, initialSection]);
+  function selectPluginSection(section: PluginSection) {
+    setActiveSection(section);
+    try { localStorage.setItem(LAST_PLUGIN_SECTION_KEY, section); } catch { /* Navigation still works without storage. */ }
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    if (initialSection === "plugins") {
+      setPluginsExpanded(true);
+      setActiveSection(lastPluginSection());
+    } else setActiveSection(initialSection);
+  }, [open, initialSection]);
 
   useEffect(() => {
     if (!open) return;
@@ -103,9 +124,16 @@ export function SettingsDialog({
               <Bot size={16} aria-hidden="true" />
               <span>{t("settings.agents")}</span>
             </button>
-            <button className={`settings-nav-item${activeSection === "skills" ? " is-active" : ""}`} type="button" aria-current={activeSection === "skills" ? "page" : undefined} onClick={() => setActiveSection("skills")}>
-              <BookOpen size={16} aria-hidden="true" /><span>Skills</span>
+            <button className="settings-nav-item settings-plugin-trigger" type="button" aria-expanded={pluginsExpanded} aria-controls="settings-plugin-sections" onClick={() => {
+              if (pluginsExpanded && (activeSection === "skills" || activeSection === "mcps")) setPluginsExpanded(false);
+              else { setPluginsExpanded(true); selectPluginSection(lastPluginSection()); }
+            }}>
+              <Puzzle size={16} aria-hidden="true" /><span>Plugins</span><ChevronDown size={15} className={pluginsExpanded ? "" : "is-collapsed"} aria-hidden="true" />
             </button>
+            {pluginsExpanded && <div className="settings-plugin-sections" id="settings-plugin-sections">
+              <button className={`settings-nav-item settings-plugin-item${activeSection === "skills" ? " is-active" : ""}`} type="button" aria-current={activeSection === "skills" ? "page" : undefined} onClick={() => selectPluginSection("skills")}><BookOpen size={16} aria-hidden="true" /><span>Skills</span></button>
+              <button className={`settings-nav-item settings-plugin-item${activeSection === "mcps" ? " is-active" : ""}`} type="button" aria-current={activeSection === "mcps" ? "page" : undefined} onClick={() => selectPluginSection("mcps")}><Cable size={16} aria-hidden="true" /><span>MCPs</span></button>
+            </div>}
           </nav>
         </aside>
 
@@ -144,6 +172,8 @@ export function SettingsDialog({
               </>
             ) : activeSection === "skills" ? (
               <SkillsSettings />
+            ) : activeSection === "mcps" ? (
+              <McpSettings />
             ) : (
               <AgentSettings
                 globalContext={globalContext}

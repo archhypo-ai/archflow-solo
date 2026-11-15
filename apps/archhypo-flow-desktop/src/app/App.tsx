@@ -51,7 +51,7 @@ function App() {
   const [projectSettingsTarget, setProjectSettingsTarget] = useState<Project | null>(null);
   const [deleteProjectTarget, setDeleteProjectTarget] = useState<Project | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [settingsSection, setSettingsSection] = useState<"general" | "skills">("general");
+  const [settingsSection, setSettingsSection] = useState<"general" | "plugins">("general");
   const [reviewCardsPreviewOpen, setReviewCardsPreviewOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   const [globalContext, setGlobalContext] = useState("");
@@ -289,7 +289,7 @@ function App() {
           void i18n.changeLanguage(nextLanguage)
         }
         onSettingsOpen={() => { setSettingsSection("general"); setSettingsOpen(true); }}
-        onSkillsOpen={() => { setSettingsSection("skills"); setSettingsOpen(true); }}
+        onPluginsOpen={() => { setSettingsSection("plugins"); setSettingsOpen(true); }}
         onLogoutClick={() => setReviewCardsPreviewOpen(true)}
       />
       <main className="main-panel">

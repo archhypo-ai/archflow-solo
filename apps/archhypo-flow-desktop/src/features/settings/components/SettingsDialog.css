@@ -62,6 +62,26 @@
   color: var(--color-accent);
 }
 
+.settings-plugin-trigger > svg:last-child {
+  margin-left: auto;
+  transition: transform 140ms ease;
+}
+
+.settings-plugin-trigger > svg.is-collapsed {
+  transform: rotate(-90deg);
+}
+
+.settings-plugin-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 16px;
+}
+
+.settings-plugin-item {
+  min-width: 0;
+}
+
 .settings-main {
   display: flex;
   min-width: 0;
