@@ -48,6 +48,19 @@ Markdown reference reading. The plan then contains one to three actions and is
 validated so it only uses patterns whose references were read. The skill and
 its twelve Markdown references are bundled with the Python package.
 
+## Skills gallery
+
+The desktop Settings → Skills page reads application-wide skills directly from
+`~/.archhypoflow/skills/<skill-name>/SKILL.md`. Creating a skill writes YAML front matter (`name` and
+`description`), Markdown instructions, and optional text reference files. Names
+must use lowercase letters, digits, and hyphens. Existing skills are never
+silently overwritten. Existing skills can be edited or deleted; changes made
+externally are detected before saving or deletion. The editor loads UTF-8 text
+files up to 100 KB; larger, binary, hidden or linked files are listed separately
+and preserved when saving. Skills with an uneditable SKILL.md can be deleted but
+not saved from the editor. Skills are not stored in SQLite or loaded into agents
+by this gallery. Upload and agent integration are not implemented yet.
+
 ## Development
 
 ```bash

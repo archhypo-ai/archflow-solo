@@ -13,6 +13,7 @@ from archhypo_flow_agent.backend.controllers import (
     projects_router,
     threads_router,
 )
+from archhypo_flow_agent.backend.controllers.skills import router as skills_router
 from archhypo_flow_agent.config import settings
 from archhypo_flow_agent.providers import (
     create_openrouter_model,
@@ -71,6 +72,7 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
         allow_headers=["Content-Type"],
     )
+    application.include_router(skills_router)
     application.include_router(health_router)
     application.include_router(artifacts_router)
     application.include_router(chat_router)

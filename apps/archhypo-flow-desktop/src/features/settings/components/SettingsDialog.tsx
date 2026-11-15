@@ -1,16 +1,18 @@
-import { Bot, Settings2, X } from "lucide-react";
+import { BookOpen, Bot, Settings2, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../../i18n";
 import type { ThemePreference } from "../../../theme/types";
 import { AgentSettings } from "./AgentSettings";
 import { GeneralSettings } from "./GeneralSettings";
+import { SkillsSettings } from "./SkillsSettings";
 import "./SettingsDialog.css";
 
-type SettingsSection = "general" | "agents";
+type SettingsSection = "general" | "agents" | "skills";
 
 type SettingsDialogProps = {
   open: boolean;
+  initialSection?: SettingsSection;
   theme: ThemePreference;
   language: AppLanguage;
   hitlEnabled: boolean;
@@ -28,6 +30,7 @@ type SettingsDialogProps = {
 
 export function SettingsDialog({
   open,
+  initialSection = "general",
   theme,
   language,
   hitlEnabled,
@@ -45,10 +48,12 @@ export function SettingsDialog({
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState<SettingsSection>("general");
   const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const ActiveSectionIcon = activeSection === "general" ? Settings2 : Bot;
-  const activeSectionTitle = t(
+  const ActiveSectionIcon = activeSection === "general" ? Settings2 : activeSection === "agents" ? Bot : BookOpen;
+  const activeSectionTitle = activeSection === "skills" ? "Skills" : t(
     activeSection === "general" ? "settings.general" : "settings.agents",
   );
+
+  useEffect(() => { if (open) setActiveSection(initialSection); }, [open, initialSection]);
 
   useEffect(() => {
     if (!open) return;
@@ -98,6 +103,9 @@ export function SettingsDialog({
               <Bot size={16} aria-hidden="true" />
               <span>{t("settings.agents")}</span>
             </button>
+            <button className={`settings-nav-item${activeSection === "skills" ? " is-active" : ""}`} type="button" aria-current={activeSection === "skills" ? "page" : undefined} onClick={() => setActiveSection("skills")}>
+              <BookOpen size={16} aria-hidden="true" /><span>Skills</span>
+            </button>
           </nav>
         </aside>
 
@@ -134,6 +142,8 @@ export function SettingsDialog({
                   onLanguageChange={onLanguageChange}
                 />
               </>
+            ) : activeSection === "skills" ? (
+              <SkillsSettings />
             ) : (
               <AgentSettings
                 globalContext={globalContext}

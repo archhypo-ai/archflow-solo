@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   ChevronDown,
   ChevronRight,
   FolderPlus,
@@ -46,6 +47,7 @@ type SidebarProps = {
   onNewProject: () => void;
   onLanguageChange: (language: AppLanguage) => void;
   onSettingsOpen: () => void;
+  onSkillsOpen: () => void;
   onLogoutClick: () => void;
 };
 
@@ -72,6 +74,7 @@ export function Sidebar({
   onNewProject,
   onLanguageChange,
   onSettingsOpen,
+  onSkillsOpen,
   onLogoutClick,
 }: SidebarProps) {
   const { t } = useTranslation();
@@ -259,6 +262,9 @@ export function Sidebar({
         >
           <Layers size={17} aria-hidden="true" />
           <span>{t("sidebar.artifacts")}</span>
+        </button>
+        <button className="sidebar-action-button" onClick={onSkillsOpen} type="button" aria-label="Skills" title="Skills">
+          <BookOpen size={17} aria-hidden="true" /><span>Skills</span>
         </button>
       </div>
 
