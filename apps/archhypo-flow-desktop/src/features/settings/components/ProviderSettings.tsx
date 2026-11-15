@@ -1,4 +1,4 @@
-import { Check, ChevronDown, Cpu, Eye, EyeOff, Search } from "lucide-react";
+import { Check, ChevronDown, CircleAlert, Cpu, Eye, EyeOff, Search, X } from "lucide-react";
 import openaiIcon from "../../../assets/model-providers/openai.svg?raw";
 import anthropicIcon from "../../../assets/model-providers/anthropic.svg?raw";
 import googleIcon from "../../../assets/model-providers/google.svg?raw";
@@ -24,6 +24,7 @@ import upstageIcon from "../../../assets/model-providers/upstage.svg?raw";
 import togetherIcon from "../../../assets/model-providers/together.svg?raw";
 import typesafeIcon from "../../../assets/model-providers/typesafe.png";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import "./ProviderSettings.css";
 
@@ -31,8 +32,8 @@ type Config = { configured: boolean; openrouter_model: string; system_one_model:
 type Model = { id: string; name: string; pricing?: { prompt?: string; completion?: string } };
 const API = "http://127.0.0.1:8765/api/providers/openrouter";
 const labels = {
-  pt: { description: "Configure os modelos usados pelo aplicativo.", key: "Chave do OpenRouter", existing: "Chave configurada — digite para substituir", enter: "Insira a chave de API", env: "Também é possível usar OPENROUTER_API_KEY. A chave salva tem prioridade.", chat: "Modelo padrão", defaultHint: "O modelo padrão será usado quando um modelo alternativo não estiver definido no agente.", system: "Modelo padrão do System One", select: "Pesquise ou informe o identificador do modelo", custom: "Usar identificador informado", noModels: "Nenhum modelo encontrado.", priceInput: "Entrada", priceOutput: "Saída", priceMissing: "Não informado", compatibility: "Lista de modelos de decisão do OpenRouter. A disponibilidade para sua conta não é verificada.", save: "Salvar", saving: "Salvando...", saved: "Configuração salva.", restart: "As alterações são aplicadas na próxima mensagem.", loadError: "Não foi possível carregar a configuração.", catalogError: "Não foi possível carregar o catálogo. Você ainda pode informar os identificadores manualmente.", cacheNotice: "Não foi possível atualizar o catálogo. Exibindo modelos salvos anteriormente.", saveError: "Não foi possível salvar a configuração.", keyringError: "Não foi possível acessar o gerenciador de credenciais do sistema. Verifique se está disponível e desbloqueado.", loading: "Carregando...", show: "Mostrar chave", hide: "Ocultar chave", obs: "A configuração de Langfuse e LangSmith pela interface ainda não está disponível. As configurações existentes por variáveis de ambiente continuam funcionando." },
-  en: { description: "Configure the models used by the application.", key: "OpenRouter API key", existing: "Key configured — enter a new key to replace it", enter: "Enter API key", env: "You can also use OPENROUTER_API_KEY. The saved key takes precedence.", chat: "Default model", defaultHint: "The default model is used when an alternative model is not specified for the agent.", system: "Default System One model", select: "Search or enter a model identifier", custom: "Use entered identifier", noModels: "No models found.", priceInput: "Input", priceOutput: "Output", priceMissing: "Not available", compatibility: "OpenRouter decision models. Availability for your account is not verified.", save: "Save", saving: "Saving...", saved: "Settings saved.", restart: "Changes take effect on the next message.", loadError: "Could not load provider settings.", catalogError: "Could not load the catalog. You can still enter model identifiers manually.", cacheNotice: "Could not refresh the catalog. Showing previously saved models.", saveError: "Could not save provider settings.", keyringError: "Could not access the system credential store. Check that it is available and unlocked.", loading: "Loading...", show: "Show key", hide: "Hide key", obs: "Configuring Langfuse and LangSmith in the interface is not available yet. Existing environment variable configuration still works." },
+  pt: { description: "Configure os modelos usados pelo aplicativo.", key: "Chave do OpenRouter", existing: "Chave configurada — digite para substituir", enter: "Insira a chave de API", env: "Também é possível usar OPENROUTER_API_KEY. A chave salva tem prioridade.", chat: "Modelo padrão", defaultHint: "O modelo padrão será usado quando um modelo alternativo não estiver definido no agente.", system: "Modelo padrão do System One", select: "Pesquise ou informe o identificador do modelo", custom: "Usar identificador informado", noModels: "Nenhum modelo encontrado.", priceInput: "Entrada", priceOutput: "Saída", priceMissing: "Não informado", pricingTitle: "Preços dos modelos", pricingDescription: "Preços em dólares por milhão de tokens.", pricingSearch: "Buscar por modelo ou provedor", pricingModel: "Modelo", pricingOpen: "Ver preços dos modelos", pricingClose: "Fechar", pricingEmpty: "Nenhum modelo encontrado.", pricingLoading: "Carregando modelos...", pricingUnavailable: "Não foi possível carregar os modelos.", compatibility: "Lista de modelos de decisão do OpenRouter. A disponibilidade para sua conta não é verificada.", save: "Salvar", saving: "Salvando...", saved: "Configuração salva.", restart: "As alterações são aplicadas na próxima mensagem.", loadError: "Não foi possível carregar a configuração.", catalogError: "Não foi possível carregar o catálogo. Você ainda pode informar os identificadores manualmente.", cacheNotice: "Não foi possível atualizar o catálogo. Exibindo modelos salvos anteriormente.", saveError: "Não foi possível salvar a configuração.", keyringError: "Não foi possível acessar o gerenciador de credenciais do sistema. Verifique se está disponível e desbloqueado.", loading: "Carregando...", show: "Mostrar chave", hide: "Ocultar chave", obs: "A configuração de Langfuse e LangSmith pela interface ainda não está disponível. As configurações existentes por variáveis de ambiente continuam funcionando." },
+  en: { description: "Configure the models used by the application.", key: "OpenRouter API key", existing: "Key configured — enter a new key to replace it", enter: "Enter API key", env: "You can also use OPENROUTER_API_KEY. The saved key takes precedence.", chat: "Default model", defaultHint: "The default model is used when an alternative model is not specified for the agent.", system: "Default System One model", select: "Search or enter a model identifier", custom: "Use entered identifier", noModels: "No models found.", priceInput: "Input", priceOutput: "Output", priceMissing: "Not available", pricingTitle: "Model pricing", pricingDescription: "Prices in US dollars per million tokens.", pricingSearch: "Search models or providers", pricingModel: "Model", pricingOpen: "View model prices", pricingClose: "Close", pricingEmpty: "No models found.", pricingLoading: "Loading models...", pricingUnavailable: "Could not load models.", compatibility: "OpenRouter decision models. Availability for your account is not verified.", save: "Save", saving: "Saving...", saved: "Settings saved.", restart: "Changes take effect on the next message.", loadError: "Could not load provider settings.", catalogError: "Could not load the catalog. You can still enter model identifiers manually.", cacheNotice: "Could not refresh the catalog. Showing previously saved models.", saveError: "Could not save provider settings.", keyringError: "Could not access the system credential store. Check that it is available and unlocked.", loading: "Loading...", show: "Show key", hide: "Hide key", obs: "Configuring Langfuse and LangSmith in the interface is not available yet. Existing environment variable configuration still works." },
 };
 
 const providerIcons: Record<string, string> = {
@@ -58,6 +59,29 @@ function priceText(value: string | undefined, missing: string): string {
   const price = Number(value);
   if (!Number.isFinite(price) || price < 0) return missing;
   return `US$ ${(price * 1_000_000).toLocaleString("en-US", { maximumFractionDigits: 6 })} / 1M tokens`;
+}
+
+function ModelPricingDialog({ models, loading, failed, usingCache, onClose }: { models: Model[]; loading: boolean; failed: boolean; usingCache: boolean; onClose: () => void }) {
+  const s = useLabels();
+  const [query, setQuery] = useState("");
+  const search = useRef<HTMLInputElement>(null);
+  const close = useRef<HTMLButtonElement>(null);
+  const filtered = models.filter((model) => `${model.name} ${model.id}`.toLowerCase().includes(query.trim().toLowerCase()));
+  useEffect(() => { search.current?.focus(); }, []);
+  return createPortal(<div className="model-pricing-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }} onKeyDown={(event) => {
+    if (event.key === "Escape") { event.stopPropagation(); onClose(); }
+    if (event.key === "Tab") {
+      if (event.shiftKey && document.activeElement === close.current) { event.preventDefault(); search.current?.focus(); }
+      else if (!event.shiftKey && document.activeElement === search.current) { event.preventDefault(); close.current?.focus(); }
+    }
+  }}>
+    <section className="model-pricing-dialog" role="dialog" aria-modal="true" aria-labelledby="model-pricing-title" aria-describedby="model-pricing-description">
+      <header><div><h2 id="model-pricing-title">{s.pricingTitle}</h2><p id="model-pricing-description">{s.pricingDescription}</p></div><button ref={close} type="button" className="model-pricing-close" aria-label={s.pricingClose} title={s.pricingClose} onClick={onClose}><X size={18} aria-hidden="true" /></button></header>
+      <div className="model-pricing-search"><Search size={16} aria-hidden="true" /><input ref={search} type="search" aria-label={s.pricingSearch} placeholder={s.pricingSearch} value={query} onChange={(event) => setQuery(event.target.value)} /></div>
+      {usingCache && <p className="model-pricing-notice" role="status">{s.cacheNotice}</p>}
+      <div className="model-pricing-table-wrap"><table className="model-pricing-table"><thead><tr><th scope="col">{s.pricingModel}</th><th scope="col">{s.priceInput}</th><th scope="col">{s.priceOutput}</th></tr></thead><tbody>{filtered.map((model) => <tr key={model.id}><td><div className="model-pricing-name"><ModelIcon modelId={model.id} /><span><strong>{model.name}</strong><small>{model.id}</small></span></div></td><td>{priceText(model.pricing?.prompt, s.priceMissing).replace(" / 1M tokens", "")}</td><td>{priceText(model.pricing?.completion, s.priceMissing).replace(" / 1M tokens", "")}</td></tr>)}</tbody></table>{filtered.length === 0 && <p className="model-pricing-empty" role="status">{loading ? s.pricingLoading : failed && models.length === 0 ? s.pricingUnavailable : s.pricingEmpty}</p>}</div>
+    </section>
+  </div>, document.body);
 }
 
 function ModelSelector({ id, label, value, models, onChange, hintId }: { id: string; label: string; value: string; models: Model[]; onChange: (value: string) => void; hintId?: string }) {
@@ -103,18 +127,23 @@ export function ModelsSettings() {
   const s = useLabels();
   const [config, setConfig] = useState<Config | null>(null);
   const [models, setModels] = useState<Model[]>([]);
+  const [modelsLoading, setModelsLoading] = useState(true);
+  const [modelsFailed, setModelsFailed] = useState(false);
+  const [pricingOpen, setPricingOpen] = useState(false);
+  const pricingButton = useRef<HTMLButtonElement>(null);
   const [decisionModels, setDecisionModels] = useState<Model[]>([]);
   const [key, setKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [error, setError] = useState("");
   const [catalogError, setCatalogError] = useState(false);
   const [usingCache, setUsingCache] = useState(false);
+  const [modelsUsingCache, setModelsUsingCache] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     fetch(API, { signal: controller.signal }).then((response) => { if (!response.ok) throw new Error(); return response.json() as Promise<Config>; }).then(setConfig).catch(() => { if (!controller.signal.aborted) setError(s.loadError); });
-    fetch(`${API}/models`, { signal: controller.signal }).then((response) => { if (!response.ok) throw new Error(); if (response.headers.get("X-Model-Cache") === "stale") setUsingCache(true); return response.json() as Promise<Model[]>; }).then(setModels).catch(() => { if (!controller.signal.aborted) setCatalogError(true); });
+    fetch(`${API}/models`, { signal: controller.signal }).then((response) => { if (!response.ok) throw new Error(); if (response.headers.get("X-Model-Cache") === "stale") { setUsingCache(true); setModelsUsingCache(true); } return response.json() as Promise<Model[]>; }).then(setModels).catch(() => { if (!controller.signal.aborted) { setCatalogError(true); setModelsFailed(true); } }).finally(() => { if (!controller.signal.aborted) setModelsLoading(false); });
     fetch(`${API}/models?kind=decisions`, { signal: controller.signal }).then((response) => { if (!response.ok) throw new Error(); if (response.headers.get("X-Model-Cache") === "stale") setUsingCache(true); return response.json() as Promise<Model[]>; }).then(setDecisionModels).catch(() => { if (!controller.signal.aborted) setCatalogError(true); });
     return () => controller.abort();
   }, [s.loadError]);
@@ -132,7 +161,8 @@ export function ModelsSettings() {
     <p className="settings-page-description">{s.description}</p>
     {!config ? <p role={error ? "alert" : undefined}>{error || s.loading}</p> : <>
       <div className="provider-field"><label htmlFor="openrouter-key">{s.key}</label><div className="provider-key"><input id="openrouter-key" type={showKey ? "text" : "password"} autoComplete="off" spellCheck={false} placeholder={config.configured ? s.existing : s.enter} value={key} onChange={(event) => { setKey(event.target.value); setSaved(false); }} aria-describedby="openrouter-key-hint" /><button type="button" onClick={() => setShowKey(!showKey)} aria-label={showKey ? s.hide : s.show} title={showKey ? s.hide : s.show}>{showKey ? <EyeOff size={17} /> : <Eye size={17} />}</button></div><small id="openrouter-key-hint">{s.env}</small></div>
-      <div className="provider-field"><label htmlFor="openrouter-model">{s.chat}</label><ModelSelector id="openrouter-model" label={s.chat} value={config.openrouter_model} models={models} onChange={(value) => { setConfig({ ...config, openrouter_model: value }); setSaved(false); }} hintId="default-model-hint" /><small id="default-model-hint">{s.defaultHint}</small></div>
+      <div className="provider-field"><label htmlFor="openrouter-model">{s.chat}</label><div className="provider-model-row"><ModelSelector id="openrouter-model" label={s.chat} value={config.openrouter_model} models={models} onChange={(value) => { setConfig({ ...config, openrouter_model: value }); setSaved(false); }} hintId="default-model-hint" /><button ref={pricingButton} className="model-pricing-trigger" type="button" aria-label={s.pricingOpen} title={s.pricingOpen} aria-haspopup="dialog" onClick={() => setPricingOpen(true)}><CircleAlert size={19} aria-hidden="true" /></button></div><small id="default-model-hint">{s.defaultHint}</small></div>
+      {pricingOpen && <ModelPricingDialog models={models} loading={modelsLoading} failed={modelsFailed} usingCache={modelsUsingCache} onClose={() => { setPricingOpen(false); pricingButton.current?.focus(); }} />}
       <div className="provider-field"><label htmlFor="system-one-model">{s.system}</label><ModelSelector id="system-one-model" label={s.system} value={config.system_one_model} models={decisionModels} onChange={(value) => { setConfig({ ...config, system_one_model: value }); setSaved(false); }} hintId="system-model-hint" /><small id="system-model-hint">{s.compatibility}</small></div>
       {catalogError && <p className="provider-warning" role="status">{s.catalogError}</p>}
       {usingCache && <p className="provider-warning" role="status">{s.cacheNotice}</p>}
