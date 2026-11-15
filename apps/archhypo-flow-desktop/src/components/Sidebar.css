@@ -51,14 +51,14 @@
   display: flex;
   width: 100%;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   margin-top: 8px;
 }
 
 .sidebar-action-button {
   display: flex;
   width: 100%;
-  min-height: 42px;
+  min-height: 38px;
   align-items: center;
   gap: 10px;
   border: 0;
@@ -90,7 +90,7 @@
 .sidebar-sections {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   margin-top: 8px;
 }
 
@@ -102,7 +102,7 @@
 
 .sidebar-section-trigger {
   display: flex;
-  min-height: 36px;
+  min-height: 38px;
   align-items: center;
   gap: 8px;
   border: 0;
@@ -134,12 +134,12 @@
 .sidebar-section-items {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   padding-left: 8px;
 }
 
 .sidebar-project-items {
-  gap: 2px;
+  gap: 4px;
   padding-left: 0;
 }
 
@@ -154,14 +154,14 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .sidebar-project-row {
   position: relative;
   display: flex;
   min-width: 0;
-  min-height: 36px;
+  min-height: 38px;
   align-items: center;
   border-radius: 7px;
   color: var(--color-foreground);
@@ -179,7 +179,7 @@
 .sidebar-project {
   display: flex;
   min-width: 0;
-  min-height: 36px;
+  min-height: 38px;
   flex: 1 1 auto;
   align-items: center;
   gap: 8px;
@@ -273,7 +273,7 @@
 }
 
 .sidebar-conversation-items {
-  gap: 2px;
+  gap: 4px;
   padding-left: 0;
 }
 
@@ -281,7 +281,7 @@
   position: relative;
   display: flex;
   min-width: 0;
-  min-height: 36px;
+  min-height: 38px;
   align-items: center;
   border-radius: 7px;
   color: var(--color-foreground);
@@ -299,7 +299,7 @@
 .sidebar-conversation {
   display: flex;
   min-width: 0;
-  min-height: 36px;
+  min-height: 38px;
   flex: 1 1 auto;
   align-items: center;
   overflow: hidden;
@@ -392,7 +392,7 @@
   display: flex;
   width: 100%;
   min-width: 0;
-  min-height: 42px;
+  min-height: 38px;
   align-items: center;
   gap: 8px;
   border: 1px solid transparent;
