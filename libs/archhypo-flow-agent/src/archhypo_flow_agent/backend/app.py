@@ -31,6 +31,16 @@ from archhypo_flow_agent.services.mcp_manager import MCPManager
 logger = logging.getLogger(__name__)
 
 
+class _OAuthCallbackLogFilter(logging.Filter):
+    """Prevent authorization codes in callback URLs from reaching access logs."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        return "/api/mcps/oauth/callback" not in record.getMessage()
+
+
+logging.getLogger("uvicorn.access").addFilter(_OAuthCallbackLogFilter())
+
+
 def create_app(agent_service: AgentService | None = None) -> FastAPI:
     """Create the API with an optional service instance for tests."""
 

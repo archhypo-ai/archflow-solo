@@ -12,11 +12,18 @@ from pathlib import Path
 from typing import Literal
 from urllib.parse import urlparse
 
+import httpx
 from mcp import ClientSession, StdioServerParameters
+from mcp.client.auth.exceptions import OAuthFlowError
 from mcp.client.sse import sse_client
 from mcp.client.stdio import get_default_environment, stdio_client
 from mcp.client.streamable_http import streamable_http_client
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+
+from archhypo_flow_agent.services.mcp_oauth import (
+    OAuthCoordinator,
+    OAuthCredentialError,
+)
 
 _ID = re.compile(r"^[A-Za-z0-9_-]+$")
 _VAR = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
@@ -120,6 +127,7 @@ class MCPManager:
         self.tasks: dict[str, asyncio.Task] = {}
         self.stops: dict[str, asyncio.Event] = {}
         self.configurations: dict[str, ServerConfig] = {}
+        self.oauth = OAuthCoordinator()
 
     async def connect_on_startup(self) -> None:
         """Schedule configured servers without waiting for network or processes."""
@@ -158,16 +166,36 @@ class MCPManager:
                         cwd=config.cwd or None,
                     )
                     streams = await stack.enter_async_context(stdio_client(parameters))
-                elif config.transport == "sse":
-                    streams = await stack.enter_async_context(sse_client(config.url))
                 else:
-                    streams = await stack.enter_async_context(
-                        streamable_http_client(config.url)
-                    )
+
+                    async def redirect(url: str) -> None:
+                        self.states[server_id] = {
+                            "status": "authorizing",
+                            "tools": [],
+                            "error": None,
+                            "authorization_url": url,
+                        }
+
+                    auth = self.oauth.create_provider(server_id, config.url, redirect)
+                    if config.transport == "sse":
+                        streams = await stack.enter_async_context(
+                            sse_client(config.url, auth=auth)
+                        )
+                    else:
+                        client = await stack.enter_async_context(
+                            httpx.AsyncClient(
+                                auth=auth,
+                                follow_redirects=True,
+                                timeout=httpx.Timeout(30, read=300),
+                            )
+                        )
+                        streams = await stack.enter_async_context(
+                            streamable_http_client(config.url, http_client=client)
+                        )
                 session = await stack.enter_async_context(
                     ClientSession(streams[0], streams[1])
                 )
-                async with asyncio.timeout(30):
+                async with asyncio.timeout(360):
                     await session.initialize()
                     tools = []
                     cursor = None
@@ -201,10 +229,20 @@ class MCPManager:
             cause = error
             while isinstance(cause, BaseExceptionGroup) and cause.exceptions:
                 cause = cause.exceptions[0]
+            if isinstance(cause, OAuthCredentialError):
+                message, error_code = (
+                    "MCP credential store unavailable",
+                    "oauth_keyring",
+                )
+            elif isinstance(cause, OAuthFlowError):
+                message, error_code = "MCP OAuth authorization failed", "oauth_failed"
+            else:
+                message, error_code = str(cause) or type(cause).__name__, None
             self.states[server_id] = {
                 "status": "error",
                 "tools": [],
-                "error": str(cause) or type(cause).__name__,
+                "error": message,
+                "error_code": error_code,
             }
             return
         finally:
@@ -217,8 +255,13 @@ class MCPManager:
             stop = self.stops.get(server_id)
             if stop:
                 stop.set()
+            if self.status(server_id)["status"] == "authorizing":
+                task.cancel()
             try:
                 await asyncio.wait_for(asyncio.shield(task), 5)
+            except asyncio.CancelledError:
+                if not task.cancelled():
+                    raise
             except TimeoutError:
                 task.cancel()
                 await asyncio.gather(task, return_exceptions=True)

@@ -1,6 +1,7 @@
 """Endpoints for the MCP gallery and manually managed connections."""
 
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.responses import HTMLResponse
 
 from archhypo_flow_agent.services.mcp_manager import (
     MCPManager,
@@ -9,6 +10,10 @@ from archhypo_flow_agent.services.mcp_manager import (
     config_path,
     read_config,
     write_config,
+)
+from archhypo_flow_agent.services.mcp_oauth import (
+    KeyringTokenStorage,
+    OAuthCredentialError,
 )
 
 router = APIRouter(prefix="/api/mcps", tags=["mcps"])
@@ -40,6 +45,36 @@ async def list_servers(request: Request) -> list[dict]:
         if configs.get(server_id) != connected_config:
             await manager.disconnect(server_id)
     return [_entry(key, config, manager) for key, config in configs.items()]
+
+
+@router.get("/oauth/callback", response_class=HTMLResponse)
+async def oauth_callback(
+    request: Request, state: str = "", code: str = "", error: str = ""
+) -> HTMLResponse:
+    manager: MCPManager = request.app.state.mcp_manager
+    accepted = bool(state) and manager.oauth.complete(state, code, error)
+    portuguese = request.headers.get("accept-language", "").lower().startswith("pt")
+    if accepted and not error and code:
+        message = (
+            "Autorização recebida. Você pode fechar esta janela."
+            if portuguese
+            else "Authorization received. You can close this window."
+        )
+    else:
+        message = (
+            "Autorização inválida ou recusada. Volte ao aplicativo."
+            if portuguese
+            else "Invalid or declined authorization. Return to the application."
+        )
+    return HTMLResponse(
+        message,
+        status_code=200 if accepted else 400,
+        headers={
+            "Cache-Control": "no-store",
+            "Referrer-Policy": "no-referrer",
+            "Content-Security-Policy": "default-src 'none'",
+        },
+    )
 
 
 @router.post("", status_code=201)
@@ -107,6 +142,21 @@ async def connect_server(server_id: str, request: Request) -> dict:
         _write(configs)
     await manager.connect(server_id, configs[server_id])
     return _entry(server_id, configs[server_id], manager)
+
+
+@router.delete("/{server_id}/authorization", status_code=204)
+async def forget_authorization(server_id: str, request: Request) -> None:
+    configs = _configs()
+    if server_id not in configs:
+        raise HTTPException(404, "Server not found")
+    manager: MCPManager = request.app.state.mcp_manager
+    await manager.disconnect(server_id)
+    configs[server_id].auto_connect = False
+    _write(configs)
+    try:
+        await KeyringTokenStorage(server_id, configs[server_id].url).clear()
+    except OAuthCredentialError as error:
+        raise HTTPException(503, str(error)) from error
 
 
 @router.post("/{server_id}/disconnect")

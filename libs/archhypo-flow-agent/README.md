@@ -107,6 +107,19 @@ Connections run in the background and close when the backend stops; tools are no
 made available to agents yet. The folder is independent of
 `ARCHHYPO_FLOW_STORAGE_ROOT`.
 
+Remote servers can request OAuth authorization when connecting. The desktop opens
+the authorization page in the system browser; return to the application after
+consenting. If needed, reopen the page from the server details. OAuth client
+credentials and tokens are stored in the system keyring, scoped to server ID and
+URL, not in `mcp.json`. An available, unlocked keyring is required. The OAuth
+callback uses `http://127.0.0.1:8765/api/mcps/oauth/callback`; the authorization
+server must support the MCP OAuth flow, dynamic client registration, and this
+loopback redirect. Token refresh depends on the server and SDK; reauthorization
+may be required. Disconnect preserves credentials; **Remove saved authorization**
+disconnects the server and removes its local credentials (it does not revoke the
+grant at the provider). Deleting a server does not remove its stored credentials;
+remove the authorization first if desired.
+
 For stdio, environment entries may reference the backend environment using
 `${VARIABLE}`. Literal values entered in the form are saved in `mcp.json`; do
 not put secrets there. The child inherits the MCP SDK's standard environment

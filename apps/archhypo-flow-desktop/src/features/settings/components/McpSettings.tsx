@@ -1,7 +1,7 @@
 import { isTauri } from "@tauri-apps/api/core";
-import { openPath } from "@tauri-apps/plugin-opener";
+import { openPath, openUrl } from "@tauri-apps/plugin-opener";
 import { ArrowLeft, Cable, FileJson, Pencil, Plus, Search, Trash2, X } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import type en from "../../../i18n/locales/en.json";
@@ -11,7 +11,7 @@ import "./McpSettings.css";
 
 type Transport = "stdio" | "sse" | "streamable-http";
 type Tool = { name: string; description: string; inputSchema: unknown };
-type Server = { id: string; transport: Transport; auto_connect: boolean; command: string; args: string[]; env: Record<string, string>; cwd: string; url: string; status: "disconnected" | "connecting" | "connected" | "error"; tools: Tool[]; error: string | null };
+type Server = { id: string; transport: Transport; auto_connect: boolean; command: string; args: string[]; env: Record<string, string>; cwd: string; url: string; status: "disconnected" | "connecting" | "authorizing" | "connected" | "error"; tools: Tool[]; error: string | null; error_code?: string | null; authorization_url?: string };
 type Form = { id: string; transport: Transport; auto_connect: boolean; command: string; args: string; env: string; cwd: string; url: string };
 const API = "http://127.0.0.1:8765/api/mcps";
 const emptyForm = (): Form => ({ id: "", transport: "stdio", auto_connect: false, command: "", args: "", env: "", cwd: "", url: "" });
@@ -38,12 +38,21 @@ export function McpSettings() {
   const [formError, setFormError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const openedAuthorizations = useRef(new Set<string>());
   const load = useCallback(async () => {
     try { setServers(await request<Server[]>(API)); setError(""); }
     catch (err) { setError(err instanceof Error ? err.message : s.failure); }
     finally { setLoading(false); }
   }, [s.failure]);
   useEffect(() => { void load(); const timer = window.setInterval(() => void load(), 2500); return () => window.clearInterval(timer); }, [load]);
+  useEffect(() => {
+    for (const server of servers) {
+      const url = server.authorization_url;
+      if (server.status !== "authorizing" || !url || openedAuthorizations.current.has(url)) continue;
+      openedAuthorizations.current.add(url);
+      if (isTauri()) void openUrl(url).catch(() => setError(s.oauthOpenError));
+    }
+  }, [servers, s.oauthOpenError]);
   useEffect(() => {
     if (!form) return;
     const key = (event: KeyboardEvent) => {
@@ -93,17 +102,24 @@ export function McpSettings() {
     try { const data = await request<{ path: string }>(`${API}/file`, { method: "POST" }); await openPath(data.path); }
     catch { setError(s.fileError); }
   }
-  function status(server: Server) { return server.status === "connected" ? s.connected : server.status === "connecting" ? s.connecting : server.status === "error" ? s.error : s.disconnected; }
+  async function forgetAuthorization(server: Server) {
+    if (!window.confirm(s.oauthForgetConfirm)) return;
+    try { await request(`${API}/${encodeURIComponent(server.id)}/authorization`, { method: "DELETE" }); await load(); }
+    catch { setError(s.oauthForgetError); }
+  }
+  function status(server: Server) { return server.status === "connected" ? s.connected : server.status === "connecting" ? s.connecting : server.status === "authorizing" ? s.authorizing : server.status === "error" ? s.error : s.disconnected; }
   function connectButton(server: Server) {
-    const active = server.status === "connected" || server.status === "connecting";
+    const active = server.status === "connected" || server.status === "connecting" || server.status === "authorizing";
     return <button className="mcp-button" type="button" onClick={(event) => { event.stopPropagation(); void action(server, active ? "disconnect" : "connect"); }}>{active ? s.disconnect : s.connect}</button>;
   }
   return <div className="skills-page mcp-page">
     {current ? <>
       <div className="mcp-detail-header"><button className="mcp-back" type="button" onClick={() => setSelected(null)} aria-label={s.back} title={s.back}><ArrowLeft size={18} aria-hidden="true" /></button><div><h2>{current.id}</h2><p>{current.transport}</p></div><span className={`mcp-status is-${current.status}`}><span />{status(current)}</span></div>
       <div className="mcp-detail-actions">{connectButton(current)} <button className="mcp-button" type="button" onClick={() => edit(current)}><Pencil size={14} /> {s.edit}</button><button className="mcp-button mcp-delete" type="button" onClick={() => void remove(current)}><Trash2 size={14} /> {s.delete}</button></div>
+      {current.status === "authorizing" && current.authorization_url && <p className="mcp-hint">{s.oauthWaiting} <a href={current.authorization_url} target="_blank" rel="noopener noreferrer" onClick={(event) => { if (!isTauri()) return; event.preventDefault(); void openUrl(current.authorization_url!).catch(() => setError(s.oauthOpenError)); }}>{s.oauthOpen}</a></p>}
+      {current.transport !== "stdio" && <button className="mcp-button" type="button" onClick={() => void forgetAuthorization(current)}>{s.oauthForget}</button>}
       {current.status === "disconnected" && current.transport === "stdio" && <p className="mcp-hint">{s.executeNotice}</p>}
-      {current.error && <p className="skills-error" role="alert">{current.error}</p>}
+      {current.error && <p className="skills-error" role="alert">{current.error_code === "oauth_keyring" ? s.oauthKeyringError : current.error_code === "oauth_failed" ? s.oauthError : current.error}</p>}
       <h3>{s.tools}{current.status === "connected" ? ` (${current.tools.length})` : ""}</h3>
       {current.status !== "connected" ? <p className="mcp-hint">{s.notDiscovered}</p> : current.tools.length === 0 ? <p className="mcp-hint">{s.none}</p> : <div className="mcp-tools">{current.tools.map((tool) => <details className="mcp-tool" key={tool.name}><summary><strong>{tool.name}</strong><span>{tool.description}</span></summary><div><small>{s.schema}</small><pre>{JSON.stringify(tool.inputSchema, null, 2)}</pre></div></details>)}</div>}
       <div className="mcp-config"><FileJson size={15} /><code>{current.transport === "stdio" ? [current.command, ...current.args].join(" ") : current.url}</code></div>
