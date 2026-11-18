@@ -1,9 +1,10 @@
 import { getGlobalContext, getHitlEnabled } from "../../settings";
 import type {
-  ChatStreamEvent,
   HypothesisReviewDecision,
   TechnicalPlanReviewDecision,
 } from "../types";
+
+import type { ArchHypoAgUiEvent } from "./agUiEvents";
 
 const API_BASE_URL = "http://127.0.0.1:8765";
 
@@ -16,7 +17,12 @@ export async function* streamChatMessage(
   hypothesisReview?: HypothesisReviewDecision,
   technicalPlanReview?: TechnicalPlanReviewDecision,
   attachments?: Array<{ name: string; data: string; folder_id?: string; folder_name?: string }>,
-): AsyncGenerator<ChatStreamEvent> {
+  interruptId?: unknown,
+): AsyncGenerator<ArchHypoAgUiEvent> {
+  const decision = hypothesisReview ?? technicalPlanReview;
+  if (decision && (typeof interruptId !== "string" || !interruptId)) {
+    throw new Error("Missing review interrupt ID. Reload the conversation and retry.");
+  }
   const global_context = await getGlobalContext();
   const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
     method: "POST",
@@ -26,17 +32,29 @@ export async function* streamChatMessage(
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      thread_id: threadId,
-      message,
-      language,
-      project_id: projectId,
-      global_context,
-      hitl_enabled: getHitlEnabled(),
-      ...(attachments?.length ? { attachments } : {}),
-      ...(hypothesisReview ? { hypothesis_review: hypothesisReview } : {}),
-      ...(technicalPlanReview
-        ? { technical_plan_review: technicalPlanReview }
-        : {}),
+      threadId,
+      runId: crypto.randomUUID(),
+      messages: message ? [{ id: crypto.randomUUID(), role: "user", content: message }] : [],
+      state: {},
+      tools: [],
+      context: [],
+      ...(decision ? { resume: [{
+        interruptId,
+        status: "resolved",
+        payload: {
+          kind: hypothesisReview ? "hypothesis_review" : "technical_plan_review",
+          ...decision,
+        },
+      }] } : {}),
+      forwardedProps: {
+        archhypo: {
+          language,
+          project_id: projectId,
+          global_context,
+          hitl_enabled: getHitlEnabled(),
+          ...(attachments?.length ? { attachments } : {}),
+        },
+      },
     }),
   });
 
@@ -88,37 +106,11 @@ export async function* streamChatMessage(
   }
 }
 
-function parseStreamEvent(data: string): ChatStreamEvent {
+function parseStreamEvent(data: string): ArchHypoAgUiEvent {
   const value: unknown = JSON.parse(data);
-  if (
-    !value ||
-    typeof value !== "object" ||
-    !("type" in value) ||
-    !("protocol_version" in value) ||
-    value.protocol_version !== 1 ||
-    !("run_id" in value) ||
-    typeof value.run_id !== "string" ||
-    !("thread_id" in value) ||
-    typeof value.thread_id !== "string"
-  ) {
-    throw new Error("Invalid chat stream event envelope");
+  if (!value || typeof value !== "object" || !("type" in value) ||
+    typeof value.type !== "string") {
+    throw new Error("Invalid AG-UI event envelope");
   }
-
-  const event = value as ChatStreamEvent;
-  if (event.type === "error") throw new Error(event.message);
-  if (
-    ![
-      "conversation_started",
-      "phase",
-      "tool_call_start",
-      "tool_call_delta",
-      "tool_result",
-      "text_delta",
-      "interrupt",
-      "done",
-    ].includes(event.type)
-  ) {
-    throw new Error("Unsupported chat stream event");
-  }
-  return event;
+  return value as ArchHypoAgUiEvent;
 }

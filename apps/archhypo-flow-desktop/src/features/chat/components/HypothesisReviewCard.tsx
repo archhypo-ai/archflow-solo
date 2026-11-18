@@ -47,7 +47,7 @@ export function HypothesisReviewCard({ review }: HypothesisReviewCardProps) {
       role: "user",
       content: [{ type: "text", text: "\u2063" }],
       metadata: {
-        custom: { hypothesisReview: decision, isReviewAction: true },
+        custom: { hypothesisReview: decision, interruptId: review.interrupt_id, isReviewAction: true },
       },
       startRun: true,
     });

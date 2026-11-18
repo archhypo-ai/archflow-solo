@@ -1,4 +1,5 @@
 import type { ChatModelAdapter, ThreadMessage } from "@assistant-ui/react";
+import { EventType } from "@ag-ui/core";
 import type { AppLanguage } from "../../../i18n";
 import { streamChatMessage } from "../api/chatClient";
 import { attachmentFolder } from "./documentAttachmentAdapter";
@@ -103,7 +104,7 @@ export function createChatModelAdapter({
         },
       });
 
-      for await (const event of streamChatMessage(
+      const source = streamChatMessage(
         threadId,
         isReviewAction ? "" : text,
         language,
@@ -112,38 +113,46 @@ export function createChatModelAdapter({
         hypothesisReview,
         technicalPlanReview,
         attachments,
-      )) {
+        latestUserMessage?.metadata.custom.interruptId,
+      );
+      for await (const event of source) {
         switch (event.type) {
-          case "conversation_started":
-            if (event.user_message.trim()) {
+          case EventType.RUN_STARTED:
+          case EventType.TEXT_MESSAGE_START:
+          case EventType.TEXT_MESSAGE_END:
+          case EventType.TOOL_CALL_END:
+            continue;
+          case EventType.CUSTOM:
+            if (event.name === "archhypo.phase") {
+              phase = event.value.phase;
+              break;
+            }
+            if (event.value.user_message.trim()) {
               onConversationStarted(
-                event.thread_id,
-                event.title,
-                event.user_message,
-                event.project_id,
+                event.value.thread_id,
+                event.value.title,
+                event.value.user_message,
+                event.value.project_id,
               );
             }
             continue;
-          case "phase":
-            phase = event.phase;
-            break;
-          case "tool_call_start":
+          case EventType.TOOL_CALL_START:
             phase = "using_tools";
             content.push({
               type: "tool-call",
-              toolCallId: event.tool_call_id,
-              toolName: event.name,
+              toolCallId: event.toolCallId,
+              toolName: event.toolCallName,
               args: {} as ToolCallPart["args"],
               argsText: "",
             });
             break;
-          case "tool_call_delta":
+          case EventType.TOOL_CALL_ARGS:
             for (let index = content.length - 1; index >= 0; index -= 1) {
               const part = content[index];
-              if (part?.type !== "tool-call" || part.toolCallId !== event.tool_call_id) {
+              if (part?.type !== "tool-call" || part.toolCallId !== event.toolCallId) {
                 continue;
               }
-              const argsText = part.argsText + event.text;
+              const argsText = part.argsText + event.delta;
               content[index] = {
                 ...part,
                 argsText,
@@ -152,47 +161,57 @@ export function createChatModelAdapter({
               break;
             }
             break;
-          case "tool_result":
+          case EventType.TOOL_CALL_RESULT:
             for (let index = 0; index < content.length; index += 1) {
               const part = content[index];
-              if (part?.type === "tool-call" && part.toolCallId === event.tool_call_id) {
+              if (part?.type === "tool-call" && part.toolCallId === event.toolCallId) {
                 content[index] = {
                   ...part,
-                  result: event.output,
-                  isError: event.is_error,
+                  result: JSON.parse(event.content),
+                  isError: event.metadata.isError,
                 };
                 break;
               }
             }
             break;
-          case "text_delta": {
+          case EventType.TEXT_MESSAGE_CONTENT: {
             phase = "answering";
             const textIndex = content.findIndex((part) => part.type === "text");
             if (textIndex >= 0 && content[textIndex]?.type === "text") {
               const part = content[textIndex];
-              content[textIndex] = { ...part, text: part.text + event.text };
+              content[textIndex] = { ...part, text: part.text + event.delta };
             } else {
-              content.push({ type: "text", text: event.text });
+              content.push({ type: "text", text: event.delta });
             }
             break;
           }
-          case "interrupt":
-            phase = event.payload?.kind === "technical_plan_review"
-              ? "reviewing_technical_plan"
-              : "reviewing_hypothesis";
-            pendingReview = event.payload ?? undefined;
+          case EventType.RUN_FINISHED: {
             completed = true;
-            break;
-          case "done":
-            completed = true;
-            onConversationUpdated(
-              event.thread_id,
-              event.title,
-              event.message,
-              projectId,
-            );
+            if (event.outcome?.type === "interrupt") {
+              const review = event.outcome.interrupts[0]?.metadata?.archhypoReview as
+                PendingHumanReview | null | undefined;
+              pendingReview = review
+                ? { ...review, interrupt_id: event.outcome.interrupts[0].id }
+                : undefined;
+              phase = pendingReview?.kind === "technical_plan_review"
+                ? "reviewing_technical_plan"
+                : "reviewing_hypothesis";
+              break;
+            }
+            if (event.result) {
+              const index = content.findIndex((part) => part.type === "text");
+              if (index >= 0 && content[index]?.type === "text" &&
+                content[index].text !== event.result.message) {
+                content[index] = { type: "text", text: event.result.message };
+                yield publish();
+              }
+              onConversationUpdated(
+                event.threadId, event.result.title, event.result.message, projectId,
+              );
+            }
             continue;
-          case "error":
+          }
+          case EventType.RUN_ERROR:
             throw new Error(event.message);
         }
 

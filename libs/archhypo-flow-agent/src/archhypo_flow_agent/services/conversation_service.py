@@ -146,7 +146,7 @@ def _pending_review(snapshot: Any, kind: str) -> dict[str, object] | None:
                 isinstance(payload, dict)
                 and payload.get("kind") == kind
             ):
-                return payload
+                return {**payload, "interrupt_id": pending_interrupt.id}
     return None
 
 

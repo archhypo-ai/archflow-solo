@@ -333,6 +333,9 @@ class ChatExecutionService:
                 "Approve or reject the pending review before continuing."
             )
 
+        if request.review_interrupt_id is not None and request.review_interrupt_id != pending[0]:
+            raise ReviewStateError("The interrupt ID does not match the pending review.")
+
         if pending[1].get("kind") != expected_kind:
             raise ReviewStateError("The decision does not match the pending review.")
 
