@@ -185,7 +185,7 @@
     var(--color-surface)
   );
   --color-selection-background: var(--color-table-row-hover-background);
-  --color-navigation-selected: color-mix(in srgb, var(--color-foreground) 14%, var(--color-sidebar));
+  --color-navigation-selected: var(--color-hover);
   --color-navigation-indicator: var(--color-accent);
 
   --color-danger-border: color-mix(

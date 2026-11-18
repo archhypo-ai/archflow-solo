@@ -245,7 +245,6 @@
 .sidebar-conversation-row.is-active {
   background: var(--color-navigation-selected);
   color: var(--color-foreground);
-  box-shadow: inset 2px 0 var(--color-navigation-indicator);
 }
 
 .sidebar-conversation[aria-current="page"] {

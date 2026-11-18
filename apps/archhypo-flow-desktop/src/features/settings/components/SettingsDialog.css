@@ -56,7 +56,6 @@
 .settings-nav-item.is-active {
   background: var(--color-navigation-selected);
   color: var(--color-foreground);
-  box-shadow: inset 2px 0 var(--color-navigation-indicator);
   font-weight: 650;
 }
 
