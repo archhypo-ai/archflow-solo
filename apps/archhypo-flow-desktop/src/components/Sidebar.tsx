@@ -1,26 +1,21 @@
 import {
-  Puzzle,
-  ChevronDown,
-  ChevronRight,
-  FolderPlus,
-  Home,
-  Layers,
-  Languages,
-  LogOut,
-  MoreHorizontal,
-  PanelLeft,
-  Pencil,
-  Pin,
-  PinOff,
-  Settings2,
-  Server,
-  Trash2,
-  SquarePen,
-} from "lucide-react";
+  IconChevronDown as ChevronDown,
+  IconChevronRight as ChevronRight,
+  IconHome as Home,
+  IconLanguage as Languages,
+  IconLogout as LogOut,
+  IconDots as MoreHorizontal,
+  IconPencil as Pencil,
+  IconPin as Pin,
+  IconPinnedOff as PinOff,
+  IconAdjustmentsHorizontal as Settings2,
+  IconTrash as Trash2,
+  IconEdit as SquarePen,
+} from "@tabler/icons-react";
 import { useCallback, useEffect, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../i18n";
-import { NavigationButton } from "../design-system";
+import { NavigationButton, NavigationIcon } from "../design-system";
 import { ProjectIcon, type Project } from "../features/projects";
 import type { ConversationSummary } from "../features/conversations/types";
 import { Menu, MenuContent, MenuItem, MenuRadioItem } from "./overlay";
@@ -226,7 +221,7 @@ export function Sidebar({
         <NavigationButton
           className="sidebar-toggle"
           label={t(collapsed ? "sidebar.expandSidebar" : "sidebar.collapseSidebar")}
-          icon={<PanelLeft />}
+          icon={<NavigationIcon symbol={collapsed ? "left_panel_open" : "left_panel_close"} />}
           iconOnly
           onClick={onToggle}
         />
@@ -237,21 +232,21 @@ export function Sidebar({
           onClick={onNewChat}
           selected={isNewConversationActive}
           label={t("sidebar.newConversation")}
-          icon={<SquarePen />}
+          icon={<NavigationIcon symbol="edit_square" />}
         />
         <NavigationButton
           onClick={onNewProject}
           label={t("sidebar.newProject")}
-          icon={<FolderPlus />}
+          icon={<NavigationIcon symbol="create_new_folder" />}
         />
         <NavigationButton
           onClick={onArtifactsSelect}
           selected={isArtifactsActive}
           label={t("sidebar.artifacts")}
-          icon={<Layers />}
+          icon={<NavigationIcon symbol="inventory_2" />}
         />
-        <NavigationButton onClick={onProvidersOpen} label={t("settings.providers")} icon={<Server />} />
-        <NavigationButton onClick={onPluginsOpen} label={t("settings.plugins")} icon={<Puzzle />} />
+        <NavigationButton onClick={onProvidersOpen} label={t("settings.providers")} icon={<NavigationIcon symbol="stacks" />} />
+        <NavigationButton onClick={onPluginsOpen} label={t("settings.plugins")} icon={<NavigationIcon symbol="extension" />} />
       </div>
 
       <div className="sidebar-sections">

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Layers } from "lucide-react";
+import { IconStack2 as Layers } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { Sidebar } from "../components";
 import { ArtifactDetailPage, ArtifactsPage } from "../features/artifacts";

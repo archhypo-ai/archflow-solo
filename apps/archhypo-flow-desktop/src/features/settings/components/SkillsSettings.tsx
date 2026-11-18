@@ -1,4 +1,4 @@
-import { BookOpen, ChevronRight, Code2, Eye, FilePlus2, FolderOpen, Plus, Search, Trash2, X } from "lucide-react";
+import { IconBook as BookOpen, IconChevronRight as ChevronRight, IconCode as Code2, IconEye as Eye, IconFilePlus as FilePlus2, IconFolderOpen as FolderOpen, IconPlus as Plus, IconSearch as Search, IconTrash as Trash2, IconX as X } from "@tabler/icons-react";
 import { isTauri } from "@tauri-apps/api/core";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { useEffect, useRef, useState } from "react";

@@ -1,5 +1,5 @@
 import { Switch } from "../../../design-system";
-import { Activity, Eye, EyeOff } from "lucide-react";
+import { IconActivity as Activity, IconEye as Eye, IconEyeOff as EyeOff } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type en from "../../../i18n/locales/en.json";

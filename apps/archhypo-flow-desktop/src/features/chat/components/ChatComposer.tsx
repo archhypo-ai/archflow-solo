@@ -1,4 +1,4 @@
-import { ArrowUp, FilePlus, FolderOpen, Square, X } from "lucide-react";
+import { IconArrowUp as ArrowUp, IconFilePlus as FilePlus, IconFolderOpen as FolderOpen, IconSquare as Square, IconX as X } from "@tabler/icons-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { markFolderAttachments, partitionDocuments } from "../adapters/documentAttachmentAdapter";

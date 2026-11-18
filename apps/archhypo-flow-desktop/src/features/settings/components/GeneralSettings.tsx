@@ -1,5 +1,5 @@
 import { Switch } from "../../../design-system";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { IconDeviceDesktop as Monitor, IconMoon as Moon, IconSun as Sun } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import appPackage from "../../../../package.json";
 import { SelectMenu } from "../../../components/overlay";

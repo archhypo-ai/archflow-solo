@@ -1,5 +1,5 @@
 import { Switch } from "../../../design-system";
-import { ArrowLeft, Eye, EyeOff, Search, Wrench } from "lucide-react";
+import { IconArrowLeft as ArrowLeft, IconEye as Eye, IconEyeOff as EyeOff, IconSearch as Search, IconTool as Wrench } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type en from "../../../i18n/locales/en.json";

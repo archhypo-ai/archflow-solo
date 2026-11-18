@@ -1,4 +1,4 @@
-import { RefreshCw } from "lucide-react";
+import { IconRefresh as RefreshCw } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { SelectMenu } from "../../../components/overlay";

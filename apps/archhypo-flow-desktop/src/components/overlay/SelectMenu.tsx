@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { IconChevronDown as ChevronDown } from "@tabler/icons-react";
 import { useState, type ReactNode } from "react";
 import { Menu, MenuContent, MenuRadioItem } from "./Menu";
 

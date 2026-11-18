@@ -1,10 +1,10 @@
 import {
-  MessageSquarePlus,
-  MoreHorizontal,
-  Pencil,
-  PinOff,
-  Trash2,
-} from "lucide-react";
+  IconMessagePlus as MessageSquarePlus,
+  IconDots as MoreHorizontal,
+  IconPencil as Pencil,
+  IconPinnedOff as PinOff,
+  IconTrash as Trash2,
+} from "@tabler/icons-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../../i18n";

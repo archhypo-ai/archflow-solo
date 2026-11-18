@@ -1,6 +1,6 @@
 import { isTauri } from "@tauri-apps/api/core";
 import { openPath, openUrl } from "@tauri-apps/plugin-opener";
-import { ArrowLeft, Cable, FileJson, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { IconArrowLeft as ArrowLeft, IconPlug as Cable, IconFileCode as FileJson, IconPencil as Pencil, IconPlus as Plus, IconSearch as Search, IconTrash as Trash2, IconX as X } from "@tabler/icons-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";

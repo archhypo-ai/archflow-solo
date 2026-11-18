@@ -1,42 +1,42 @@
 import {
-  BookOpen,
-  Boxes,
-  Briefcase,
-  Cloud,
-  Code,
-  Cpu,
-  Database,
-  FileText,
-  Folder,
-  FolderOpen,
-  GitBranch,
-  GitMerge,
-  GitPullRequest,
-  Globe,
-  HardDrive,
-  KeyRound,
-  Layers,
-  LayoutDashboard,
-  Lightbulb,
-  LockKeyhole,
-  Network,
-  Package,
-  Puzzle,
-  Rocket,
-  Server,
-  Shield,
-  Store,
-  Terminal,
-  Waypoints,
-  Wrench,
-  Zap,
-  Workflow,
-  type LucideIcon,
-} from "lucide-react";
+  IconBook as BookOpen,
+  IconBoxMultiple as Boxes,
+  IconBriefcase as Briefcase,
+  IconCloud as Cloud,
+  IconCode as Code,
+  IconCpu as Cpu,
+  IconDatabase as Database,
+  IconFileText as FileText,
+  IconFolder as Folder,
+  IconFolderOpen as FolderOpen,
+  IconGitBranch as GitBranch,
+  IconGitMerge as GitMerge,
+  IconGitPullRequest as GitPullRequest,
+  IconGlobe as Globe,
+  IconDeviceSdCard as HardDrive,
+  IconKey as KeyRound,
+  IconStack2 as Layers,
+  IconLayoutDashboard as LayoutDashboard,
+  IconBulb as Lightbulb,
+  IconLock as LockKeyhole,
+  IconNetwork as Network,
+  IconPackage as Package,
+  IconPuzzle as Puzzle,
+  IconRocket as Rocket,
+  IconServer as Server,
+  IconShield as Shield,
+  IconBuildingStore as Store,
+  IconTerminal as Terminal,
+  IconTopologyStar as Waypoints,
+  IconTool as Wrench,
+  IconBolt as Zap,
+  IconSitemap as Workflow,
+  type Icon,
+} from "@tabler/icons-react";
 
 export type ProjectIconDefinition = {
   id: string;
-  Icon: LucideIcon;
+  Icon: Icon;
 };
 
 export const PROJECT_ICONS = [
@@ -76,11 +76,11 @@ export const PROJECT_ICONS = [
 
 export type ProjectIconId = (typeof PROJECT_ICONS)[number]["id"];
 
-const projectIconsById: Map<string, LucideIcon> = new Map(
+const projectIconsById: Map<string, Icon> = new Map(
   PROJECT_ICONS.map(({ id, Icon }) => [id, Icon]),
 );
 
-export function getProjectIcon(id: ProjectIconId): LucideIcon {
+export function getProjectIcon(id: ProjectIconId): Icon {
   return projectIconsById.get(id) ?? PROJECT_ICONS[0].Icon;
 }
 

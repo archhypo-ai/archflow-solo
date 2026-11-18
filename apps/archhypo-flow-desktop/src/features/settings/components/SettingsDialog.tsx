@@ -1,4 +1,4 @@
-import { Activity, ArrowLeft, BookOpen, Bot, Cable, ChevronDown, Cpu, Puzzle, Server, Settings2, Wrench, X } from "lucide-react";
+import { IconActivity as Activity, IconArrowLeft as ArrowLeft, IconBook as BookOpen, IconRobot as Bot, IconPlug as Cable, IconChevronDown as ChevronDown, IconCpu as Cpu, IconPuzzle as Puzzle, IconServer as Server, IconAdjustmentsHorizontal as Settings2, IconTool as Wrench, IconX as X } from "@tabler/icons-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../../i18n";

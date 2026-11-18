@@ -1,6 +1,6 @@
 import { isTauri } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Check, ChevronDown, CircleAlert, Cpu, Eye, EyeOff, Search } from "lucide-react";
+import { IconCheck as Check, IconChevronDown as ChevronDown, IconAlertCircle as CircleAlert, IconCpu as Cpu, IconEye as Eye, IconEyeOff as EyeOff, IconSearch as Search } from "@tabler/icons-react";
 import openaiIcon from "../../../assets/model-providers/openai.svg?raw";
 import anthropicIcon from "../../../assets/model-providers/anthropic.svg?raw";
 import googleIcon from "../../../assets/model-providers/google.svg?raw";

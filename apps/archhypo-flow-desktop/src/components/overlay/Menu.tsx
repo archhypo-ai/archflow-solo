@@ -1,5 +1,5 @@
 import "./Menu.css";
-import { Check } from "lucide-react";
+import { IconCheck as Check } from "@tabler/icons-react";
 import {
   useEffect,
   useRef,

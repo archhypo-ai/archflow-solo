@@ -17,14 +17,14 @@
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
 
-  --color-background: #18181b;
-  --color-sidebar: #141416;
-  --color-surface: #1e1e21;
-  --color-surface-raised: #262629;
-  --color-border: #303034;
+  --color-background: #28282a;
+  --color-sidebar: #202022;
+  --color-surface: #303032;
+  --color-surface-raised: #38383b;
+  --color-border: #424245;
   --color-border-strong: #55555c;
-  --color-foreground: #ededf0;
-  --color-muted: #b0b0b8;
+  --color-foreground: #f2f2f3;
+  --color-muted: #bababc;
   --color-subtle: #a4a4ad;
   --color-accent: #c9c9cc;
   --color-red: #f7768e;
@@ -40,8 +40,8 @@
   --color-status-negative: #f0a0a0;
   --color-brand: #ededf0;
   --color-brand-foreground: #141416;
-  --color-user-message: #28282d;
-  --color-input: #1e1e21;
+  --color-user-message: var(--color-surface);
+  --color-input: var(--color-surface);
   --color-hover: color-mix(in srgb, var(--color-foreground) 7%, transparent);
   --color-shadow: color-mix(in srgb, black 24%, transparent);
   --color-backdrop: color-mix(in srgb, black 55%, transparent);
@@ -57,14 +57,14 @@
 
 :root[data-theme="day"] {
   color-scheme: light;
-  --color-background: #fafafa;
-  --color-sidebar: #f3f3f5;
-  --color-surface: #ffffff;
-  --color-surface-raised: #f0f0f2;
-  --color-border: #dedee3;
+  --color-background: #ffffff;
+  --color-sidebar: #f0f0f2;
+  --color-surface: #f6f6f7;
+  --color-surface-raised: #eeeef0;
+  --color-border: #dddde1;
   --color-border-strong: #a0a0a9;
-  --color-foreground: #18181b;
-  --color-muted: #55555e;
+  --color-foreground: #212124;
+  --color-muted: #5b5b63;
   --color-subtle: #62626c;
   --color-accent: #4b4b52;
   --color-red: #b7445d;
@@ -80,8 +80,8 @@
   --color-error: var(--color-status-negative);
   --color-brand: #242427;
   --color-brand-foreground: #ffffff;
-  --color-user-message: #ededf0;
-  --color-input: #ffffff;
+  --color-user-message: var(--color-surface);
+  --color-input: var(--color-surface);
   --color-hover: color-mix(in srgb, var(--color-foreground) 6%, transparent);
   --color-shadow: color-mix(in srgb, black 10%, transparent);
   --color-backdrop: color-mix(in srgb, black 38%, transparent);

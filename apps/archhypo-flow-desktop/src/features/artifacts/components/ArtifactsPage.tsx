@@ -1,4 +1,4 @@
-import { Archive, RefreshCw, Search, X } from "lucide-react";
+import { IconArchive as Archive, IconRefresh as RefreshCw, IconSearch as Search, IconX as X } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../../i18n";
