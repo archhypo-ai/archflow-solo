@@ -278,7 +278,7 @@
 .artifact-card-identity code {
   overflow: hidden;
   color: var(--color-subtle);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;

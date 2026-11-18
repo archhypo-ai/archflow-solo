@@ -1,4 +1,5 @@
-import { Activity, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Switch } from "../../../design-system";
+import { Activity, Eye, EyeOff } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type en from "../../../i18n/locales/en.json";
@@ -10,11 +11,13 @@ type Provider = { id: "langfuse" | "langsmith"; name: string; enabled: boolean; 
 const API = "http://127.0.0.1:8765/api/providers/observability";
 const fields = { langfuse: ["public_key", "secret_key"], langsmith: ["api_key"] } as const;
 
-export function ObservabilitySettings() {
+export function ObservabilitySettings({ selected, onSelect }: {
+  selected: Provider["id"] | null;
+  onSelect: (detail: Pick<Provider, "id" | "name">) => void;
+}) {
   const { t } = useTranslation();
   const s = t("settingsPages.observability", { returnObjects: true }) as typeof en.settingsPages.observability;
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [selected, setSelected] = useState<Provider["id"] | null>(null);
   const [enabled, setEnabled] = useState(false);
   const [values, setValues] = useState<Record<string, string>>({});
   const [shown, setShown] = useState<Record<string, boolean>>({});
@@ -29,7 +32,7 @@ export function ObservabilitySettings() {
   }, [s.error]);
   const current = providers.find((provider) => provider.id === selected);
   function status(provider: Provider) { return !provider.enabled ? s.disabled : provider.configured ? s.configured : s.notConfigured; }
-  function open(provider: Provider) { setSelected(provider.id); setEnabled(provider.enabled); setValues({}); setShown({}); setError(""); setSaved(false); }
+  function open(provider: Provider) { onSelect({ id: provider.id, name: provider.name }); setEnabled(provider.enabled); setValues({}); setShown({}); setError(""); setSaved(false); }
   async function save() {
     if (!current) return;
     setSaving(true); setError(""); setSaved(false);
@@ -45,8 +48,8 @@ export function ObservabilitySettings() {
   }
   return <div className="skills-page tools-page">
     {current ? <>
-      <div className="mcp-detail-header"><button className="mcp-back" type="button" onClick={() => { setSelected(null); setValues({}); setError(""); }} aria-label={s.back} title={s.back}><ArrowLeft size={18} aria-hidden="true" /></button><div><h2>{current.name}</h2></div><span className={`mcp-status ${current.enabled && current.configured ? "is-connected" : "is-disconnected"}`}><span aria-hidden="true" />{status(current)}</span></div>
-      <div className="tools-toggle"><strong id="observability-enabled-label">{s.enabled}</strong><button className="settings-switch" type="button" role="switch" aria-checked={enabled} aria-labelledby="observability-enabled-label" onClick={() => { setEnabled(!enabled); setSaved(false); }}><span className="settings-switch-thumb" aria-hidden="true" /></button></div>
+      <div className="tools-toggle"><span className={`mcp-status ${current.enabled && current.configured ? "is-connected" : "is-disconnected"}`}><span aria-hidden="true" />{status(current)}</span></div>
+      <div className="tools-toggle"><strong id="observability-enabled-label">{s.enabled}</strong><Switch checked={enabled} aria-labelledby="observability-enabled-label" onCheckedChange={(value) => { setEnabled(value); setSaved(false); }} /></div>
       {fields[current.id].map((field) => <div className="tools-field" key={field}><label htmlFor={`obs-${field}`}>{field === "public_key" ? s.publicKey : field === "secret_key" ? s.secretKey : s.apiKey}</label><div className="tools-key-input"><input id={`obs-${field}`} aria-describedby={`obs-${field}-hint`} type={shown[field] ? "text" : "password"} autoComplete="off" spellCheck={false} placeholder={current.keys[field] ? s.existing : s.enter} value={values[field] ?? ""} onChange={(event) => { setValues({ ...values, [field]: event.target.value }); setSaved(false); }} /><button type="button" aria-label={shown[field] ? s.hide : s.show} title={shown[field] ? s.hide : s.show} onClick={() => setShown({ ...shown, [field]: !shown[field] })}>{shown[field] ? <EyeOff size={17} /> : <Eye size={17} />}</button></div><small id={`obs-${field}-hint`}>{s.hint} <code>{`${current.id}_${field}`.toUpperCase()}</code>. {s.precedence}</small></div>)}
       <p className="provider-hint">{s.optional} {s.restart}</p>
       <button type="button" className="skills-primary" disabled={saving} onClick={() => void save()}>{saving ? s.saving : s.save}</button>

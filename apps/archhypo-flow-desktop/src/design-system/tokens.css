@@ -1,5 +1,6 @@
 /* Grayscale workspace and controls; project labels and statuses retain semantic color. */
 :root {
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
   --ds-space-2: 0.5rem;
   --ds-icon-size: 1rem;
   --ds-label-size: 0.875rem;

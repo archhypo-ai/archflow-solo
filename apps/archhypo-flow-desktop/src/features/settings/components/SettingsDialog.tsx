@@ -1,4 +1,4 @@
-import { Activity, BookOpen, Bot, Cable, ChevronDown, Cpu, Puzzle, Server, Settings2, Wrench, X } from "lucide-react";
+import { Activity, ArrowLeft, BookOpen, Bot, Cable, ChevronDown, Cpu, Puzzle, Server, Settings2, Wrench, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../../i18n";
@@ -10,6 +10,7 @@ import { McpSettings } from "./McpSettings";
 import { ToolsSettings } from "./ToolsSettings";
 import { ModelsSettings } from "./ProviderSettings";
 import { ObservabilitySettings } from "./ObservabilitySettings";
+import { NavigationButton } from "../../../design-system";
 import "./SettingsDialog.css";
 
 type PluginSection = "skills" | "mcps" | "tools";
@@ -61,6 +62,8 @@ export function SettingsDialog({
   const [activeSection, setActiveSection] = useState<SettingsSection>("general");
   const [pluginsExpanded, setPluginsExpanded] = useState(true);
   const [providersExpanded, setProvidersExpanded] = useState(true);
+  const [observabilityDetail, setObservabilityDetail] = useState<{ id: "langfuse" | "langsmith"; name: string } | null>(null);
+  const detail = activeSection === "observability" ? observabilityDetail : null;
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const ActiveSectionIcon = activeSection === "general" ? Settings2 : activeSection === "agents" ? Bot : activeSection === "models" ? Cpu : activeSection === "observability" ? Activity : activeSection === "skills" ? BookOpen : activeSection === "mcps" ? Cable : Wrench;
   const activeSectionTitle = t(`settings.${activeSection}`);
@@ -72,6 +75,7 @@ export function SettingsDialog({
 
   useEffect(() => {
     if (!open) return;
+    setObservabilityDetail(null);
     if (initialSection === "plugins") {
       setPluginsExpanded(true);
       setActiveSection(lastPluginSection());
@@ -80,6 +84,10 @@ export function SettingsDialog({
       setActiveSection("models");
     } else setActiveSection(initialSection);
   }, [open, initialSection]);
+
+  useEffect(() => {
+    if (activeSection !== "observability") setObservabilityDetail(null);
+  }, [activeSection]);
 
   useEffect(() => {
     if (!open) return;
@@ -153,9 +161,11 @@ export function SettingsDialog({
 
         <div className="settings-main">
           <header className="settings-main-header">
+            {detail && <NavigationButton iconOnly icon={<ArrowLeft />}
+              label={t("settingsPages.observability.back")} onClick={() => setObservabilityDetail(null)} />}
             <h1 id="settings-dialog-title" className="settings-main-title">
-              <ActiveSectionIcon size={18} aria-hidden="true" />
-              <span>{activeSectionTitle}</span>
+              {!detail && <ActiveSectionIcon size={18} aria-hidden="true" />}
+              <span>{detail?.name ?? activeSectionTitle}</span>
             </h1>
             <button
               ref={closeButtonRef}
@@ -187,7 +197,7 @@ export function SettingsDialog({
             ) : activeSection === "models" ? (
               <ModelsSettings />
             ) : activeSection === "observability" ? (
-              <ObservabilitySettings />
+              <ObservabilitySettings selected={detail?.id ?? null} onSelect={setObservabilityDetail} />
             ) : activeSection === "skills" ? (
               <SkillsSettings />
             ) : activeSection === "mcps" ? (

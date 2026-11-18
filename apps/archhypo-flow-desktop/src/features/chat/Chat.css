@@ -368,7 +368,7 @@
 
 .chat-tool-call-name {
   flex: 0 0 auto;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 .chat-tool-call-target {
@@ -402,7 +402,7 @@
   overflow: auto;
   background: var(--color-surface-raised);
   padding: 6px 8px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.45;
   white-space: pre-wrap;
@@ -432,7 +432,7 @@
   border-radius: 6px;
   background: var(--color-surface-raised);
   padding: 2px 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.92em;
 }
 
@@ -610,7 +610,7 @@
   border-radius: 10px;
   background: var(--color-surface);
   padding: 13px 15px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.6;
 }
@@ -788,7 +788,7 @@
 .chat-message-attachments { display: flex; width: min(82%, 360px); flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 10px; }
 .chat-message-attachment { width: 100%; }
 .chat-message-attachment-details { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 2px; }
-.chat-message-attachment-size { color: var(--color-muted); font-family: monospace; font-size: 11px; }
+.chat-message-attachment-size { color: var(--color-muted); font-family: var(--font-mono); font-size: 11px; }
 .chat-attachment-menu { position: relative; margin-right: auto; }
 .chat-attachment-menu-trigger { display: grid; width: 34px; height: 34px; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--color-muted); cursor: pointer; }
 .chat-attachment-menu-trigger:hover, .chat-attachment-menu-trigger:focus-visible { background: var(--color-hover); color: var(--color-foreground); }
@@ -821,6 +821,8 @@
   --ring: var(--color-accent);
   --cpk-font-sans: var(--font-sans);
   --cpk-default-font-family: var(--font-sans);
+  --cpk-font-mono: var(--font-mono);
+  --cpk-default-mono-font-family: var(--font-mono);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   background-color: transparent;
