@@ -23,11 +23,13 @@ export function A2uiMessageSurface({ id, messages }: { id: string; messages: unk
   }), [messages]);
   if (!Array.isArray(messages) || messages.length === 0) return null;
   return (
-    <Surface
-      activityType={renderer.activityType}
-      content={content}
-      message={{ id, role: "activity", activityType: renderer.activityType, content }}
-      agent={undefined}
-    />
+    <div className="chat-a2ui-surface">
+      <Surface
+        activityType={renderer.activityType}
+        content={content}
+        message={{ id, role: "activity", activityType: renderer.activityType, content }}
+        agent={undefined}
+      />
+    </div>
   );
 }

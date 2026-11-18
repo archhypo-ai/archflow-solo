@@ -1,0 +1,181 @@
+.observability-page .settings-page-description {
+  margin-bottom: 24px;
+}
+
+.observability-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.observability-item {
+  display: flex;
+  width: 100%;
+  min-height: 60px;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-foreground);
+  padding: 8px 10px;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.observability-item:first-child {
+  border-top: 1px solid var(--color-border);
+}
+
+.observability-item:hover {
+  background: var(--color-hover);
+}
+
+.observability-item:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.observability-item-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: var(--ds-control-radius);
+  background: var(--color-sidebar);
+  color: var(--color-muted);
+}
+
+.observability-item-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: var(--ds-label-size);
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.observability-empty,
+.observability-note {
+  color: var(--color-muted);
+  font-size: var(--ds-label-size);
+  line-height: 1.5;
+}
+
+.observability-detail-status {
+  margin-bottom: 18px;
+}
+
+.observability-toggle {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+  padding: 8px 0;
+  font-size: var(--ds-label-size);
+  font-weight: 600;
+}
+
+.observability-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 20px;
+  font-size: var(--ds-label-size);
+  font-weight: 600;
+}
+
+.observability-key-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--ds-control-radius);
+  background: var(--color-input);
+}
+
+.observability-key-input:focus-within {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 1px;
+}
+
+.observability-key-input input {
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--color-foreground);
+  padding: 10px 12px;
+  font: inherit;
+  font-weight: 400;
+}
+
+.observability-key-input input::placeholder {
+  color: var(--color-muted);
+}
+
+.observability-key-input button {
+  display: flex;
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+.observability-field small {
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+.observability-field code {
+  border-radius: 4px;
+  background: var(--color-surface-raised);
+  padding: 2px 4px;
+  color: var(--color-foreground);
+  font: 12px/1.5 var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.observability-save {
+  min-height: var(--ds-control-size);
+  border: 0;
+  border-radius: var(--ds-control-radius);
+  background: var(--color-brand);
+  color: var(--color-brand-foreground);
+  padding: 0 14px;
+  font: inherit;
+  font-size: var(--ds-label-size);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.observability-save:hover:not(:disabled) {
+  background: var(--color-brand-hover);
+}
+
+.observability-save:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.observability-save:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.observability-note {
+  margin: 16px 0;
+}
+
+.observability-success {
+  color: var(--color-success-foreground);
+  font-size: var(--ds-label-size);
+}

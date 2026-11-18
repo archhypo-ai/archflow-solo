@@ -157,11 +157,18 @@
     "reviewPreviewApproved": "Approved example",
     "copyMessage": "Copy message",
     "tableScrollRegion": "Markdown table. Scroll horizontally to see all columns.",
-    "toolCall": "{{count}} tool call",
-    "toolCalls": "{{count}} tool calls",
+    "loading": "Loading conversation…",
+    "chartEmpty": "No chart data to display.",
+    "pieChart": "Pie chart",
+    "chartPreparing": "Preparing chart…",
+    "chartTitle": "Chart",
     "toolArguments": "Arguments",
     "toolResult": "Result",
-    "loading": "Loading conversation…",
+    "toolStatus": {
+      "inProgress": "Preparing",
+      "executing": "Running",
+      "complete": "Complete"
+    },
     "loadError": "Could not load this conversation from the local chat service.",
     "retry": "Retry"
   },

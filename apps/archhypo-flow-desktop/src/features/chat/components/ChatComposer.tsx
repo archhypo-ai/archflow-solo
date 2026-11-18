@@ -20,8 +20,18 @@ export function ChatComposer({ running, disabled, onSend, onStop }: Props) {
   const blocked = running || disabled;
   const submit = () => {
     if (blocked || (!text.trim() && !files.length)) return;
-    void onSend(text.trim(), files).then((sent) => {
-      if (sent) { setText(""); setFiles([]); }
+    const submittedText = text;
+    const submittedFiles = files;
+    setText("");
+    setFiles([]);
+    void onSend(submittedText.trim(), submittedFiles).then((sent) => {
+      if (!sent) {
+        setText((current) => current || submittedText);
+        setFiles((current) => current.length ? current : submittedFiles);
+      }
+    }).catch(() => {
+      setText((current) => current || submittedText);
+      setFiles((current) => current.length ? current : submittedFiles);
     });
   };
   const add = (incoming: File[], folder: boolean) => {

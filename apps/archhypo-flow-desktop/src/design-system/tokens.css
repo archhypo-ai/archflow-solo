@@ -1,6 +1,6 @@
 /* Grayscale workspace and controls; project labels and statuses retain semantic color. */
 :root {
-  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
   --ds-space-2: 0.5rem;
   --ds-icon-size: 1rem;
   --ds-label-size: 0.875rem;
@@ -14,7 +14,7 @@
 :root,
 :root[data-theme="night"] {
   color-scheme: dark;
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
 
   --color-background: #28282a;

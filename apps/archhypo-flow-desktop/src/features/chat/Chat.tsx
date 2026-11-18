@@ -1,6 +1,11 @@
-import { CopilotChatView, CopilotKitProvider, useAgent } from "@copilotkit/react-core/v2";
+import {
+  CopilotChatAssistantMessage,
+  CopilotChatView,
+  CopilotKitProvider,
+  useAgent,
+} from "@copilotkit/react-core/v2";
 import { EventType, type Message } from "@ag-ui/core";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../i18n";
 import { getConversation, type StoredConversation } from "../conversations";
@@ -10,9 +15,21 @@ import { attachmentFolder } from "./adapters/documentAttachmentAdapter";
 import { ChatComposer } from "./components/ChatComposer";
 import { ChatWelcome } from "./components/ChatWelcome";
 import { ARCHHYPO_ACTIVITY, ReviewActions, copilotActivityRenderers, type ChatDetails } from "./components/CopilotChatDetails";
+import { NativeChartTool } from "./components/NativeChartTool";
 import type { HumanReviewDecision, PendingHumanReview } from "./types";
 import "@copilotkit/react-core/v2/styles.css";
 import "./Chat.css";
+
+function ChatMarkdownRenderer(
+  props: ComponentProps<typeof CopilotChatAssistantMessage.MarkdownRenderer>,
+) {
+  return (
+    <CopilotChatAssistantMessage.MarkdownRenderer
+      {...props}
+      className={`${props.className ?? ""} archhypo-markdown`}
+    />
+  );
+}
 
 type ChatProps = {
   threadId: string;
@@ -37,6 +54,13 @@ type ChatProps = {
 
 const agents = { archhypo: archHypoAgent };
 const NoBuiltInComposer = () => null;
+type CollectedToolCall = {
+  id: string;
+  name: string;
+  args: string;
+  result?: unknown;
+  isError?: boolean;
+};
 
 function details(id: string, content: ChatDetails): Message {
   return { id, role: "activity", activityType: ARCHHYPO_ACTIVITY, content };
@@ -57,10 +81,30 @@ function initialHistory(threadId: string, conversation: StoredConversation | nul
     const files = entry.attachments?.map(({ name }) => `📎 ${name}`).join("\n");
     const content = [entry.content, files].filter(Boolean).join("\n\n");
     if (content) result.push({ id, role: entry.role, content });
-    if (entry.a2ui_messages?.length || entry.tool_calls?.length) {
+    if (entry.tool_calls?.length) {
+      result.push({
+        id: `${id}-tool-calls`,
+        role: "assistant",
+        content: "",
+        toolCalls: entry.tool_calls.map(({ id: toolId, name, args }) => ({
+          id: toolId,
+          type: "function",
+          function: { name, arguments: JSON.stringify(args) },
+        })),
+      });
+      for (const tool of entry.tool_calls) {
+        if (tool.result === null) continue;
+        result.push({
+          id: `${id}-tool-result-${tool.id}`,
+          role: "tool",
+          toolCallId: tool.id,
+          content: JSON.stringify(tool.result),
+        });
+      }
+    }
+    if (entry.a2ui_messages?.length) {
       result.push(details(`${id}-details`, {
         a2uiSurface: entry.a2ui_messages,
-        tools: entry.tool_calls?.map(({ name }) => name),
       }));
     }
   }
@@ -107,17 +151,39 @@ function ChatSession(props: ChatProps) {
     const id = crypto.randomUUID();
     let answer = "";
     let operations: unknown[] = [];
-    const tools: string[] = [];
+    const tools: CollectedToolCall[] = [];
     let terminal = false;
     const history = [...messages];
     const publish = () => {
       if (controller.signal.aborted) return;
+      const nativeToolCalls: Message[] = tools.length ? [{
+        id: `${id}-tool-calls`,
+        role: "assistant",
+        content: "",
+        toolCalls: tools.map((tool) => ({
+          id: tool.id,
+          type: "function",
+          function: { name: tool.name, arguments: tool.args || "{}" },
+        })),
+      }] : [];
+      const nativeToolResults: Message[] = tools
+        .filter((tool) => tool.result !== undefined)
+        .map((tool) => ({
+          id: `${id}-tool-result-${tool.id}`,
+          role: "tool",
+          toolCallId: tool.id,
+          content: typeof tool.result === "string"
+            ? tool.result
+            : JSON.stringify(tool.result),
+        }));
       setMessages([
         ...history,
+        ...nativeToolCalls,
+        ...nativeToolResults,
         ...(answer ? [{ id, role: "assistant" as const, content: answer }] : []),
-        ...(operations.length || tools.length ? [details(`${id}-details`, {
-          a2uiSurface: operations.length ? operations : undefined, tools: [...tools],
-        })] : []),
+            ...(operations.length ? [details(`${id}-details`, {
+              a2uiSurface: operations.length ? operations : undefined,
+            })] : []),
       ]);
     };
     try {
@@ -158,9 +224,25 @@ function ChatSession(props: ChatProps) {
             }
             break;
           case EventType.TOOL_CALL_START:
-            tools.push(event.toolCallName);
+            tools.push({
+              id: event.toolCallId,
+              name: event.toolCallName,
+              args: "",
+            });
             publish();
             break;
+          case EventType.TOOL_CALL_ARGS: {
+            const tool = tools.find(({ id: toolId }) => toolId === event.toolCallId);
+            if (tool) tool.args += event.delta;
+            publish();
+            break;
+          }
+          case EventType.TOOL_CALL_RESULT: {
+            const tool = tools.find(({ id: toolId }) => toolId === event.toolCallId);
+            if (tool) tool.result = event.content;
+            publish();
+            break;
+          }
           case EventType.TEXT_MESSAGE_CONTENT:
             answer += event.delta;
             publish();
@@ -215,13 +297,17 @@ function ChatSession(props: ChatProps) {
   ];
   return (
     <ReviewActions.Provider value={{ running, submit: (review, decision) => { void send("", [], review, decision); } }}>
+      <NativeChartTool />
       <div className={visible.length || running ? "archhypo-copilot-session"
         : `chat-empty-state${props.projectLanding ? " is-project-landing" : ""}`}>
         <div className={visible.length || running ? "archhypo-copilot-transcript" : undefined}>
           {visible.length || running ? (
             <CopilotChatView className="archhypo-copilot-chat" messages={visible} isRunning={running}
               welcomeScreen={false} input={NoBuiltInComposer}
-              messageView={{ className: "archhypo-message-list" }} />
+              messageView={{
+                className: "archhypo-message-list",
+                assistantMessage: { markdownRenderer: ChatMarkdownRenderer },
+              }} />
           ) : <ChatWelcome project={props.project} />}
         </div>
         <div className={visible.length || running ? "archhypo-copilot-composer" : "chat-empty-composer"}>

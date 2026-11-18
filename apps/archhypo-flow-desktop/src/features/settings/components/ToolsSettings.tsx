@@ -1,4 +1,4 @@
-import { Switch } from "../../../design-system";
+import { NavigationButton, Switch } from "../../../design-system";
 import { IconArrowLeft as ArrowLeft, IconEye as Eye, IconEyeOff as EyeOff, IconSearch as Search, IconTool as Wrench } from "@tabler/icons-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -50,7 +50,7 @@ export function ToolsSettings() {
   }
   return <div className="skills-page tools-page">
     {current ? <>
-      <div className="mcp-detail-header"><button className="mcp-back" type="button" onClick={() => { setSelected(null); setKey(""); setError(""); }} aria-label={s.back} title={s.back}><ArrowLeft size={18} aria-hidden="true" /></button><div><h2>{current.name}</h2><p>{s.searchDescription}</p></div><span className={`mcp-status ${current.enabled && current.configured ? "is-connected" : "is-disconnected"}`}><span aria-hidden="true" />{status(current)}</span></div>
+      <div className="mcp-detail-header"><NavigationButton className="tools-detail-back" iconOnly icon={<ArrowLeft />} label={s.back} onClick={() => { setSelected(null); setKey(""); setError(""); }} /><div><h2>{current.name}</h2><p>{s.searchDescription}</p></div><span className={`mcp-status ${current.enabled && current.configured ? "is-connected" : "is-disconnected"}`}><span aria-hidden="true" />{status(current)}</span></div>
       <div className="tools-toggle"><strong id="tool-enabled-label">{s.enabled}</strong><Switch checked={enabled} aria-labelledby="tool-enabled-label" onCheckedChange={(value) => { setEnabled(value); setSaved(false); }} /></div>
       <div className="tools-field"><label htmlFor="tool-api-key">{s.key}</label><div className="tools-key-input"><input id="tool-api-key" aria-describedby="tool-key-hint" type={showKey ? "text" : "password"} autoComplete="off" spellCheck={false} value={key} onChange={(event) => { setKey(event.target.value); setSaved(false); }} placeholder={current.configured ? s.existing : s.enter} /><button type="button" aria-label={showKey ? s.hide : s.show} title={showKey ? s.hide : s.show} onClick={() => setShowKey(!showKey)}>{showKey ? <EyeOff size={17} /> : <Eye size={17} />}</button></div><small id="tool-key-hint">{s.envHint} <code>{current.api_key_env}</code>. {s.envPriority}</small></div>
       <button type="button" className="skills-primary" onClick={() => void save()} disabled={saving}>{saving ? s.saving : s.save}</button>
