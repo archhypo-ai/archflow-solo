@@ -5,7 +5,9 @@
   --ds-icon-size: 1rem;
   --ds-label-size: 0.875rem;
   --ds-control-size: 2.25rem;
-  --ds-control-radius: 0.5rem;
+  --ds-control-radius: 0.625rem;
+  --ds-surface-radius: 0.875rem;
+  --ds-workspace-radius: 1.125rem;
   --ds-navigation-rail: calc(var(--ds-control-size) + 2 * var(--ds-space-2) + 1px);
 }
 

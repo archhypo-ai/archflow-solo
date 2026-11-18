@@ -884,7 +884,7 @@
 }
 
 .archhypo-copilot-composer .chat-composer {
-  border-radius: 1rem;
+  border-radius: var(--ds-surface-radius);
 }
 
 .chat-composer:focus-within {
