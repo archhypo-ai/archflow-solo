@@ -82,7 +82,12 @@ function ModelSelector({ id, label, value, models, onChange, hintId }: { id: str
   useEffect(() => {
     if (open) document.getElementById(`${id}-option-${active}`)?.scrollIntoView({ block: "nearest" });
   }, [id, active, open]);
-  function choose(modelId: string) { onChange(modelId); setOpen(false); setQuery(""); }
+  function choose(modelId: string) {
+    onChange(modelId);
+    setOpen(false);
+    setQuery("");
+    root.current?.querySelector<HTMLButtonElement>(".provider-model-trigger")?.focus();
+  }
   return <div className="provider-model-selector" ref={root}>
     <button id={id} className="provider-model-trigger" type="button" title={value ? priceTooltip(selected) : undefined} aria-label={label} aria-describedby={hintId} aria-expanded={open} aria-haspopup="listbox" onClick={() => { setOpen(!open); setQuery(""); setActive(0); }}>{value && <ModelIcon modelId={value} />}<span>{selected ? `${selected.name} (${selected.id})` : value || s.select}</span><ChevronDown size={16} aria-hidden="true" /></button>
     {open && <div className="provider-model-menu" onKeyDown={(event) => {

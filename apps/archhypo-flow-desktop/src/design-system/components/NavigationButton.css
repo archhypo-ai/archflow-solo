@@ -36,7 +36,7 @@
 }
 
 .ds-navigation-button:hover:not(:disabled) { background: var(--color-hover); }
-.ds-navigation-button[aria-pressed="true"] { background: var(--color-surface-raised); }
+.ds-navigation-button[aria-pressed="true"] { background: var(--color-navigation-selected); }
 .ds-navigation-button[aria-pressed="true"] .ds-navigation-icon { color: currentColor; }
 .ds-navigation-button:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
 .ds-navigation-button:disabled { opacity: 0.5; cursor: default; }

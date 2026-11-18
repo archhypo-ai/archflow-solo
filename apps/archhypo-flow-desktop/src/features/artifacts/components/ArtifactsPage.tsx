@@ -103,6 +103,8 @@ export function ArtifactsPage({
 }: ArtifactsPageProps) {
   const { t } = useTranslation();
   const { artifacts, loading, error, reload } = useArtifacts();
+  const [search, setSearch] = useState("");
+  const query = search.trim().toLocaleLowerCase(language);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [selectedImpacts, setSelectedImpacts] = useState<string[]>([]);
@@ -138,12 +140,16 @@ export function ArtifactsPage({
     selectedImpacts,
     selectedUncertainties,
     selectedQualityAttributes,
-  ].some((selection) => selection.length > 0);
+  ].some((selection) => selection.length > 0) || Boolean(query);
 
   const filteredArtifacts = useMemo(
     () =>
       artifacts.filter(
         (artifact) =>
+          (!query || [artifact.title, artifact.uncertainty, artifact.hypothesisStatement,
+            projectNames.get(artifact.projectId ?? "")].some(
+              (value) => value?.toLocaleLowerCase(language).includes(query),
+            )) &&
           (selectedStatuses.length === 0 ||
             selectedStatuses.includes(artifact.status)) &&
           (selectedProjects.length === 0 ||
@@ -159,6 +165,9 @@ export function ArtifactsPage({
       ),
     [
       artifacts,
+      language,
+      projectNames,
+      query,
       selectedImpacts,
       selectedProjects,
       selectedQualityAttributes,
@@ -168,6 +177,7 @@ export function ArtifactsPage({
   );
 
   const clearFilters = () => {
+    setSearch("");
     setSelectedStatuses([]);
     setSelectedProjects([]);
     setSelectedImpacts([]);
@@ -183,13 +193,14 @@ export function ArtifactsPage({
   return (
     <section className="artifacts-page" aria-labelledby="artifacts-heading">
       <div className="artifacts-page-inner">
-        {!loading && !error && (
-          <ArtifactOverview artifacts={artifacts} onStatusSelect={(statuses) => {
-            clearFilters();
-            setSelectedStatuses(statuses);
-          }} />
-        )}
         <header className="artifacts-page-header">
+          {!loading && !error && artifacts.length > 0 && (
+            <label className="artifact-search">
+              <Search size={16} aria-hidden="true" />
+              <input type="search" value={search} placeholder={t("artifacts.search")}
+                aria-label={t("artifacts.search")} onChange={(event) => setSearch(event.target.value)} />
+            </label>
+          )}
           {!loading && !error && artifacts.length > 0 && (
             <div
               className="artifact-filter-bar"
@@ -273,6 +284,12 @@ export function ArtifactsPage({
             </span>
           )}
         </header>
+        {!loading && !error && artifacts.length > 0 && !query && (
+          <ArtifactOverview artifacts={artifacts} onStatusSelect={(statuses) => {
+            clearFilters();
+            setSelectedStatuses(statuses);
+          }} />
+        )}
 
         {loading ? (
           <div className="artifacts-state" role="status">

@@ -118,13 +118,13 @@
   color: var(--color-foreground);
 }
 
-.sidebar-project-row:hover,
-.sidebar-project-row.is-active {
+.sidebar-project-row:hover {
   background: var(--color-hover);
 }
 
 .sidebar-project-row.is-active {
-  color: var(--color-accent);
+  background: var(--color-navigation-selected);
+  color: var(--color-foreground);
 }
 
 .sidebar-project {
@@ -238,13 +238,23 @@
   color: var(--color-foreground);
 }
 
-.sidebar-conversation-row:hover,
-.sidebar-conversation-row.is-active {
+.sidebar-conversation-row:hover {
   background: var(--color-hover);
 }
 
 .sidebar-conversation-row.is-active {
-  color: var(--color-accent);
+  background: var(--color-navigation-selected);
+  color: var(--color-foreground);
+  box-shadow: inset 2px 0 var(--color-navigation-indicator);
+}
+
+.sidebar-conversation[aria-current="page"] {
+  font-weight: 650;
+}
+
+.sidebar-conversation:focus-visible {
+  outline: 2px solid var(--color-navigation-indicator);
+  outline-offset: -2px;
 }
 
 .sidebar-conversation {

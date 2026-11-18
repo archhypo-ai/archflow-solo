@@ -32,6 +32,7 @@
     "actionError": "Não foi possível atualizar esta conversa. Tente novamente."
   },
   "artifacts": {
+    "search": "Buscar artefatos",
     "overview": {
       "title": "Visão geral da galeria",
       "total": "Total de artefatos",
@@ -141,6 +142,8 @@
     "reviewNoteLabel": "Nota",
     "reviewNoteHint": "Opcional para aprovar; obrigatório para rejeitar.",
     "reviewApprove": "Aprovar",
+    "reviewPaused": "A análise está pausada. Aprove para continuar ou rejeite para solicitar ajustes.",
+    "goToReview": "Ir para revisão",
     "reviewReject": "Rejeitar",
     "reviewReasonPlaceholder": "Adicione uma observação ou explique o que deve mudar...",
     "completedHypothesisReview": "Revisão da hipótese",

@@ -29,6 +29,8 @@
 .provider-model-options { max-height: min(32dvh, 18rem); overflow-y: auto; }
 .provider-model-option { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border: 0; background: transparent; color: var(--color-foreground); text-align: left; cursor: pointer; }
 .provider-model-option.is-active, .provider-model-option:hover { background: var(--color-hover); }
+.provider-model-option[aria-selected="true"] { background: var(--color-navigation-selected); }
+.provider-model-option.is-active { box-shadow: inset 2px 0 var(--color-navigation-indicator); }
 .provider-model-option-text { display: flex; flex: 1; flex-direction: column; gap: 2px; min-width: 0; }
 .provider-model-icon { display: inline-flex; flex: 0 0 22px; width: 22px; height: 22px; align-items: center; justify-content: center; color: var(--color-foreground); }
 .provider-model-logo { display: inline-flex; width: 19px; height: 19px; align-items: center; justify-content: center; }

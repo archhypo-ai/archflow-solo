@@ -897,3 +897,25 @@
   color: var(--color-muted);
   overflow-wrap: anywhere;
 }
+.chat-review-paused {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-space-2);
+  margin: 0 0 var(--ds-space-2);
+  color: var(--color-muted);
+  font-size: var(--ds-label-size);
+}
+.chat-review-paused p { margin: 0; }
+.chat-review-paused button {
+  min-height: var(--ds-control-size);
+  padding-inline: var(--ds-space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--ds-control-radius);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font: inherit;
+}
+.chat-review-paused button:hover { background: var(--color-hover); }
+.chat-review-paused button:focus-visible { outline: 2px solid var(--color-accent); }

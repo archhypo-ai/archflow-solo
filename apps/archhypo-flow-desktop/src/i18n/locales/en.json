@@ -32,6 +32,7 @@
     "actionError": "Could not update this conversation. Please try again."
   },
   "artifacts": {
+    "search": "Search artifacts",
     "overview": {
       "title": "Gallery overview",
       "total": "Total artifacts",
@@ -141,6 +142,8 @@
     "reviewNoteLabel": "Note",
     "reviewNoteHint": "Optional to approve; required to reject.",
     "reviewApprove": "Approve",
+    "reviewPaused": "The analysis is paused. Approve to continue or reject to request changes.",
+    "goToReview": "Go to review",
     "reviewReject": "Reject",
     "reviewReasonPlaceholder": "Add a note or explain what should change...",
     "completedHypothesisReview": "Hypothesis review",

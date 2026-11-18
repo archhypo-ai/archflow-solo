@@ -225,6 +225,14 @@ function ChatSession(props: ChatProps) {
           ) : <ChatWelcome project={props.project} />}
         </div>
         <div className={visible.length || running ? "archhypo-copilot-composer" : "chat-empty-composer"}>
+          {pending && <div className="chat-review-paused">
+            <p role="status">{t("chat.reviewPaused")}</p>
+            <button type="button" onClick={() => {
+              const review = document.getElementById("chat-pending-review");
+              review?.focus({ preventScroll: true });
+              review?.scrollIntoView({ block: "nearest" });
+            }}>{t("chat.goToReview")}</button>
+          </div>}
           {composer}
         </div>
         {!visible.length && !running && props.projectLanding && props.projectLandingContent}

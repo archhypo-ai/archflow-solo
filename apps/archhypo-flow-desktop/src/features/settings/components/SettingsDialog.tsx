@@ -62,9 +62,14 @@ export function SettingsDialog({
   const [activeSection, setActiveSection] = useState<SettingsSection>("general");
   const [pluginsExpanded, setPluginsExpanded] = useState(true);
   const [providersExpanded, setProvidersExpanded] = useState(true);
+  const providerCurrent = activeSection === "models" || activeSection === "observability";
+  const pluginCurrent = activeSection === "skills" || activeSection === "mcps" || activeSection === "tools";
   const [observabilityDetail, setObservabilityDetail] = useState<{ id: "langfuse" | "langsmith"; name: string } | null>(null);
   const detail = activeSection === "observability" ? observabilityDetail : null;
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
   const ActiveSectionIcon = activeSection === "general" ? Settings2 : activeSection === "agents" ? Bot : activeSection === "models" ? Cpu : activeSection === "observability" ? Activity : activeSection === "skills" ? BookOpen : activeSection === "mcps" ? Cable : Wrench;
   const activeSectionTitle = t(`settings.${activeSection}`);
 
@@ -92,14 +97,36 @@ export function SettingsDialog({
   useEffect(() => {
     if (!open) return;
 
+    const previousFocus = document.activeElement;
     closeButtonRef.current?.focus();
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      const dialog = dialogRef.current;
+      const topmost = [...document.querySelectorAll('[role="dialog"][aria-modal="true"]')]
+        .filter((element) => element.getClientRects().length > 0).pop();
+      if (topmost !== dialog) return;
+      if (event.key === "Escape" && !event.defaultPrevented) onCloseRef.current();
+      if (event.key !== "Tab") return;
+      const controls = [...(dialog?.querySelectorAll<HTMLElement>(
+        'button, input, select, textarea, a[href], [tabindex]',
+      ) ?? [])].filter((control) => control.tabIndex >= 0 &&
+        !control.matches(":disabled") && control.getClientRects().length > 0 &&
+        getComputedStyle(control).visibility !== "hidden");
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (!first || !last) return;
+      const active = document.activeElement;
+      if (!dialog?.contains(active) || active === (event.shiftKey ? first : last)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      }
     };
     document.addEventListener("keydown", handleKeyDown);
 
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, open]);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previousFocus instanceof HTMLElement && previousFocus.isConnected) previousFocus.focus();
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -112,6 +139,7 @@ export function SettingsDialog({
       role="presentation"
     >
       <section
+        ref={dialogRef}
         className="settings-dialog"
         aria-labelledby="settings-dialog-title"
         aria-modal="true"
@@ -137,25 +165,25 @@ export function SettingsDialog({
               <Bot size={16} aria-hidden="true" />
               <span>{t("settings.agents")}</span>
             </button>
-            <button className="settings-nav-item settings-plugin-trigger" type="button" aria-expanded={providersExpanded} aria-controls="settings-provider-sections" onClick={() => {
-              if (providersExpanded && (activeSection === "models" || activeSection === "observability")) setProvidersExpanded(false);
-              else { setProvidersExpanded(true); setActiveSection("models"); }
-            }}><Server size={16} aria-hidden="true" /><span>{t("settings.providers")}</span><ChevronDown size={15} className={providersExpanded ? "" : "is-collapsed"} aria-hidden="true" /></button>
-            {providersExpanded && <div className="settings-plugin-sections" id="settings-provider-sections">
+            <button className={`settings-nav-item settings-plugin-trigger${!providersExpanded && providerCurrent ? " is-active" : ""}`}
+              type="button" aria-expanded={providersExpanded} aria-controls="settings-provider-sections"
+              aria-current={!providersExpanded && providerCurrent ? "location" : undefined}
+              onClick={() => setProvidersExpanded((expanded) => !expanded)}><Server size={16} aria-hidden="true" /><span>{t("settings.providers")}</span><ChevronDown size={15} className={providersExpanded ? "" : "is-collapsed"} aria-hidden="true" /></button>
+            <div className="settings-plugin-sections" id="settings-provider-sections" hidden={!providersExpanded}>
               <button className={`settings-nav-item settings-plugin-item${activeSection === "models" ? " is-active" : ""}`} type="button" aria-current={activeSection === "models" ? "page" : undefined} onClick={() => setActiveSection("models")}><Cpu size={16} aria-hidden="true" /><span>{t("settings.models")}</span></button>
               <button className={`settings-nav-item settings-plugin-item${activeSection === "observability" ? " is-active" : ""}`} type="button" aria-current={activeSection === "observability" ? "page" : undefined} onClick={() => setActiveSection("observability")}><Activity size={16} aria-hidden="true" /><span>{t("settings.observability")}</span></button>
-            </div>}
-            <button className="settings-nav-item settings-plugin-trigger" type="button" aria-expanded={pluginsExpanded} aria-controls="settings-plugin-sections" onClick={() => {
-              if (pluginsExpanded && (activeSection === "skills" || activeSection === "mcps" || activeSection === "tools")) setPluginsExpanded(false);
-              else { setPluginsExpanded(true); selectPluginSection(lastPluginSection()); }
-            }}>
+            </div>
+            <button className={`settings-nav-item settings-plugin-trigger${!pluginsExpanded && pluginCurrent ? " is-active" : ""}`}
+              type="button" aria-expanded={pluginsExpanded} aria-controls="settings-plugin-sections"
+              aria-current={!pluginsExpanded && pluginCurrent ? "location" : undefined}
+              onClick={() => setPluginsExpanded((expanded) => !expanded)}>
               <Puzzle size={16} aria-hidden="true" /><span>{t("settings.plugins")}</span><ChevronDown size={15} className={pluginsExpanded ? "" : "is-collapsed"} aria-hidden="true" />
             </button>
-            {pluginsExpanded && <div className="settings-plugin-sections" id="settings-plugin-sections">
+            <div className="settings-plugin-sections" id="settings-plugin-sections" hidden={!pluginsExpanded}>
               <button className={`settings-nav-item settings-plugin-item${activeSection === "tools" ? " is-active" : ""}`} type="button" aria-current={activeSection === "tools" ? "page" : undefined} onClick={() => selectPluginSection("tools")}><Wrench size={16} aria-hidden="true" /><span>{t("settings.tools")}</span></button>
               <button className={`settings-nav-item settings-plugin-item${activeSection === "skills" ? " is-active" : ""}`} type="button" aria-current={activeSection === "skills" ? "page" : undefined} onClick={() => selectPluginSection("skills")}><BookOpen size={16} aria-hidden="true" /><span>{t("settings.skills")}</span></button>
               <button className={`settings-nav-item settings-plugin-item${activeSection === "mcps" ? " is-active" : ""}`} type="button" aria-current={activeSection === "mcps" ? "page" : undefined} onClick={() => selectPluginSection("mcps")}><Cable size={16} aria-hidden="true" /><span>{t("settings.mcps")}</span></button>
-            </div>}
+            </div>
           </nav>
         </aside>
 

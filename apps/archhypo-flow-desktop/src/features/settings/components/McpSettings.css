@@ -30,8 +30,8 @@
 .mcp-tool pre { max-width: 100%; overflow: auto; background: var(--color-sidebar); padding: 10px; border-radius: 6px; }
 .mcp-config { display: flex; align-items: start; gap: 8px; margin-top: 16px; color: var(--color-muted); }
 .mcp-config code { overflow-wrap: anywhere; }
-.mcp-modal-backdrop { position: fixed; z-index: 1001; inset: 0; display: grid; place-items: center; padding: 20px; background: #0009; }
-.mcp-modal { display: flex; flex-direction: column; width: min(600px, 100%); max-height: min(90vh, 800px); min-height: 0; padding: 18px; gap: 18px; border-radius: 12px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-foreground); box-shadow: 0 20px 80px #0008; }
+.mcp-modal-backdrop { position: fixed; z-index: 1001; inset: 0; display: grid; place-items: center; padding: 20px; background: var(--color-backdrop); }
+.mcp-modal { display: flex; flex-direction: column; width: min(600px, 100%); max-height: min(90vh, 800px); min-height: 0; padding: 18px; gap: 18px; border-radius: 12px; border: 1px solid var(--color-border); background: var(--color-surface); color: var(--color-foreground); box-shadow: 0 20px 80px var(--color-shadow); }
 .mcp-modal header, .mcp-modal footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .mcp-modal button { cursor: pointer; color: inherit; border: 0; background: transparent; }
 .mcp-form { overflow-y: auto; display: flex; flex-direction: column; gap: 16px; padding: 6px; }

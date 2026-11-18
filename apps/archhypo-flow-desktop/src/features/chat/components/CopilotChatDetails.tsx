@@ -44,7 +44,9 @@ export const copilotActivityRenderers = [{
       ? completed.review
       : null;
     return (
-      <div className="archhypo-copilot-details">
+      <div className="archhypo-copilot-details"
+        {...(isPendingHypothesisReview(hypothesisReview) || isPendingTechnicalPlanReview(technicalPlanReview)
+          ? { id: "chat-pending-review", tabIndex: -1 } : {})}>
         {content.tools?.length ? <small>{t("chat.usingTools")}: {content.tools.join(", ")}</small> : null}
         {Boolean(content.a2uiSurface) && <A2uiMessageSurface id={message.id} messages={content.a2uiSurface} />}
         {isPendingHypothesisReview(hypothesisReview) && <HypothesisReviewCard review={hypothesisReview} disabled={actions.running} onDecision={(decision) => actions.submit(hypothesisReview, decision)} />}

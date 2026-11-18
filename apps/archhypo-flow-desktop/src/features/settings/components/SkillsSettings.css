@@ -31,9 +31,9 @@
 .skills-item-content > strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .skills-item-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; background: var(--color-sidebar); flex-shrink: 0; }
 .skills-item p { margin: 5px 0 0; font-size: 13px; opacity: .7; }
-.skills-error { color: #d96868; font-size: 13px; }
-.skill-editor-backdrop { position: fixed; z-index: 1001; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); place-items: center; background: #0009; padding: 20px; }
-.skill-editor { width: min(1150px, 100%); height: min(700px, 100%); min-width: 0; min-height: 0; max-width: 100%; max-height: 100%; overflow: hidden; display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 12px; background: var(--color-surface, #303030); color: var(--color-foreground); box-shadow: 0 20px 80px #0008; }
+.skills-error { color: var(--color-error); font-size: 13px; }
+.skill-editor-backdrop { position: fixed; z-index: 1001; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); place-items: center; background: var(--color-backdrop); padding: 20px; }
+.skill-editor { width: min(1150px, 100%); height: min(700px, 100%); min-width: 0; min-height: 0; max-width: 100%; max-height: 100%; overflow: hidden; display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 12px; background: var(--color-surface); color: var(--color-foreground); box-shadow: 0 20px 80px var(--color-shadow); }
 .skill-editor header, .skill-editor footer, .skill-file-header { display: flex; align-items: center; justify-content: space-between; }
 .skill-editor header button, .skill-file-header button { padding: 5px; }
 .skill-editor label input, .skill-description { display: block; width: 100%; padding: 9px 12px; margin-top: 6px; font: inherit; }
@@ -43,21 +43,21 @@
 .skill-workspace aside { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; border-right: 1px solid var(--color-border); }
 .skill-file-list { flex: 1; display: flex; flex-direction: column; gap: 4px; overflow: auto; padding: 8px; }
 .skill-file-list button { display: block; flex-shrink: 0; min-width: 0; width: 100%; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 8px; }
-.skill-file-list button.is-active { background: var(--color-border); }
+.skill-file-list button.is-active { background: var(--color-navigation-selected); box-shadow: inset 2px 0 var(--color-navigation-indicator); font-weight: 650; }
 .skill-file-list input { width: 100%; padding: 7px; }
 .skill-add-file { display: flex; align-items: center; gap: 6px; padding: 12px; border-top: 1px solid var(--color-border) !important; }
 .skill-file-editor { min-width: 0; min-height: 0; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .skill-file-header { min-width: 0; gap: 8px; padding: 10px 14px; font-family: var(--font-mono); opacity: .8; }
 .skill-file-header > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .skill-file-header > div { flex-shrink: 0; }
-.skill-file-header button[aria-pressed="true"] { background: var(--color-border); }
+.skill-file-header button[aria-pressed="true"] { background: var(--color-navigation-selected); font-weight: 650; }
 .skill-code-editor { display: flex; flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
 .skill-line-numbers { flex: none; min-width: 44px; overflow: hidden; padding: 12px 10px; text-align: right; color: var(--color-subtle); user-select: none; font: 13px/1.6 monospace; }
 .skill-line-numbers span { display: block; }
 .skill-editor .skill-file-editor textarea { display: block; flex: 1; width: 0; min-width: 0; height: 100%; min-height: 0; padding: 12px 18px 12px 0; border: 0; border-radius: 0; outline: none; box-shadow: none; background: transparent; color: var(--color-foreground); resize: none; overflow: auto; white-space: pre; tab-size: 2; font: 13px/1.6 monospace; }
 .skill-editor .skill-file-editor textarea:focus-visible { outline: none; box-shadow: none; }
 .skill-workspace:focus-within { border-color: var(--color-border-strong); }
-.skill-editor .skill-delete { display: inline-flex; align-items: center; gap: 7px; color: #d96868; }
+.skill-editor .skill-delete { display: inline-flex; align-items: center; gap: 7px; color: var(--color-error); }
 .skill-preview { flex: 1; min-width: 0; width: 100%; min-height: 0; padding: 12px 20px 24px; overflow: auto; color: var(--color-foreground); }
 .skill-unavailable { flex-shrink: 0; max-height: 100px; overflow: auto; font-size: 12px; color: var(--color-muted); }
 .skill-unavailable summary { cursor: pointer; }

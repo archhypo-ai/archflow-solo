@@ -530,3 +530,31 @@
   background: var(--color-accent);
   border-radius: inherit;
 }
+.artifact-search {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  min-height: var(--ds-control-size);
+  max-width: 22rem;
+  padding-inline: var(--ds-space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--ds-control-radius);
+  background: var(--color-input);
+  color: var(--color-muted);
+}
+
+.artifact-search:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.artifact-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  color: var(--color-foreground);
+  background: transparent;
+  font: inherit;
+}
