@@ -155,10 +155,23 @@ def project_messages(messages: Sequence[BaseMessage]) -> list[ConversationMessag
                     role="assistant",
                     content=text,
                     tool_calls=tool_calls_from_messages(turn_messages),
+                    a2ui_messages=[
+                        operation
+                        for part in turn_messages
+                        for operation in a2ui_messages_from_tool(part)
+                    ][:200],
                 )
             )
             turn_messages = []
     return projected
+
+
+def a2ui_messages_from_tool(message: BaseMessage) -> list[dict[str, object]]:
+    artifact = getattr(message, "artifact", None)
+    if message.type != "tool" or getattr(message, "status", None) == "error":
+        return []
+    operations = artifact.get("a2ui") if isinstance(artifact, dict) else None
+    return [item for item in operations if isinstance(item, dict)] if isinstance(operations, list) else []
 
 
 def _is_legacy_review_approval(content: str) -> bool:

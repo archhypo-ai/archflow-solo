@@ -1,3 +1,5 @@
+import { CopilotKitProvider, useAgent } from "@copilotkit/react-core/v2";
+import { archHypoAgent } from "./api/chatClient";
 import {
   AssistantRuntimeProvider,
   useLocalRuntime,
@@ -89,6 +91,8 @@ function toInitialMessages(
           status: { type: "complete" as const },
           content: [],
         })),
+      } : message.a2ui_messages?.length ? {
+        metadata: { custom: { a2uiSurface: message.a2ui_messages } },
       } : {}),
       content: [
         ...(message.role === "assistant"
@@ -129,6 +133,8 @@ function toInitialMessages(
   }
   return initialMessages;
 }
+
+const chatAgents = { archhypo: archHypoAgent };
 
 export function Chat(props: ChatProps) {
   const { t } = useTranslation();
@@ -183,7 +189,11 @@ export function Chat(props: ChatProps) {
     );
   }
 
-  return <LoadedChat {...props} initialMessages={initialMessages} />;
+  return (
+    <CopilotKitProvider selfManagedAgents={chatAgents} agentId="archhypo" enableInspector={false}>
+      <LoadedChat key={props.threadId} {...props} initialMessages={initialMessages} />
+    </CopilotKitProvider>
+  );
 }
 
 type LoadedChatProps = ChatProps & {
@@ -201,9 +211,11 @@ function LoadedChat({
   onConversationUpdated,
   initialMessages,
 }: LoadedChatProps) {
+  const { agent, isReady } = useAgent({ agentId: "archhypo" });
   const chatModel = useMemo(
     () =>
       createChatModelAdapter({
+        agent: isReady ? agent : archHypoAgent,
         threadId,
         language,
         projectId,
@@ -211,6 +223,8 @@ function LoadedChat({
         onConversationUpdated,
       }),
     [
+      agent,
+      isReady,
       threadId,
       language,
       projectId,

@@ -4,6 +4,7 @@ from collections.abc import Sequence
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
+from archhypo_flow_agent.tools.publish_a2ui import publish_a2ui_surface
 
 from .response_generation import build_response_generation_agent
 
@@ -35,7 +36,7 @@ def build_direct_response_agent(
 
     return build_response_generation_agent(
         model,
-        tools=tools,
+        tools=(*tools, publish_a2ui_surface),
         base_system_prompt=SYSTEM_PROMPT,
     )
 

@@ -113,6 +113,8 @@ class ArchHypoAgent:
             with closing(service.stream(request, run_id=input_data.run_id)) as source:
                 for event in source:
                     match event["type"]:
+                        case "a2ui":
+                            yield CustomEvent(name="archhypo.a2ui", value=event["messages"])
                         case "conversation_started" | "phase":
                             yield CustomEvent(name=f"archhypo.{event['type']}", value=event)
                         case "tool_call_start":

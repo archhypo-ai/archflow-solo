@@ -33,4 +33,5 @@ export type ArchHypoAgUiEvent =
   | ToolCallEndEvent
   | (ToolCallResultEvent & { content: string; metadata: { isError: boolean } })
   | CustomEvent<"conversation_started">
+  | { type: EventType.CUSTOM; name: "archhypo.a2ui"; value: unknown }
   | CustomEvent<"phase">;

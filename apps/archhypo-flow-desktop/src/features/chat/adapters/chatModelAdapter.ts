@@ -1,3 +1,4 @@
+import type { AbstractAgent } from "@ag-ui/client";
 import type { ChatModelAdapter, ThreadMessage } from "@assistant-ui/react";
 import { EventType } from "@ag-ui/core";
 import type { AppLanguage } from "../../../i18n";
@@ -9,6 +10,7 @@ import type {
 } from "../types";
 
 type ChatModelAdapterOptions = {
+  agent?: AbstractAgent;
   threadId: string;
   language: AppLanguage;
   projectId: string | null;
@@ -51,6 +53,7 @@ function parseToolArgs(text: string): ToolCallPart["args"] {
 }
 
 export function createChatModelAdapter({
+  agent,
   threadId,
   language,
   projectId,
@@ -88,12 +91,14 @@ export function createChatModelAdapter({
       let phase = "thinking";
       let completed = false;
       let pendingReview: PendingHumanReview | undefined;
+      let a2uiSurface: unknown[] = [];
 
       const publish = () => ({
         content: [...content],
         metadata: {
           custom: {
             phase,
+            ...(a2uiSurface.length ? { a2uiSurface } : {}),
             ...(pendingReview?.kind === "hypothesis_review"
               ? { hypothesisReview: pendingReview }
               : {}),
@@ -114,6 +119,7 @@ export function createChatModelAdapter({
         technicalPlanReview,
         attachments,
         latestUserMessage?.metadata.custom.interruptId,
+        agent,
       );
       for await (const event of source) {
         switch (event.type) {
@@ -123,6 +129,13 @@ export function createChatModelAdapter({
           case EventType.TOOL_CALL_END:
             continue;
           case EventType.CUSTOM:
+            if (event.name === "archhypo.a2ui") {
+              const batch = Array.isArray(event.value) ? event.value : [event.value];
+              if (a2uiSurface.length + batch.length <= 200) {
+                a2uiSurface = [...a2uiSurface, ...batch];
+              }
+              break;
+            }
             if (event.name === "archhypo.phase") {
               phase = event.value.phase;
               break;

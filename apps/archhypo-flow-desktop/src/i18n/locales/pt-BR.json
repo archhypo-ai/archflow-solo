@@ -32,6 +32,11 @@
     "actionError": "Não foi possível atualizar esta conversa. Tente novamente."
   },
   "artifacts": {
+    "overview": {
+      "title": "Visão geral da galeria",
+      "total": "Total de artefatos",
+      "unrated": "Sem classificação: {{count}}"
+    },
     "pageTitle": "Artefatos",
     "count_one": "{{count}} artefato",
     "count_other": "{{count}} artefatos",

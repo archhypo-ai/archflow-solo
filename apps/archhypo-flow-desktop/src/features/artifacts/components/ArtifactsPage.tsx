@@ -30,6 +30,64 @@ const ASSESSMENT_LEVEL_TRANSLATIONS: Record<string, string> = {
   "Very High": "veryHigh",
 };
 
+function ArtifactOverview({
+  artifacts,
+  onStatusSelect,
+}: {
+  artifacts: ArtifactSummary[];
+  onStatusSelect: (status: string[]) => void;
+}) {
+  const { t } = useTranslation();
+  const open = artifacts.filter(({ status }) => status === "open").length;
+  const closed = artifacts.length - open;
+  const levels = ASSESSMENT_LEVELS.map((level) => ({
+    level,
+    impact: artifacts.filter((item) => item.impact === level).length,
+    uncertainty: artifacts.filter((item) => item.uncertaintyLevel === level).length,
+  }));
+  const max = Math.max(1, ...levels.flatMap(({ impact, uncertainty }) => [impact, uncertainty]));
+
+  return (
+    <section className="artifact-overview" aria-labelledby="artifact-overview-title">
+      <h2 id="artifact-overview-title">{t("artifacts.overview.title")}</h2>
+      <div className="artifact-overview-metrics">
+        <button type="button" onClick={() => onStatusSelect([])}>
+          <span>{t("artifacts.overview.total")}</span><strong>{artifacts.length}</strong>
+        </button>
+        <button type="button" onClick={() => onStatusSelect(["open"])}>
+          <span>{t("artifacts.statusOpen")}</span><strong>{open}</strong>
+        </button>
+        <button type="button" onClick={() => onStatusSelect(["closed"])}>
+          <span>{t("artifacts.statusClosed")}</span><strong>{closed}</strong>
+        </button>
+      </div>
+      <div className="artifact-overview-charts">
+        {(["impact", "uncertainty"] as const).map((metric) => (
+          <section key={metric} className="artifact-overview-chart" aria-label={
+            metric === "impact" ? t("artifacts.filters.impact") : t("artifacts.filters.uncertainty")
+          }>
+            <h3>{metric === "impact" ? t("artifacts.filters.impact") : t("artifacts.filters.uncertainty")}</h3>
+            <ul>
+              {levels.map((row) => (
+                <li key={row.level}>
+                  <span>{t(`chat.assessmentLevels.${ASSESSMENT_LEVEL_TRANSLATIONS[row.level]}`)}</span>
+                  <span className="artifact-overview-track" aria-hidden="true">
+                    <span style={{ width: `${row[metric] / max * 100}%` }} />
+                  </span>
+                  <span>{row[metric]}</span>
+                </li>
+              ))}
+            </ul>
+            <p>{t("artifacts.overview.unrated", {
+              count: artifacts.length - levels.reduce((sum, row) => sum + row[metric], 0),
+            })}</p>
+          </section>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 type ArtifactFilterKey = "status" | "project" | "impact" | "uncertainty" | "nfr";
 
 type ArtifactsPageProps = {
@@ -125,6 +183,12 @@ export function ArtifactsPage({
   return (
     <section className="artifacts-page" aria-labelledby="artifacts-heading">
       <div className="artifacts-page-inner">
+        {!loading && !error && (
+          <ArtifactOverview artifacts={artifacts} onStatusSelect={(statuses) => {
+            clearFilters();
+            setSelectedStatuses(statuses);
+          }} />
+        )}
         <header className="artifacts-page-header">
           {!loading && !error && artifacts.length > 0 && (
             <div

@@ -24,6 +24,7 @@ export type StoredChatMessage = {
   role: "user" | "assistant";
   content: string;
   tool_calls?: StoredToolCall[];
+  a2ui_messages?: unknown[];
   attachments?: Array<{ name: string; size_bytes?: number; folder_id?: string; folder_name?: string }>;
 };
 

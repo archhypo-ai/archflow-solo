@@ -6,6 +6,7 @@ import {
 } from "@assistant-ui/react";
 import { useTranslation } from "react-i18next";
 import { ChatMarkdownText } from "./ChatMarkdownText";
+import { A2uiMessageSurface } from "./A2uiMessageSurface";
 import { ChatMessageActions } from "./ChatMessageActions";
 import { ChatToolCall, ChatToolCallGroup } from "./ChatToolCalls";
 import { ApprovedReviewSummary } from "./ApprovedReviewSummary";
@@ -22,6 +23,8 @@ import type { CompletedHumanReview } from "../types";
 export function ChatAssistantMessage() {
   const { t } = useTranslation();
   const phase = useAuiState(({ message }) => message.metadata.custom.phase);
+  const a2uiSurface = useAuiState(({ message }) => message.metadata.custom.a2uiSurface);
+  const messageId = useAuiState(({ message }) => message.id);
   const hypothesisReview = useAuiState(
     ({ message }) => message.metadata.custom.hypothesisReview,
   );
@@ -52,6 +55,7 @@ export function ChatAssistantMessage() {
             tools: { Fallback: ChatToolCall },
           }}
         />
+        {Boolean(a2uiSurface) && <A2uiMessageSurface id={messageId} messages={a2uiSurface} />}
         {isPendingHypothesisReview(hypothesisReview) && (
           <HypothesisReviewCard review={hypothesisReview} />
         )}

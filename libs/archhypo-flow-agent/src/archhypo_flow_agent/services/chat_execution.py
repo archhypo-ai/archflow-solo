@@ -392,6 +392,11 @@ class ChatExecutionService:
                     output=tool_result_value(message.content),
                     is_error=getattr(message, "status", "success") == "error",
                 )
+                artifact = getattr(message, "artifact", None)
+                if isinstance(artifact, dict) and isinstance(artifact.get("a2ui"), list):
+                    yield stream_event_data(
+                        run_id, thread_id, "a2ui", messages=artifact["a2ui"],
+                    )
                 if not pending_calls:
                     yield stream_event_data(
                         run_id,

@@ -32,6 +32,11 @@
     "actionError": "Could not update this conversation. Please try again."
   },
   "artifacts": {
+    "overview": {
+      "title": "Gallery overview",
+      "total": "Total artifacts",
+      "unrated": "Unrated: {{count}}"
+    },
     "pageTitle": "Artifacts",
     "count_one": "{{count}} artifact",
     "count_other": "{{count}} artifacts",

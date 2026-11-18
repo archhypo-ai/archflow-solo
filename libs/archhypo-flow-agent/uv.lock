@@ -126,10 +126,12 @@ name = "archhypo-flow-agent"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "ag-ui-a2ui-toolkit" },
     { name = "ag-ui-langgraph", extra = ["fastapi"] },
     { name = "deepagents" },
     { name = "fastapi", extra = ["standard"] },
     { name = "httpx" },
+    { name = "jsonschema" },
     { name = "keyring" },
     { name = "langchain" },
     { name = "langchain-core" },
@@ -143,6 +145,7 @@ dependencies = [
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
     { name = "pyyaml" },
+    { name = "referencing" },
     { name = "tavily-python" },
 ]
 
@@ -163,10 +166,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "ag-ui-a2ui-toolkit", specifier = ">=0.0.6,<0.1" },
     { name = "ag-ui-langgraph", extras = ["fastapi"], specifier = ">=0.0.47" },
     { name = "deepagents", specifier = ">=0.7,<0.8" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.135,<1.0" },
     { name = "httpx", specifier = ">=0.28,<1.0" },
+    { name = "jsonschema", specifier = ">=4.25,<5" },
     { name = "keyring", specifier = ">=25,<26" },
     { name = "langchain", specifier = ">=1.0,<2.0" },
     { name = "langchain-core", specifier = ">=1.0,<2.0" },
@@ -182,6 +187,7 @@ requires-dist = [
     { name = "pydantic-settings", specifier = ">=2.0,<3.0" },
     { name = "python-dotenv", specifier = ">=1.0,<2.0" },
     { name = "pyyaml", specifier = ">=6.0,<7.0" },
+    { name = "referencing", specifier = ">=0.36,<1" },
     { name = "tavily-python", specifier = ">=0.8,<1.0" },
     { name = "tavily-python", marker = "extra == 'research'", specifier = ">=0.8,<1.0" },
 ]
