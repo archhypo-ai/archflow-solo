@@ -494,7 +494,7 @@
 
 .chat-markdown blockquote {
   margin: 15px 0;
-  border-left: 3px solid var(--color-accent);
+  border-inline-start: 1px solid var(--color-border-strong);
   border-radius: 0 8px 8px 0;
   background: var(--color-blockquote-background);
   color: var(--color-muted);
@@ -798,3 +798,101 @@
 .attachment-toast > span { flex: 1; overflow-wrap: anywhere; }
 .attachment-toast > button { display: grid; flex: 0 0 24px; width: 24px; height: 24px; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--color-muted); cursor: pointer; }
 .attachment-toast > button:hover, .attachment-toast > button:focus-visible { background: var(--color-hover); color: var(--color-foreground); }
+.archhypo-copilot-chat[data-copilotkit],
+.archhypo-copilot-chat [data-copilotkit] {
+  --background: var(--color-background);
+  --foreground: var(--color-foreground);
+  --card: var(--color-surface);
+  --card-foreground: var(--color-foreground);
+  --popover: var(--color-surface-raised);
+  --popover-foreground: var(--color-foreground);
+  --primary: var(--color-brand);
+  --primary-foreground: var(--color-brand-foreground);
+  --secondary: var(--color-surface-raised);
+  --secondary-foreground: var(--color-foreground);
+  --muted: var(--color-user-message);
+  --muted-foreground: var(--color-muted);
+  --accent: var(--color-surface-raised);
+  --accent-foreground: var(--color-foreground);
+  --destructive: var(--color-error);
+  --destructive-foreground: var(--color-error);
+  --border: var(--color-border);
+  --input: var(--color-input);
+  --ring: var(--color-accent);
+  color: var(--color-foreground);
+  background-color: transparent;
+}
+
+.archhypo-copilot-chat[data-copilotkit] {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.archhypo-copilot-chat .archhypo-message-list {
+  width: 100%;
+  min-width: 0;
+  margin-inline: auto;
+  max-width: var(--chat-column);
+  padding-block: 0.75rem;
+}
+
+.archhypo-copilot-chat .copilotKitMessage {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.archhypo-copilot-chat [data-testid="copilot-scroll-content"] {
+  padding-inline: 1rem;
+}
+
+.archhypo-copilot-chat .cpk\:prose {
+  --tw-prose-body: var(--color-foreground);
+  --tw-prose-headings: var(--color-foreground);
+  --tw-prose-links: var(--color-accent);
+  --tw-prose-bold: var(--color-foreground);
+  --tw-prose-bullets: var(--color-muted);
+  --tw-prose-invert-body: var(--color-foreground);
+  --tw-prose-invert-headings: var(--color-foreground);
+  --tw-prose-invert-links: var(--color-accent);
+  --tw-prose-invert-bold: var(--color-foreground);
+  --tw-prose-invert-bullets: var(--color-muted);
+}
+
+.archhypo-copilot-session {
+  --chat-column: 46rem;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  width: 100%;
+}
+
+.archhypo-copilot-transcript {
+  flex: 1;
+  min-height: 0;
+}
+
+.archhypo-copilot-composer {
+  margin: 0.5rem auto 0.75rem;
+  width: min(var(--chat-column), calc(100% - 2rem));
+}
+
+.archhypo-copilot-composer .chat-composer {
+  border-radius: 1rem;
+}
+
+.chat-composer:focus-within {
+  border-color: var(--color-border-strong);
+}
+
+.archhypo-copilot-details {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.archhypo-copilot-details > small {
+  color: var(--color-muted);
+  overflow-wrap: anywhere;
+}
