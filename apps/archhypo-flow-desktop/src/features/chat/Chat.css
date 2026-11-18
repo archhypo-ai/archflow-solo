@@ -819,7 +819,10 @@
   --border: var(--color-border);
   --input: var(--color-input);
   --ring: var(--color-accent);
+  --cpk-font-sans: var(--font-sans);
+  --cpk-default-font-family: var(--font-sans);
   color: var(--color-foreground);
+  font-family: var(--font-sans);
   background-color: transparent;
 }
 

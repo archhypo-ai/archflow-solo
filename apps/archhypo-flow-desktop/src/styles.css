@@ -1,4 +1,4 @@
-@import "./theme/tokens.css";
+@import "./design-system/tokens.css";
 
 :root {
   font-family: var(--font-sans);

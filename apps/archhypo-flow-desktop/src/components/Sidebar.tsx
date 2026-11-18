@@ -20,6 +20,7 @@ import {
 import { useCallback, useEffect, useState, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../i18n";
+import { NavigationButton } from "../design-system";
 import { ProjectIcon, type Project } from "../features/projects";
 import type { ConversationSummary } from "../features/conversations/types";
 import { Menu, MenuContent, MenuItem, MenuRadioItem } from "./overlay";
@@ -222,56 +223,35 @@ export function Sidebar({
       aria-label={t("sidebar.navigationLabel")}
     >
       <div className="sidebar-header">
-        <button
+        <NavigationButton
           className="sidebar-toggle"
-          type="button"
-          aria-label={t(collapsed ? "sidebar.expandSidebar" : "sidebar.collapseSidebar")}
-          title={t(collapsed ? "sidebar.expandSidebar" : "sidebar.collapseSidebar")}
+          label={t(collapsed ? "sidebar.expandSidebar" : "sidebar.collapseSidebar")}
+          icon={<PanelLeft />}
+          iconOnly
           onClick={onToggle}
-        >
-          <PanelLeft size={17} aria-hidden="true" />
-        </button>
+        />
         <strong className="sidebar-brand">{t("sidebar.brand")}</strong>
       </div>
       <div className="sidebar-primary-actions">
-        <button
-          className={`sidebar-action-button${isNewConversationActive ? " is-active" : ""}`}
+        <NavigationButton
           onClick={onNewChat}
-          type="button"
-          aria-pressed={isNewConversationActive}
-          aria-label={t("sidebar.newConversation")}
-          title={t("sidebar.newConversation")}
-        >
-          <SquarePen size={17} aria-hidden="true" />
-          <span>{t("sidebar.newConversation")}</span>
-        </button>
-        <button
-          className="sidebar-action-button"
+          selected={isNewConversationActive}
+          label={t("sidebar.newConversation")}
+          icon={<SquarePen />}
+        />
+        <NavigationButton
           onClick={onNewProject}
-          type="button"
-          aria-label={t("sidebar.newProject")}
-          title={t("sidebar.newProject")}
-        >
-          <FolderPlus size={17} aria-hidden="true" />
-          <span>{t("sidebar.newProject")}</span>
-        </button>
-        <button
-          className={`sidebar-action-button${isArtifactsActive ? " is-active" : ""}`}
+          label={t("sidebar.newProject")}
+          icon={<FolderPlus />}
+        />
+        <NavigationButton
           onClick={onArtifactsSelect}
-          type="button"
-          aria-pressed={isArtifactsActive}
-          aria-label={t("sidebar.artifacts")}
-          title={t("sidebar.artifacts")}
-        >
-          <Layers size={17} aria-hidden="true" />
-          <span>{t("sidebar.artifacts")}</span>
-        </button>
-        <button className="sidebar-action-button" onClick={onProvidersOpen} type="button" aria-label={t("settings.providers")} title={t("settings.providers")}>
-          <Server size={17} aria-hidden="true" /><span>{t("settings.providers")}</span>
-        </button>
-        <button className="sidebar-action-button" onClick={onPluginsOpen} type="button" aria-label={t("settings.plugins")} title={t("settings.plugins")}>
-          <Puzzle size={17} aria-hidden="true" /><span>{t("settings.plugins")}</span>
-        </button>
+          selected={isArtifactsActive}
+          label={t("sidebar.artifacts")}
+          icon={<Layers />}
+        />
+        <NavigationButton onClick={onProvidersOpen} label={t("settings.providers")} icon={<Server />} />
+        <NavigationButton onClick={onPluginsOpen} label={t("settings.plugins")} icon={<Puzzle />} />
       </div>
 
       <div className="sidebar-sections">
