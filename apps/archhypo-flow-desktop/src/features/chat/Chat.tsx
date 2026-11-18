@@ -15,7 +15,7 @@ import { attachmentFolder } from "./adapters/documentAttachmentAdapter";
 import { ChatComposer } from "./components/ChatComposer";
 import { ChatWelcome } from "./components/ChatWelcome";
 import { ARCHHYPO_ACTIVITY, ReviewActions, copilotActivityRenderers, type ChatDetails } from "./components/CopilotChatDetails";
-import { NativeChartTool } from "./components/NativeChartTool";
+import { CopilotToolRenderers } from "./components/CopilotToolRenderers";
 import type { HumanReviewDecision, PendingHumanReview } from "./types";
 import "@copilotkit/react-core/v2/styles.css";
 import "./Chat.css";
@@ -297,7 +297,7 @@ function ChatSession(props: ChatProps) {
   ];
   return (
     <ReviewActions.Provider value={{ running, submit: (review, decision) => { void send("", [], review, decision); } }}>
-      <NativeChartTool />
+      <CopilotToolRenderers />
       <div className={visible.length || running ? "archhypo-copilot-session"
         : `chat-empty-state${props.projectLanding ? " is-project-landing" : ""}`}>
         <div className={visible.length || running ? "archhypo-copilot-transcript" : undefined}>
@@ -306,6 +306,7 @@ function ChatSession(props: ChatProps) {
               welcomeScreen={false} input={NoBuiltInComposer}
               messageView={{
                 className: "archhypo-message-list",
+                toolCallDisplay: "separate",
                 assistantMessage: { markdownRenderer: ChatMarkdownRenderer },
               }} />
           ) : <ChatWelcome project={props.project} />}

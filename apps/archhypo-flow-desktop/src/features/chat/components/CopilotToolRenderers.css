@@ -1,0 +1,99 @@
+.copilot-chart {
+  width: min(100%, 42rem);
+  margin: 0.5rem 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--card-foreground);
+  padding: 1rem;
+}
+
+.copilot-chart figcaption {
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.copilot-chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  font: 11px var(--cpk-font-sans, sans-serif);
+}
+
+.copilot-chart-axis {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.copilot-chart-line {
+  fill: none;
+  stroke: var(--chart-1, var(--primary));
+  stroke-width: 3;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.copilot-chart-point {
+  fill: var(--chart-1, var(--primary));
+}
+
+.copilot-chart-label {
+  fill: var(--muted-foreground);
+}
+
+.copilot-chart-value {
+  fill: var(--foreground);
+  font-weight: 600;
+}
+
+.copilot-chart-pie {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.copilot-chart-pie svg {
+  width: min(42%, 12rem);
+  flex: 0 0 auto;
+}
+
+.copilot-chart-pie ul {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.85rem;
+}
+
+.copilot-chart-pie li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.copilot-chart-pie li span {
+  width: 0.6rem;
+  height: 0.6rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+}
+
+.copilot-chart-state {
+  padding-block: 0.5rem;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 520px) {
+  .copilot-chart-pie {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .copilot-chart-pie svg {
+    width: min(100%, 12rem);
+  }
+}

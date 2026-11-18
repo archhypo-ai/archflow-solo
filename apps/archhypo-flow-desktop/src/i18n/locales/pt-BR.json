@@ -158,17 +158,9 @@
     "copyMessage": "Copiar mensagem",
     "tableScrollRegion": "Tabela Markdown. Role horizontalmente para ver todas as colunas.",
     "loading": "Carregando conversa…",
+    "chartLoading": "Preparando gráfico…",
     "chartEmpty": "Não há dados para exibir no gráfico.",
-    "pieChart": "Gráfico de setores",
-    "chartPreparing": "Preparando gráfico…",
     "chartTitle": "Gráfico",
-    "toolArguments": "Argumentos",
-    "toolResult": "Resultado",
-    "toolStatus": {
-      "inProgress": "Preparando",
-      "executing": "Em execução",
-      "complete": "Concluída"
-    },
     "loadError": "Não foi possível carregar esta conversa do serviço local de chat.",
     "retry": "Tentar novamente"
   },

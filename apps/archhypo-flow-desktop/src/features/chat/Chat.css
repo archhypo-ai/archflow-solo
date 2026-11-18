@@ -295,36 +295,6 @@
 .attachment-toast > span { flex: 1; overflow-wrap: anywhere; }
 .attachment-toast > button { display: grid; flex: 0 0 24px; width: 24px; height: 24px; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--color-muted); cursor: pointer; }
 .attachment-toast > button:hover, .attachment-toast > button:focus-visible { background: var(--color-hover); color: var(--color-foreground); }
-.archhypo-copilot-chat[data-copilotkit],
-.archhypo-copilot-chat [data-copilotkit] {
-  --background: var(--color-background);
-  --foreground: var(--color-foreground);
-  --card: var(--color-surface);
-  --card-foreground: var(--color-foreground);
-  --popover: var(--color-surface-raised);
-  --popover-foreground: var(--color-foreground);
-  --primary: var(--color-brand);
-  --primary-foreground: var(--color-brand-foreground);
-  --secondary: var(--color-surface-raised);
-  --secondary-foreground: var(--color-foreground);
-  --muted: var(--color-user-message);
-  --muted-foreground: var(--color-muted);
-  --accent: var(--color-surface-raised);
-  --accent-foreground: var(--color-foreground);
-  --destructive: var(--color-error);
-  --destructive-foreground: var(--color-error);
-  --border: var(--color-border);
-  --input: var(--color-input);
-  --ring: var(--color-accent);
-  --cpk-font-sans: var(--font-sans);
-  --cpk-default-font-family: var(--font-sans);
-  --cpk-font-mono: var(--font-mono);
-  --cpk-default-mono-font-family: var(--font-mono);
-  color: var(--color-foreground);
-  font-family: var(--font-sans);
-  background-color: transparent;
-}
-
 .archhypo-copilot-chat[data-copilotkit] {
   flex: 1;
   min-height: 0;
