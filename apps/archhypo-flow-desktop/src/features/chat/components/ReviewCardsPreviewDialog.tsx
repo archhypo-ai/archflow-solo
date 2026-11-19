@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { IconX as X } from "@tabler/icons-react";
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type {

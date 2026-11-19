@@ -7,7 +7,7 @@
   flex-direction: column;
   gap: 3px;
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: var(--ds-surface-radius);
   background: var(--color-surface);
   padding: 6px;
   box-shadow: 0 10px 32px var(--color-shadow);
@@ -16,16 +16,17 @@
 .menu-item {
   display: flex;
   width: 100%;
-  min-height: 36px;
+  min-height: var(--ds-control-size);
   align-items: center;
   gap: 10px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--ds-control-radius);
   background: transparent;
   color: var(--color-muted);
   padding: 8px 10px;
   text-align: left;
-  font-size: 14px;
+  font: inherit;
+  font-size: var(--ds-label-size);
 }
 
 .menu-item:hover,
@@ -35,10 +36,11 @@
 }
 
 .menu-item svg {
-  width: 16px;
-  height: 16px;
+  width: var(--ds-icon-size);
+  height: var(--ds-icon-size);
   flex: 0 0 auto;
-  color: var(--color-brand);
+  stroke-width: 1.75;
+  color: var(--color-muted);
 }
 
 .menu-item-danger,

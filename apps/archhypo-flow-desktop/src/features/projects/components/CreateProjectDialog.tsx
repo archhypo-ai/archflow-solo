@@ -1,4 +1,4 @@
-import { FolderPlus, Settings2, X } from "lucide-react";
+import { IconFolderPlus as FolderPlus, IconAdjustmentsHorizontal as Settings2, IconX as X } from "@tabler/icons-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Menu, MenuContent } from "../../../components/overlay";

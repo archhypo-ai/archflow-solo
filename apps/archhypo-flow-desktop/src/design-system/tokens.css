@@ -1,0 +1,244 @@
+/* Grayscale workspace and controls; project labels and statuses retain semantic color. */
+:root {
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
+  --ds-space-2: 0.5rem;
+  --ds-icon-size: 1rem;
+  --ds-label-size: 0.875rem;
+  --ds-control-size: 2.25rem;
+  --ds-control-radius: 0.625rem;
+  --ds-surface-radius: 0.875rem;
+  --ds-workspace-radius: 1.125rem;
+  --ds-navigation-rail: calc(var(--ds-control-size) + 2 * var(--ds-space-2) + 1px);
+}
+
+:root,
+:root[data-theme="night"] {
+  color-scheme: dark;
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+
+  --color-background: #28282a;
+  --color-sidebar: #202022;
+  --color-surface: #303032;
+  --color-surface-raised: #38383b;
+  --color-border: #424245;
+  --color-border-strong: #55555c;
+  --color-foreground: #f2f2f3;
+  --color-muted: #bababc;
+  --color-subtle: #a4a4ad;
+  --color-accent: #c9c9cc;
+  --color-red: #f7768e;
+  --color-orange: #ff9e64;
+  --color-yellow: #e0af68;
+  --color-green: #9ece6a;
+  --color-blue: #8ab4ff;
+  --color-purple: #bb9af7;
+  --color-pink: #f776c6;
+  --color-error: var(--color-status-negative);
+  --color-status-positive: #8cd4ab;
+  --color-status-caution: #e8c47d;
+  --color-status-negative: #f0a0a0;
+  --color-brand: #ededf0;
+  --color-brand-foreground: #141416;
+  --color-user-message: var(--color-surface);
+  --color-input: var(--color-surface);
+  --color-hover: color-mix(in srgb, var(--color-foreground) 7%, transparent);
+  --color-shadow: color-mix(in srgb, black 24%, transparent);
+  --color-backdrop: color-mix(in srgb, black 55%, transparent);
+  --project-color-neutral: var(--color-muted);
+  --project-color-red: var(--color-red);
+  --project-color-orange: var(--color-orange);
+  --project-color-yellow: var(--color-yellow);
+  --project-color-green: var(--color-green);
+  --project-color-blue: var(--color-blue);
+  --project-color-purple: var(--color-purple);
+  --project-color-pink: var(--color-pink);
+}
+
+:root[data-theme="day"] {
+  color-scheme: light;
+  --color-background: #ffffff;
+  --color-sidebar: #f0f0f2;
+  --color-surface: #f6f6f7;
+  --color-surface-raised: #eeeef0;
+  --color-border: #dddde1;
+  --color-border-strong: #a0a0a9;
+  --color-foreground: #212124;
+  --color-muted: #5b5b63;
+  --color-subtle: #62626c;
+  --color-accent: #4b4b52;
+  --color-red: #b7445d;
+  --color-orange: #b85c16;
+  --color-yellow: #8a6600;
+  --color-green: #477d32;
+  --color-blue: #2455b5;
+  --color-purple: #7351a2;
+  --color-pink: #aa467f;
+  --color-status-positive: #236b48;
+  --color-status-caution: #795400;
+  --color-status-negative: #a12d37;
+  --color-error: var(--color-status-negative);
+  --color-brand: #242427;
+  --color-brand-foreground: #ffffff;
+  --color-user-message: var(--color-surface);
+  --color-input: var(--color-surface);
+  --color-hover: color-mix(in srgb, var(--color-foreground) 6%, transparent);
+  --color-shadow: color-mix(in srgb, black 10%, transparent);
+  --color-backdrop: color-mix(in srgb, black 38%, transparent);
+  --project-color-neutral: var(--color-muted);
+  --project-color-red: var(--color-red);
+  --project-color-orange: var(--color-orange);
+  --project-color-yellow: var(--color-yellow);
+  --project-color-green: var(--color-green);
+  --project-color-blue: var(--color-blue);
+  --project-color-purple: var(--color-purple);
+  --project-color-pink: var(--color-pink);
+}
+
+/* Semantic palette: use these roles instead of repeating color recipes in components. */
+:root {
+  --color-brand-hover: color-mix(
+    in srgb,
+    var(--color-brand) 92%,
+    var(--color-foreground)
+  );
+  --gradient-chat-footer: linear-gradient(
+    to bottom,
+    transparent,
+    var(--color-background) 22%
+  );
+
+  --color-success: var(--color-status-positive);
+  --color-warning: var(--color-status-caution);
+  --color-warning-background: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface));
+  --color-warning-border: color-mix(in srgb, var(--color-warning) 36%, var(--color-border));
+  --color-success-background: color-mix(
+    in srgb,
+    var(--color-success) 12%,
+    var(--color-surface)
+  );
+  --color-success-border: color-mix(
+    in srgb,
+    var(--color-success) 36%,
+    var(--color-border)
+  );
+  --color-success-foreground: color-mix(
+    in srgb,
+    var(--color-success) 78%,
+    var(--color-foreground)
+  );
+
+  --color-status-neutral-border: color-mix(
+    in srgb,
+    var(--color-muted) 36%,
+    var(--color-border)
+  );
+
+  --color-badge-background: color-mix(
+    in srgb,
+    var(--color-surface) 68%,
+    transparent
+  );
+  --color-badge-background-subtle: color-mix(
+    in srgb,
+    var(--color-surface) 72%,
+    transparent
+  );
+  --color-accent-badge-background: color-mix(
+    in srgb,
+    var(--color-accent) 12%,
+    var(--color-surface)
+  );
+  --color-accent-badge-border: color-mix(
+    in srgb,
+    var(--color-accent) 35%,
+    var(--color-border)
+  );
+  --color-accent-badge-background-strong: color-mix(
+    in srgb,
+    var(--color-accent) 16%,
+    var(--color-surface)
+  );
+  --color-accent-control-background: color-mix(
+    in srgb,
+    var(--color-accent) 12%,
+    transparent
+  );
+  --color-surface-raised-hover: color-mix(
+    in srgb,
+    var(--color-surface-raised) 88%,
+    var(--color-hover)
+  );
+  --color-blockquote-background: color-mix(
+    in srgb,
+    var(--color-surface-raised) 78%,
+    transparent
+  );
+  --color-table-row-background: color-mix(
+    in srgb,
+    var(--color-surface-raised) 46%,
+    transparent
+  );
+  --color-table-row-hover-background: color-mix(
+    in srgb,
+    var(--color-accent) 8%,
+    var(--color-surface)
+  );
+  --color-selection-background: var(--color-table-row-hover-background);
+  --color-navigation-selected: var(--color-hover);
+  --color-navigation-indicator: var(--color-accent);
+
+  --color-danger-border: color-mix(
+    in srgb,
+    var(--color-error) 35%,
+    var(--color-border)
+  );
+  --color-danger-border-strong: color-mix(
+    in srgb,
+    var(--color-error) 45%,
+    var(--color-border)
+  );
+  --color-danger-background: color-mix(
+    in srgb,
+    var(--color-error) 11%,
+    var(--color-surface)
+  );
+  --color-danger-background-hover: color-mix(
+    in srgb,
+    var(--color-error) 18%,
+    var(--color-surface)
+  );
+  --color-danger-overlay: color-mix(
+    in srgb,
+    var(--color-error) 10%,
+    transparent
+  );
+
+  --color-focus-ring: color-mix(in srgb, var(--color-accent) 24%, transparent);
+  --color-focus-ring-input: color-mix(
+    in srgb,
+    var(--color-accent) 22%,
+    transparent
+  );
+  --color-focus-ring-subtle: color-mix(
+    in srgb,
+    var(--color-accent) 15%,
+    transparent
+  );
+  --color-focus-ring-soft: color-mix(
+    in srgb,
+    var(--color-accent) 10%,
+    transparent
+  );
+  --color-accent-focus-border: color-mix(
+    in srgb,
+    var(--color-accent) 55%,
+    var(--color-border)
+  );
+
+  --color-green-yellow: color-mix(
+    in srgb,
+    var(--color-green) 65%,
+    var(--color-yellow)
+  );
+}

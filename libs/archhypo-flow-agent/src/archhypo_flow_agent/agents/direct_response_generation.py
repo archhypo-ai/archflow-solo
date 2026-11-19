@@ -5,6 +5,9 @@ from collections.abc import Sequence
 from langchain_core.language_models import BaseChatModel
 from langchain_core.tools import BaseTool
 
+from archhypo_flow_agent.tools.publish_a2ui import publish_a2ui_surface
+from archhypo_flow_agent.tools.render_chart import render_chart
+
 from .response_generation import build_response_generation_agent
 
 SYSTEM_PROMPT = """\
@@ -23,6 +26,11 @@ architecture and engineering, briefly state the scope boundary and offer to
 help reformulate the request in software terms. If the routing intent is
 `clarification`, ask one concise clarifying question. For `out_of_scope`, do not
 attempt the requested task.
+
+When the user asks for a chart, use `render_chart` with data stated by the user
+or available in the conversation. Never invent numeric values for a chart. If
+required values are missing, ask one concise question instead. Choose `bar` for
+comparisons, `line` for ordered/time-series data, and `pie` for parts of a whole.
 """
 
 
@@ -35,7 +43,7 @@ def build_direct_response_agent(
 
     return build_response_generation_agent(
         model,
-        tools=tools,
+        tools=(*tools, publish_a2ui_surface, render_chart),
         base_system_prompt=SYSTEM_PROMPT,
     )
 

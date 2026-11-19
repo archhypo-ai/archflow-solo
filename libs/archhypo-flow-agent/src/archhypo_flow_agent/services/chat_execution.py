@@ -333,6 +333,9 @@ class ChatExecutionService:
                 "Approve or reject the pending review before continuing."
             )
 
+        if request.review_interrupt_id is not None and request.review_interrupt_id != pending[0]:
+            raise ReviewStateError("The interrupt ID does not match the pending review.")
+
         if pending[1].get("kind") != expected_kind:
             raise ReviewStateError("The decision does not match the pending review.")
 
@@ -389,6 +392,11 @@ class ChatExecutionService:
                     output=tool_result_value(message.content),
                     is_error=getattr(message, "status", "success") == "error",
                 )
+                artifact = getattr(message, "artifact", None)
+                if isinstance(artifact, dict) and isinstance(artifact.get("a2ui"), list):
+                    yield stream_event_data(
+                        run_id, thread_id, "a2ui", messages=artifact["a2ui"],
+                    )
                 if not pending_calls:
                     yield stream_event_data(
                         run_id,

@@ -1,21 +1,35 @@
 import {
-  AssistantRuntimeProvider,
-  useLocalRuntime,
-  type ThreadMessageLike,
-} from "@assistant-ui/react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+  CopilotChatAssistantMessage,
+  CopilotChatView,
+  CopilotKitProvider,
+  useAgent,
+} from "@copilotkit/react-core/v2";
+import { EventType, type Message } from "@ag-ui/core";
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../i18n";
-import { getConversation, type StoredChatMessage } from "../conversations";
+import { getConversation, type StoredConversation } from "../conversations";
 import type { Project } from "../projects/types";
-import { createChatModelAdapter } from "./adapters/chatModelAdapter";
-import { DocumentAttachmentAdapter } from "./adapters/documentAttachmentAdapter";
-import { ChatThread } from "./components/ChatThread";
-import type {
-  CompletedHumanReview,
-  PendingHypothesisReview,
-  PendingTechnicalPlanReview,
-} from "./types";
+import { archHypoAgent, streamChatMessage } from "./api/chatClient";
+import { attachmentFolder } from "./adapters/documentAttachmentAdapter";
+import { ChatComposer } from "./components/ChatComposer";
+import { ChatWelcome } from "./components/ChatWelcome";
+import { ARCHHYPO_ACTIVITY, ReviewActions, copilotActivityRenderers, type ChatDetails } from "./components/CopilotChatDetails";
+import { CopilotToolRenderers } from "./components/CopilotToolRenderers";
+import type { HumanReviewDecision, PendingHumanReview } from "./types";
+import "@copilotkit/react-core/v2/styles.css";
+import "./Chat.css";
+
+function ChatMarkdownRenderer(
+  props: ComponentProps<typeof CopilotChatAssistantMessage.MarkdownRenderer>,
+) {
+  return (
+    <CopilotChatAssistantMessage.MarkdownRenderer
+      {...props}
+      className={`${props.className ?? ""} archhypo-markdown`}
+    />
+  );
+}
 
 type ChatProps = {
   threadId: string;
@@ -38,198 +52,278 @@ type ChatProps = {
   ) => void;
 };
 
-function toInitialMessages(
-  threadId: string,
-  messages: StoredChatMessage[],
-  completedReviews: CompletedHumanReview[],
-  pendingHypothesisReview: PendingHypothesisReview | null | undefined,
-  pendingTechnicalPlanReview: PendingTechnicalPlanReview | null | undefined,
-): ThreadMessageLike[] {
-  const reviewsByMessageCount = new Map<number, CompletedHumanReview[]>();
-  for (const review of completedReviews) {
-    const position = Math.min(
-      Math.max(0, review.after_message_count),
-      messages.length,
-    );
-    const reviews = reviewsByMessageCount.get(position) ?? [];
-    reviews.push(review);
-    reviewsByMessageCount.set(position, reviews);
-  }
+const agents = { archhypo: archHypoAgent };
+const NoBuiltInComposer = () => null;
+type CollectedToolCall = {
+  id: string;
+  name: string;
+  args: string;
+  result?: unknown;
+  isError?: boolean;
+};
 
-  const initialMessages: ThreadMessageLike[] = [];
-  for (let index = 0; index <= messages.length; index += 1) {
-    for (const review of reviewsByMessageCount.get(index) ?? []) {
-      initialMessages.push({
-        id: `${threadId}-completed-review-${initialMessages.length}`,
-        role: "assistant",
-        content: [],
-        metadata: { custom: { completedHumanReview: review } },
-        createdAt: new Date(),
-      });
+function details(id: string, content: ChatDetails): Message {
+  return { id, role: "activity", activityType: ARCHHYPO_ACTIVITY, content };
+}
+
+function initialHistory(threadId: string, conversation: StoredConversation | null): Message[] {
+  if (!conversation) return [];
+  const result: Message[] = [];
+  for (let index = 0; index <= conversation.messages.length; index++) {
+    for (const [reviewIndex, review] of (conversation.completedReviews ?? []).entries()) {
+      if (Math.min(Math.max(0, review.after_message_count), conversation.messages.length) === index) {
+        result.push(details(`${threadId}-review-${reviewIndex}`, { completedReview: review }));
+      }
     }
-    const message = messages[index];
-    if (!message) continue;
-    initialMessages.push({
-      id: `${threadId}-${index}`,
-      role: message.role,
-      ...(message.role === "user" ? {
-        metadata: { custom: {
-          attachmentSizes: (message.attachments ?? []).map((attachment) => attachment.size_bytes ?? null),
-          attachmentFolders: (message.attachments ?? []).map((attachment) => (
-            attachment.folder_id && attachment.folder_name
-              ? { id: attachment.folder_id, name: attachment.folder_name }
-              : null
-          )),
-        } },
-        attachments: (message.attachments ?? []).map((attachment, attachmentIndex) => ({
-          id: `${threadId}-${index}-attachment-${attachmentIndex}`,
-          type: "document" as const,
-          name: attachment.name,
-          contentType: "application/octet-stream",
-          status: { type: "complete" as const },
-          content: [],
+    const entry = conversation.messages[index];
+    if (!entry) continue;
+    const id = `${threadId}-${index}`;
+    const files = entry.attachments?.map(({ name }) => `📎 ${name}`).join("\n");
+    const content = [entry.content, files].filter(Boolean).join("\n\n");
+    if (content) result.push({ id, role: entry.role, content });
+    if (entry.tool_calls?.length) {
+      result.push({
+        id: `${id}-tool-calls`,
+        role: "assistant",
+        content: "",
+        toolCalls: entry.tool_calls.map(({ id: toolId, name, args }) => ({
+          id: toolId,
+          type: "function",
+          function: { name, arguments: JSON.stringify(args) },
         })),
-      } : {}),
-      content: [
-        ...(message.role === "assistant"
-          ? (message.tool_calls ?? []).map((call) => ({
-              type: "tool-call" as const,
-              toolCallId: call.id,
-              toolName: call.name,
-              args: call.args,
-              argsText: JSON.stringify(call.args),
-              result: call.result,
-              isError: call.is_error,
-            }))
-          : []),
-        ...(message.content
-          ? [{ type: "text" as const, text: message.content }]
-          : []),
-      ],
-      createdAt: new Date(),
-    });
+      });
+      for (const tool of entry.tool_calls) {
+        if (tool.result === null) continue;
+        result.push({
+          id: `${id}-tool-result-${tool.id}`,
+          role: "tool",
+          toolCallId: tool.id,
+          content: JSON.stringify(tool.result),
+        });
+      }
+    }
+    if (entry.a2ui_messages?.length) {
+      result.push(details(`${id}-details`, {
+        a2uiSurface: entry.a2ui_messages,
+      }));
+    }
   }
-  if (pendingHypothesisReview) {
-    initialMessages.push({
-      id: `${threadId}-pending-hypothesis-review`,
-      role: "assistant",
-      content: [],
-      metadata: { custom: { hypothesisReview: pendingHypothesisReview } },
-      createdAt: new Date(),
-    });
-  }
-  if (pendingTechnicalPlanReview) {
-    initialMessages.push({
-      id: `${threadId}-pending-technical-plan-review`,
-      role: "assistant",
-      content: [],
-      metadata: { custom: { technicalPlanReview: pendingTechnicalPlanReview } },
-      createdAt: new Date(),
-    });
-  }
-  return initialMessages;
+  return result;
 }
 
 export function Chat(props: ChatProps) {
+  return (
+    <CopilotKitProvider selfManagedAgents={agents} agentId="archhypo" enableInspector={false}
+      showIntelligenceIndicator={false} renderActivityMessages={copilotActivityRenderers}>
+      <ChatSession key={props.threadId} {...props} />
+    </CopilotKitProvider>
+  );
+}
+
+function ChatSession(props: ChatProps) {
   const { t } = useTranslation();
-  const [initialMessages, setInitialMessages] =
-    useState<ThreadMessageLike[] | null>(null);
-  const [loadError, setLoadError] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
+  const { agent, isReady } = useAgent({ agentId: "archhypo" });
+  const [messages, setMessages] = useState<Message[] | null>(null);
+  const [pending, setPending] = useState<PendingHumanReview | null>(null);
+  const [running, setRunning] = useState(false);
+  const [error, setError] = useState("");
+  const [reload, setReload] = useState(0);
+  const activeRun = useRef<AbortController | null>(null);
+  const { threadId, language, projectId } = props;
 
   useEffect(() => {
     let active = true;
-    setInitialMessages(null);
-    setLoadError(false);
+    void getConversation(threadId).then((conversation) => {
+      if (!active) return;
+      setMessages(initialHistory(threadId, conversation));
+      setPending(conversation?.pendingHypothesisReview ?? conversation?.pendingTechnicalPlanReview ?? null);
+      setError("");
+    }).catch(() => { if (active) setError(t("chat.loadError")); });
+    return () => { active = false; activeRun.current?.abort(); };
+  }, [threadId, reload]);
 
-    void getConversation(props.threadId)
-      .then((conversation) => {
-        if (!active) return;
-        setInitialMessages(
-          conversation
-            ? toInitialMessages(
-                props.threadId,
-                conversation.messages,
-                conversation.completedReviews ?? [],
-                conversation.pendingHypothesisReview,
-                conversation.pendingTechnicalPlanReview,
-              )
-            : [],
-        );
-      })
-      .catch(() => {
-        if (active) setLoadError(true);
-      });
-
-    return () => {
-      active = false;
+  async function send(text: string, files: File[], review?: PendingHumanReview, decision?: HumanReviewDecision) {
+    if (activeRun.current || !messages || (pending && !review)) return false;
+    const controller = new AbortController();
+    activeRun.current = controller;
+    setRunning(true);
+    setError("");
+    const id = crypto.randomUUID();
+    let answer = "";
+    let operations: unknown[] = [];
+    const tools: CollectedToolCall[] = [];
+    let terminal = false;
+    const history = [...messages];
+    const publish = () => {
+      if (controller.signal.aborted) return;
+      const nativeToolCalls: Message[] = tools.length ? [{
+        id: `${id}-tool-calls`,
+        role: "assistant",
+        content: "",
+        toolCalls: tools.map((tool) => ({
+          id: tool.id,
+          type: "function",
+          function: { name: tool.name, arguments: tool.args || "{}" },
+        })),
+      }] : [];
+      const nativeToolResults: Message[] = tools
+        .filter((tool) => tool.result !== undefined)
+        .map((tool) => ({
+          id: `${id}-tool-result-${tool.id}`,
+          role: "tool",
+          toolCallId: tool.id,
+          content: typeof tool.result === "string"
+            ? tool.result
+            : JSON.stringify(tool.result),
+        }));
+      setMessages([
+        ...history,
+        ...nativeToolCalls,
+        ...nativeToolResults,
+        ...(answer ? [{ id, role: "assistant" as const, content: answer }] : []),
+            ...(operations.length ? [details(`${id}-details`, {
+              a2uiSurface: operations.length ? operations : undefined,
+            })] : []),
+      ]);
     };
-  }, [props.threadId, reloadKey]);
-
-  if (initialMessages === null) {
-    return (
-      <div className="chat-runtime-state" role="status">
-        {loadError ? (
-          <>
-            <p>{t("chat.loadError")}</p>
-            <button type="button" onClick={() => setReloadKey((key) => key + 1)}>
-              {t("chat.retry")}
-            </button>
-          </>
-        ) : (
-          t("chat.loading")
-        )}
-      </div>
-    );
+    try {
+      const attachments = await Promise.all(files.map(async (file) => {
+        const url = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result));
+          reader.onerror = () => reject(new Error(t("chat.attachmentAddError")));
+          reader.readAsDataURL(file);
+        });
+        const folder = attachmentFolder(file);
+        return { name: file.name, data: url.split(",", 2)[1], ...(folder ? {
+          folder_id: folder.id, folder_name: folder.name,
+        } : {}) };
+      }));
+      if (controller.signal.aborted) return false;
+      if (!review) {
+        history.push({ id: `${id}-user`, role: "user", content: [text, files.map(({ name }) => `📎 ${name}`).join("\n")].filter(Boolean).join("\n\n") });
+        publish();
+      }
+      for await (const event of streamChatMessage(
+        threadId, text, language, projectId, controller.signal,
+        review?.kind === "hypothesis_review" ? decision : undefined,
+        review?.kind === "technical_plan_review" ? decision : undefined,
+        attachments, review?.interrupt_id, isReady ? agent : archHypoAgent,
+      )) {
+        switch (event.type) {
+          case EventType.CUSTOM:
+            if (event.name === "archhypo.conversation_started") {
+              const data = event.value;
+              if (data.user_message.trim() || attachments.length) {
+                props.onConversationStarted(data.thread_id, data.title, data.user_message, data.project_id);
+              }
+            } else if (event.name === "archhypo.a2ui") {
+              const batch = Array.isArray(event.value) ? event.value : [event.value];
+              if (operations.length + batch.length <= 200) operations = [...operations, ...batch];
+              publish();
+            }
+            break;
+          case EventType.TOOL_CALL_START:
+            tools.push({
+              id: event.toolCallId,
+              name: event.toolCallName,
+              args: "",
+            });
+            publish();
+            break;
+          case EventType.TOOL_CALL_ARGS: {
+            const tool = tools.find(({ id: toolId }) => toolId === event.toolCallId);
+            if (tool) tool.args += event.delta;
+            publish();
+            break;
+          }
+          case EventType.TOOL_CALL_RESULT: {
+            const tool = tools.find(({ id: toolId }) => toolId === event.toolCallId);
+            if (tool) tool.result = event.content;
+            publish();
+            break;
+          }
+          case EventType.TEXT_MESSAGE_CONTENT:
+            answer += event.delta;
+            publish();
+            break;
+          case EventType.RUN_ERROR:
+            throw new Error(event.message);
+          case EventType.RUN_FINISHED: {
+            terminal = true;
+            const interrupt = event.outcome?.type === "interrupt" ? event.outcome.interrupts[0] : undefined;
+            const next = interrupt?.metadata?.archhypoReview as PendingHumanReview | undefined;
+            if (review && decision?.decision === "approved") {
+              history.push(details(`${id}-approved`, { completedReview: { review } }));
+            }
+            setPending(next && interrupt ? { ...next, interrupt_id: interrupt.id } : null);
+            if (event.result) {
+              answer = event.result.message;
+              props.onConversationUpdated(event.threadId, event.result.title, answer, projectId);
+            }
+            publish();
+            break;
+          }
+        }
+      }
+      if (!terminal && !controller.signal.aborted) throw new Error(t("chat.loadError"));
+      return terminal;
+    } catch (cause) {
+      if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : t("chat.loadError"));
+      return false;
+    } finally {
+      if (activeRun.current === controller) {
+        activeRun.current = null;
+        setRunning(false);
+      }
+    }
   }
 
-  return <LoadedChat {...props} initialMessages={initialMessages} />;
-}
-
-type LoadedChatProps = ChatProps & {
-  initialMessages: ThreadMessageLike[];
-};
-
-function LoadedChat({
-  threadId,
-  language,
-  projectId,
-  project,
-  projectLanding,
-  projectLandingContent,
-  onConversationStarted,
-  onConversationUpdated,
-  initialMessages,
-}: LoadedChatProps) {
-  const chatModel = useMemo(
-    () =>
-      createChatModelAdapter({
-        threadId,
-        language,
-        projectId,
-        onConversationStarted,
-        onConversationUpdated,
-      }),
-    [
-      threadId,
-      language,
-      projectId,
-      onConversationStarted,
-      onConversationUpdated,
-    ],
+  if (!messages) return (
+    <div className="chat-runtime-state" role="status">
+      {error ? <><p>{error}</p><button type="button" onClick={() => setReload((n) => n + 1)}>{t("chat.retry")}</button></> : t("chat.loading")}
+    </div>
   );
-  const attachmentAdapter = useMemo(() => new DocumentAttachmentAdapter(), []);
-  const runtime = useLocalRuntime(chatModel, {
-    initialMessages, adapters: { attachments: attachmentAdapter },
-  });
 
+  const composer = <ChatComposer running={running} disabled={Boolean(pending)}
+    onSend={send} onStop={() => activeRun.current?.abort()} />;
+  const visible = [
+    ...messages,
+    ...(pending ? [details(pending.interrupt_id ?? "pending", {
+      hypothesisReview: pending.kind === "hypothesis_review" ? pending : undefined,
+      technicalPlanReview: pending.kind === "technical_plan_review" ? pending : undefined,
+    })] : []),
+    ...(error ? [details("chat-error", { error })] : []),
+  ];
   return (
-    <AssistantRuntimeProvider runtime={runtime}>
-      <ChatThread
-        project={project}
-        projectLanding={projectLanding}
-        projectLandingContent={projectLandingContent}
-      />
-    </AssistantRuntimeProvider>
+    <ReviewActions.Provider value={{ running, submit: (review, decision) => { void send("", [], review, decision); } }}>
+      <CopilotToolRenderers />
+      <div className={visible.length || running ? "archhypo-copilot-session"
+        : `chat-empty-state${props.projectLanding ? " is-project-landing" : ""}`}>
+        <div className={visible.length || running ? "archhypo-copilot-transcript" : undefined}>
+          {visible.length || running ? (
+            <CopilotChatView className="archhypo-copilot-chat" messages={visible} isRunning={running}
+              welcomeScreen={false} input={NoBuiltInComposer}
+              messageView={{
+                className: "archhypo-message-list",
+                toolCallDisplay: "separate",
+                assistantMessage: { markdownRenderer: ChatMarkdownRenderer },
+              }} />
+          ) : <ChatWelcome project={props.project} />}
+        </div>
+        <div className={visible.length || running ? "archhypo-copilot-composer" : "chat-empty-composer"}>
+          {pending && <div className="chat-review-paused">
+            <p role="status">{t("chat.reviewPaused")}</p>
+            <button type="button" onClick={() => {
+              const review = document.getElementById("chat-pending-review");
+              review?.focus({ preventScroll: true });
+              review?.scrollIntoView({ block: "nearest" });
+            }}>{t("chat.goToReview")}</button>
+          </div>}
+          {composer}
+        </div>
+        {!visible.length && !running && props.projectLanding && props.projectLandingContent}
+      </div>
+    </ReviewActions.Provider>
   );
 }

@@ -6,6 +6,7 @@ import sqlite3
 from dataclasses import dataclass
 from pathlib import Path
 
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langgraph.checkpoint.sqlite import SqliteSaver
 
 from archhypo_flow_agent.persistence.artifacts import SQLiteArchHypoArtifactRepository
@@ -14,6 +15,23 @@ from archhypo_flow_agent.persistence.paths import DATABASE_PATH
 from archhypo_flow_agent.persistence.projects import SQLiteProjectRepository
 from archhypo_flow_agent.persistence.schema import initialize_schema
 
+_CHECKPOINT_CONTRACTS = [
+    ("archhypo_flow_agent.core.archhypo", name)
+    for name in (
+        "RequestRouting",
+        "ArchitecturalUncertaintyDiscovery",
+        "Hypothesis",
+        "HypothesisProposal",
+        "HypothesisNovelty",
+        "HypothesisReview",
+        "TechnicalPlanReview",
+        "HypothesisAssessment",
+        "CatalogPatternSelection",
+        "TechnicalPlanItem",
+        "TechnicalPlan",
+        "ArchHypoResult",
+    )
+]
 
 @dataclass(slots=True)
 class SQLitePersistence:
@@ -73,7 +91,10 @@ def open_sqlite_persistence(path: Path = DATABASE_PATH) -> SQLitePersistence:
     connection.row_factory = sqlite3.Row
     try:
         initialize_schema(connection)
-        checkpointer = SqliteSaver(connection)
+        checkpointer = SqliteSaver(
+            connection,
+            serde=JsonPlusSerializer(allowed_msgpack_modules=_CHECKPOINT_CONTRACTS),
+        )
         checkpointer.setup()
         conversations = SQLiteConversationRepository(connection)
         projects = SQLiteProjectRepository(connection)

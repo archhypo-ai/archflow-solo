@@ -1,4 +1,4 @@
-import { ChevronDown } from "lucide-react";
+import { IconChevronDown as ChevronDown } from "@tabler/icons-react";
 import { Menu, MenuCheckboxItem, MenuContent } from "../../../components/overlay";
 
 export type ArtifactFilterOption = {

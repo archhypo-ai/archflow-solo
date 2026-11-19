@@ -1,4 +1,4 @@
-import { FileText, FolderOpen } from "lucide-react";
+import { IconFileText as FileText, IconFolderOpen as FolderOpen } from "@tabler/icons-react";
 
 export type MessageAttachmentItem = {
   id: string;

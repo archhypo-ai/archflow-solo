@@ -1,0 +1,105 @@
+---
+name: intelligence-docs
+description: >
+  Keeps the CopilotKit Intelligence landing page in sync when a new Intelligence
+  feature ships or when Intelligence docs are added, renamed, or removed. Use
+  when adding Intelligence capabilities, writing or moving pages under
+  docs/(shared)/intelligence, editing IntelligenceFeatureCards, or changing
+  snippets/shared/intelligence/overview.mdx. Don't use for OSS-only frontend
+  docs, Inspector pane callouts, or marketing-site copy.
+---
+
+# Intelligence Landing Page
+
+`/intelligence/overview` is the product landing for CopilotKit Intelligence.
+New Intelligence features and new Intelligence docs pages must land on that
+page in the same change. Do not ship a guide that the landing does not name.
+
+## When To Use
+
+Load this skill when:
+
+- A new Intelligence feature ships (threads, analytics, learning, channels,
+  hosting, inspection, or a later pillar)
+- A page is added, renamed, or removed under
+  `showcase/shell-docs/src/content/docs/(shared)/intelligence/`
+- The shared Intelligence overview snippet or feature cards change
+
+Before writing customer-facing words on those pages, also follow
+`skills/intelligence-vocabulary/SKILL.md`.
+
+Do not load it for open-source frontend guides that do not use Intelligence, or for
+Inspector pane callouts (`inspector-docs`).
+
+## Landing sources
+
+Edit these in the same change as the feature or docs page:
+
+| Surface                              | File                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------ |
+| Hero CTA and cards                   | `showcase/shell-docs/src/components/docs-mdx/showcase/intelligence.tsx`                    |
+| Body, quickstart link, hosting links | `showcase/shell-docs/src/content/snippets/shared/intelligence/overview.mdx`                |
+| Section nav                          | `showcase/shell-docs/src/content/docs/(shared)/intelligence/meta.json`                     |
+| Root sidebar Intelligence link       | `showcase/shell-docs/src/content/docs/meta.json`                                           |
+| Intelligence sidebar section         | `showcase/shell-docs/src/content/docs/(shared)/meta.json` (its `---Intelligence---` group) |
+
+Intelligence pages live in the `docs/(shared)` route group, so every frontend's
+sidebar ends with them. The group isn't part of the URL:
+`docs/(shared)/intelligence/memories.mdx` serves `/intelligence/memories`.
+
+The root overview page only wraps the snippet. Do not duplicate landing copy
+in `docs/(shared)/intelligence/overview.mdx`.
+
+## Procedures
+
+### Procedure 1: Add a feature or docs page
+
+1. Add or update the guide page under `docs/(shared)/intelligence/` (or the
+   existing threads/channels path the feature already uses).
+2. Put the page in `(shared)/intelligence/meta.json`, and in the Intelligence
+   group of `docs/(shared)/meta.json` when it belongs in the sidebar.
+3. Link the page from the shared snippet. A user-facing pillar gets a card in
+   `INTELLIGENCE_FEATURES` in `intelligence.tsx` (`title`, `body`, `href`,
+   `Icon`) with a unique title. A
+   hosting or account page gets a link under **Choose where Intelligence
+   runs**. Every link must be a real URL.
+4. Do not add a second link for the same page. One page, one landing entry.
+5. Run `npm run check-live-mdx intelligence` in `showcase/shell-docs`. It only
+   compiles the pages, so open each new card `href` on the dev server too.
+
+### Procedure 2: Rename or move a page
+
+1. Update every landing CTA that pointed at the old path: card `href`,
+   quickstart link, and the links under **Choose where Intelligence runs**.
+2. Update `meta.json` files.
+3. Run `npm run check-live-mdx intelligence` in `showcase/shell-docs`.
+
+### Procedure 3: Remove a feature or page
+
+1. Remove the card or snippet link, subtitle mention, and nav entry.
+2. Do not leave a landing link to a deleted page.
+
+## Decision Tree
+
+- New Intelligence feature or new Intelligence docs page: Procedure 1
+- Rename or move: Procedure 2
+- Remove: Procedure 3
+- Docs exist but landing does not name them: stop and run Procedure 1
+
+## Red Flags
+
+| Signal                                                   | What it means                   | Do instead                        |
+| -------------------------------------------------------- | ------------------------------- | --------------------------------- |
+| Guide merged, landing unchanged                          | Readers cannot find the feature | Procedure 1 in the same PR        |
+| Card href and snippet link differ                        | Two stories for one feature     | Use one URL                       |
+| CTA points at the marketing site when a docs page exists | Landing skips the guide         | Point at the docs page            |
+| Hero subtitle lists a pillar with no card                | Copy without a path             | Add the card, or drop the mention |
+
+## Error Handling
+
+- **No docs page yet:** do not invent a guide. You can still add a snippet
+  link that points at the current public product URL, and replace it when
+  the guide ships.
+- **Feature is Intelligence-only but lives outside `docs/(shared)/intelligence/`:**
+  still add the landing CTA. Use the real path (`/threads`, `/channels`, and
+  similar).

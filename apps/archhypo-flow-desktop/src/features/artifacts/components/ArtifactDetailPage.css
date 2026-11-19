@@ -37,7 +37,7 @@
 .artifact-detail-metadata code {
   overflow: hidden;
   color: var(--color-subtle);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   text-overflow: ellipsis;
   white-space: nowrap;
 }

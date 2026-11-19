@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Layers } from "lucide-react";
+import { IconStack2 as Layers } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import { Sidebar } from "../components";
 import { ArtifactDetailPage, ArtifactsPage } from "../features/artifacts";
@@ -221,8 +221,11 @@ function App() {
   useEffect(() => {
     const systemTheme = window.matchMedia("(prefers-color-scheme: light)");
     const applyTheme = () => {
-      document.documentElement.dataset.theme =
+      const effectiveTheme =
         theme === "system" ? (systemTheme.matches ? "day" : "night") : theme;
+      document.documentElement.dataset.theme = effectiveTheme;
+      // CopilotKit's dark variants use a class rather than our theme attribute.
+      document.documentElement.classList.toggle("dark", effectiveTheme === "night");
     };
 
     applyTheme();

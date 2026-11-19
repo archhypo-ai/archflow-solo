@@ -1,6 +1,6 @@
 import { isTauri } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { Check, ChevronDown, CircleAlert, Cpu, Eye, EyeOff, Search } from "lucide-react";
+import { IconCheck as Check, IconChevronDown as ChevronDown, IconAlertCircle as CircleAlert, IconCpu as Cpu, IconEye as Eye, IconEyeOff as EyeOff, IconSearch as Search } from "@tabler/icons-react";
 import openaiIcon from "../../../assets/model-providers/openai.svg?raw";
 import anthropicIcon from "../../../assets/model-providers/anthropic.svg?raw";
 import googleIcon from "../../../assets/model-providers/google.svg?raw";
@@ -79,7 +79,15 @@ function ModelSelector({ id, label, value, models, onChange, hintId }: { id: str
     document.addEventListener("pointerdown", outside);
     return () => document.removeEventListener("pointerdown", outside);
   }, [open]);
-  function choose(modelId: string) { onChange(modelId); setOpen(false); setQuery(""); }
+  useEffect(() => {
+    if (open) document.getElementById(`${id}-option-${active}`)?.scrollIntoView({ block: "nearest" });
+  }, [id, active, open]);
+  function choose(modelId: string) {
+    onChange(modelId);
+    setOpen(false);
+    setQuery("");
+    root.current?.querySelector<HTMLButtonElement>(".provider-model-trigger")?.focus();
+  }
   return <div className="provider-model-selector" ref={root}>
     <button id={id} className="provider-model-trigger" type="button" title={value ? priceTooltip(selected) : undefined} aria-label={label} aria-describedby={hintId} aria-expanded={open} aria-haspopup="listbox" onClick={() => { setOpen(!open); setQuery(""); setActive(0); }}>{value && <ModelIcon modelId={value} />}<span>{selected ? `${selected.name} (${selected.id})` : value || s.select}</span><ChevronDown size={16} aria-hidden="true" /></button>
     {open && <div className="provider-model-menu" onKeyDown={(event) => {
@@ -143,4 +151,3 @@ export function ModelsSettings() {
     </>}
   </section>;
 }
-

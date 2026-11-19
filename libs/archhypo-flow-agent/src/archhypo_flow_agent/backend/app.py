@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from archhypo_flow_agent.backend.ag_ui import register_ag_ui
+
 from archhypo_flow_agent.backend.controllers import (
     artifacts_router,
     chat_router,
@@ -112,6 +114,7 @@ def create_app(agent_service: AgentService | None = None) -> FastAPI:
     application.include_router(health_router)
     application.include_router(artifacts_router)
     application.include_router(chat_router)
+    register_ag_ui(application)
     application.include_router(projects_router)
     application.include_router(threads_router)
     return application

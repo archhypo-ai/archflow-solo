@@ -1,4 +1,4 @@
-import { Archive, RefreshCw, Search, X } from "lucide-react";
+import { IconArchive as Archive, IconRefresh as RefreshCw, IconSearch as Search, IconX as X } from "@tabler/icons-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { AppLanguage } from "../../../i18n";
@@ -30,6 +30,64 @@ const ASSESSMENT_LEVEL_TRANSLATIONS: Record<string, string> = {
   "Very High": "veryHigh",
 };
 
+function ArtifactOverview({
+  artifacts,
+  onStatusSelect,
+}: {
+  artifacts: ArtifactSummary[];
+  onStatusSelect: (status: string[]) => void;
+}) {
+  const { t } = useTranslation();
+  const open = artifacts.filter(({ status }) => status === "open").length;
+  const closed = artifacts.length - open;
+  const levels = ASSESSMENT_LEVELS.map((level) => ({
+    level,
+    impact: artifacts.filter((item) => item.impact === level).length,
+    uncertainty: artifacts.filter((item) => item.uncertaintyLevel === level).length,
+  }));
+  const max = Math.max(1, ...levels.flatMap(({ impact, uncertainty }) => [impact, uncertainty]));
+
+  return (
+    <section className="artifact-overview" aria-labelledby="artifact-overview-title">
+      <h2 id="artifact-overview-title">{t("artifacts.overview.title")}</h2>
+      <div className="artifact-overview-metrics">
+        <button type="button" onClick={() => onStatusSelect([])}>
+          <span>{t("artifacts.overview.total")}</span><strong>{artifacts.length}</strong>
+        </button>
+        <button type="button" onClick={() => onStatusSelect(["open"])}>
+          <span>{t("artifacts.statusOpen")}</span><strong>{open}</strong>
+        </button>
+        <button type="button" onClick={() => onStatusSelect(["closed"])}>
+          <span>{t("artifacts.statusClosed")}</span><strong>{closed}</strong>
+        </button>
+      </div>
+      <div className="artifact-overview-charts">
+        {(["impact", "uncertainty"] as const).map((metric) => (
+          <section key={metric} className="artifact-overview-chart" aria-label={
+            metric === "impact" ? t("artifacts.filters.impact") : t("artifacts.filters.uncertainty")
+          }>
+            <h3>{metric === "impact" ? t("artifacts.filters.impact") : t("artifacts.filters.uncertainty")}</h3>
+            <ul>
+              {levels.map((row) => (
+                <li key={row.level}>
+                  <span>{t(`chat.assessmentLevels.${ASSESSMENT_LEVEL_TRANSLATIONS[row.level]}`)}</span>
+                  <span className="artifact-overview-track" aria-hidden="true">
+                    <span style={{ width: `${row[metric] / max * 100}%` }} />
+                  </span>
+                  <span>{row[metric]}</span>
+                </li>
+              ))}
+            </ul>
+            <p>{t("artifacts.overview.unrated", {
+              count: artifacts.length - levels.reduce((sum, row) => sum + row[metric], 0),
+            })}</p>
+          </section>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 type ArtifactFilterKey = "status" | "project" | "impact" | "uncertainty" | "nfr";
 
 type ArtifactsPageProps = {
@@ -45,6 +103,8 @@ export function ArtifactsPage({
 }: ArtifactsPageProps) {
   const { t } = useTranslation();
   const { artifacts, loading, error, reload } = useArtifacts();
+  const [search, setSearch] = useState("");
+  const query = search.trim().toLocaleLowerCase(language);
   const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
   const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
   const [selectedImpacts, setSelectedImpacts] = useState<string[]>([]);
@@ -80,12 +140,16 @@ export function ArtifactsPage({
     selectedImpacts,
     selectedUncertainties,
     selectedQualityAttributes,
-  ].some((selection) => selection.length > 0);
+  ].some((selection) => selection.length > 0) || Boolean(query);
 
   const filteredArtifacts = useMemo(
     () =>
       artifacts.filter(
         (artifact) =>
+          (!query || [artifact.title, artifact.uncertainty, artifact.hypothesisStatement,
+            projectNames.get(artifact.projectId ?? "")].some(
+              (value) => value?.toLocaleLowerCase(language).includes(query),
+            )) &&
           (selectedStatuses.length === 0 ||
             selectedStatuses.includes(artifact.status)) &&
           (selectedProjects.length === 0 ||
@@ -101,6 +165,9 @@ export function ArtifactsPage({
       ),
     [
       artifacts,
+      language,
+      projectNames,
+      query,
       selectedImpacts,
       selectedProjects,
       selectedQualityAttributes,
@@ -110,6 +177,7 @@ export function ArtifactsPage({
   );
 
   const clearFilters = () => {
+    setSearch("");
     setSelectedStatuses([]);
     setSelectedProjects([]);
     setSelectedImpacts([]);
@@ -126,6 +194,13 @@ export function ArtifactsPage({
     <section className="artifacts-page" aria-labelledby="artifacts-heading">
       <div className="artifacts-page-inner">
         <header className="artifacts-page-header">
+          {!loading && !error && artifacts.length > 0 && (
+            <label className="artifact-search">
+              <Search size={16} aria-hidden="true" />
+              <input type="search" value={search} placeholder={t("artifacts.search")}
+                aria-label={t("artifacts.search")} onChange={(event) => setSearch(event.target.value)} />
+            </label>
+          )}
           {!loading && !error && artifacts.length > 0 && (
             <div
               className="artifact-filter-bar"
@@ -209,6 +284,12 @@ export function ArtifactsPage({
             </span>
           )}
         </header>
+        {!loading && !error && artifacts.length > 0 && !query && (
+          <ArtifactOverview artifacts={artifacts} onStatusSelect={(statuses) => {
+            clearFilters();
+            setSelectedStatuses(statuses);
+          }} />
+        )}
 
         {loading ? (
           <div className="artifacts-state" role="status">

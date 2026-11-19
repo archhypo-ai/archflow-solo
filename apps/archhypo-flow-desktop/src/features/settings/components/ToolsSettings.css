@@ -8,3 +8,4 @@
 .tools-field small { color: var(--color-muted); font-size: 12px; font-weight: 400; line-height: 1.5; }
 .tools-field code { font-size: inherit; }
 .tools-saved { color: var(--color-success-foreground); font-size: 13px; }
+.tools-detail-back { flex: 0 0 var(--ds-control-size); color: var(--color-muted); }

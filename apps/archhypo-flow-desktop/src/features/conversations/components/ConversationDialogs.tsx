@@ -1,4 +1,4 @@
-import { AlertTriangle, Pencil, Trash2 } from "lucide-react";
+import { IconAlertTriangle as AlertTriangle, IconPencil as Pencil, IconTrash as Trash2 } from "@tabler/icons-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import type { ConversationSummary } from "../types";

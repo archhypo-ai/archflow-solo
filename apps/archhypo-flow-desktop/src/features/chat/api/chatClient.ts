@@ -1,11 +1,16 @@
+import { HttpAgent, type AbstractAgent } from "@ag-ui/client";
 import { getGlobalContext, getHitlEnabled } from "../../settings";
 import type {
-  ChatStreamEvent,
   HypothesisReviewDecision,
   TechnicalPlanReviewDecision,
 } from "../types";
 
-const API_BASE_URL = "http://127.0.0.1:8765";
+import type { ArchHypoAgUiEvent } from "./agUiEvents";
+
+export const archHypoAgent = new HttpAgent({
+  agentId: "archhypo",
+  url: "http://127.0.0.1:8765/api/chat/stream",
+});
 
 export async function* streamChatMessage(
   threadId: string,
@@ -16,109 +21,64 @@ export async function* streamChatMessage(
   hypothesisReview?: HypothesisReviewDecision,
   technicalPlanReview?: TechnicalPlanReviewDecision,
   attachments?: Array<{ name: string; data: string; folder_id?: string; folder_name?: string }>,
-): AsyncGenerator<ChatStreamEvent> {
-  const global_context = await getGlobalContext();
-  const response = await fetch(`${API_BASE_URL}/api/chat/stream`, {
-    method: "POST",
-    signal,
-    headers: {
-      Accept: "text/event-stream",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      thread_id: threadId,
-      message,
-      language,
-      project_id: projectId,
-      global_context,
-      hitl_enabled: getHitlEnabled(),
-      ...(attachments?.length ? { attachments } : {}),
-      ...(hypothesisReview ? { hypothesis_review: hypothesisReview } : {}),
-      ...(technicalPlanReview
-        ? { technical_plan_review: technicalPlanReview }
-        : {}),
-    }),
-  });
-
-  if (!response.ok) {
-    let detail = response.statusText;
-    try {
-      const body = (await response.json()) as { detail?: string };
-      detail = body.detail ?? detail;
-    } catch {
-      // Keep the HTTP status text if the error body is not JSON.
-    }
-    throw new Error(`Chat API error (${response.status}): ${detail}`);
+  interruptId?: unknown,
+  registeredAgent: AbstractAgent = archHypoAgent,
+): AsyncGenerator<ArchHypoAgUiEvent> {
+  const decision = hypothesisReview ?? technicalPlanReview;
+  if (decision && (typeof interruptId !== "string" || !interruptId)) {
+    throw new Error("Missing review interrupt ID. Reload the conversation and retry.");
   }
-  if (!response.body) throw new Error("Chat stream has no response body");
-
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let dataLines: string[] = [];
-
+  const global_context = await getGlobalContext();
+  if (signal.aborted) return;
+  const agent = registeredAgent.clone();
+  const queue: ArchHypoAgUiEvent[] = [];
+  let closed = false;
+  let failure: unknown;
+  let wake: (() => void) | undefined;
+  const finish = () => { closed = true; wake?.(); };
+  const stop = () => { agent.abortRun(); finish(); };
+  const subscription = agent.run({
+      threadId,
+      runId: crypto.randomUUID(),
+      messages: message ? [{ id: crypto.randomUUID(), role: "user", content: message }] : [],
+      state: {},
+      tools: [],
+      context: [],
+      ...(decision ? { resume: [{
+        interruptId: interruptId as string,
+        status: "resolved",
+        payload: {
+          kind: hypothesisReview ? "hypothesis_review" : "technical_plan_review",
+          ...decision,
+        },
+      }] } : {}),
+      forwardedProps: {
+        archhypo: {
+          language,
+          project_id: projectId,
+          global_context,
+          hitl_enabled: getHitlEnabled(),
+          ...(attachments?.length ? { attachments } : {}),
+        },
+      },
+  }).subscribe({
+    next(event: unknown) { queue.push(event as ArchHypoAgUiEvent); wake?.(); },
+    error(error: unknown) { failure = error; finish(); },
+    complete: finish,
+  });
+  signal.addEventListener("abort", stop, { once: true });
   try {
-    while (true) {
-      const { value, done } = await reader.read();
-      buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done });
-      const lines = buffer.split(/\r?\n/);
-      buffer = lines.pop() ?? "";
-
-      for (const line of lines) {
-        if (line === "") {
-          if (dataLines.length > 0) {
-            yield parseStreamEvent(dataLines.join("\n"));
-            dataLines = [];
-          }
-        } else if (line.startsWith("data:")) {
-          dataLines.push(line.slice(5).replace(/^ /, ""));
-        }
-      }
-
-      if (done) {
-        if (buffer.startsWith("data:")) {
-          dataLines.push(buffer.slice(5).replace(/^ /, ""));
-        }
-        if (dataLines.length > 0) yield parseStreamEvent(dataLines.join("\n"));
+    while (!signal.aborted) {
+      const event = queue.shift();
+      if (event) yield event;
+      else if (closed) {
+        if (failure) throw failure;
         return;
-      }
+      } else await new Promise<void>((resolve) => { wake = resolve; });
     }
   } finally {
-    reader.releaseLock();
+    signal.removeEventListener("abort", stop);
+    subscription.unsubscribe();
+    if (!closed) stop();
   }
-}
-
-function parseStreamEvent(data: string): ChatStreamEvent {
-  const value: unknown = JSON.parse(data);
-  if (
-    !value ||
-    typeof value !== "object" ||
-    !("type" in value) ||
-    !("protocol_version" in value) ||
-    value.protocol_version !== 1 ||
-    !("run_id" in value) ||
-    typeof value.run_id !== "string" ||
-    !("thread_id" in value) ||
-    typeof value.thread_id !== "string"
-  ) {
-    throw new Error("Invalid chat stream event envelope");
-  }
-
-  const event = value as ChatStreamEvent;
-  if (event.type === "error") throw new Error(event.message);
-  if (
-    ![
-      "conversation_started",
-      "phase",
-      "tool_call_start",
-      "tool_call_delta",
-      "tool_result",
-      "text_delta",
-      "interrupt",
-      "done",
-    ].includes(event.type)
-  ) {
-    throw new Error("Unsupported chat stream event");
-  }
-  return event;
 }

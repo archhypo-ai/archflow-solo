@@ -1,3 +1,5 @@
+import { Switch } from "../../../design-system";
+import { IconDeviceDesktop as Monitor, IconMoon as Moon, IconSun as Sun } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import appPackage from "../../../../package.json";
 import { SelectMenu } from "../../../components/overlay";
@@ -24,11 +26,11 @@ export function GeneralSettings({
   onLanguageChange,
 }: GeneralSettingsProps) {
   const { t } = useTranslation();
-  const themeOptions: { value: ThemePreference; label: string }[] = [
-    { value: "day", label: t("settings.themeDay") },
-    { value: "night", label: t("settings.themeNight") },
-    { value: "system", label: t("settings.themeSystem") },
-  ];
+  const themeOptions = [
+    { value: "day", label: t("settings.themeDay"), icon: <Sun size={16} aria-hidden="true" /> },
+    { value: "night", label: t("settings.themeNight"), icon: <Moon size={16} aria-hidden="true" /> },
+    { value: "system", label: t("settings.themeSystem"), icon: <Monitor size={16} aria-hidden="true" /> },
+  ] as const;
   const languageOptions: { value: AppLanguage; label: string }[] = [
     { value: "en", label: t("settings.english") },
     { value: "pt-BR", label: t("settings.portugueseBrazil") },
@@ -52,17 +54,8 @@ export function GeneralSettings({
               {t("settings.hitlDescription")}
             </p>
           </div>
-          <button
-            className="settings-switch"
-            type="button"
-            role="switch"
-            aria-checked={hitlEnabled}
-            aria-labelledby="hitl-label"
-            aria-describedby="hitl-description"
-            onClick={() => onHitlChange(!hitlEnabled)}
-          >
-            <span className="settings-switch-thumb" aria-hidden="true" />
-          </button>
+          <Switch checked={hitlEnabled} onCheckedChange={onHitlChange}
+            aria-labelledby="hitl-label" aria-describedby="hitl-description" />
         </div>
         {hitlSaveError && (
           <p className="settings-inline-error" role="alert">

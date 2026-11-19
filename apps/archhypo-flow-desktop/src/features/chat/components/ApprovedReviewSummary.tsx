@@ -1,4 +1,4 @@
-import { CheckCircle2 } from "lucide-react";
+import { IconCircleCheck as CheckCircle2 } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type {
   AssessmentLevel,

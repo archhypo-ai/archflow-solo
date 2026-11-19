@@ -24,6 +24,7 @@ class DocumentAttachment(BaseModel):
 
 
 class ChatRequest(BaseModel):
+    review_interrupt_id: str | None = None
     """One user message addressed to a conversation thread."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)

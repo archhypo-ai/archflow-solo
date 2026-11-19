@@ -1,11 +1,8 @@
 """Chat HTTP controller."""
 
 import logging
-from collections.abc import Iterator
-from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.sse import EventSourceResponse, ServerSentEvent
 
 from archhypo_flow_agent.backend.dependencies import AgentServiceDependency
 from archhypo_flow_agent.core import ChatRequest, ChatResponse, StructuredOutputError
@@ -75,101 +72,6 @@ def send_message(
                 "and provider limits."
             ),
         ) from error
-
-
-@router.post(
-    "/chat/stream",
-    response_class=EventSourceResponse,
-    response_model=None,
-)
-def stream_message(
-    payload: ChatRequest,
-    request: Request,
-    agent_service: AgentServiceDependency,
-) -> Iterator[ServerSentEvent]:
-    """Stream tool progress and the completed reply as server-sent events."""
-
-    configuration_error = _configuration_error(request, agent_service)
-    if configuration_error is not None:
-        raise HTTPException(status_code=503, detail=configuration_error)
-
-    run_id = uuid4().hex
-
-    def events() -> Iterator[ServerSentEvent]:
-        try:
-            for event in agent_service.stream(payload, run_id=run_id):
-                yield ServerSentEvent(event="chat", data=event)
-        except ChatNotConfiguredError as error:
-            yield ServerSentEvent(
-                event="chat",
-                data=_stream_error_data(run_id, payload.thread_id, str(error)),
-            )
-        except ReviewStateError as error:
-            yield ServerSentEvent(
-                event="chat",
-                data=_stream_error_data(run_id, payload.thread_id, str(error)),
-            )
-        except DocumentExtractionError as error:
-            yield ServerSentEvent(
-                event="chat",
-                data=_stream_error_data(run_id, payload.thread_id, str(error)),
-            )
-        except LookupError as error:
-            yield ServerSentEvent(
-                event="chat",
-                data=_stream_error_data(run_id, payload.thread_id, str(error)),
-            )
-        except SystemOneError as error:
-            logger.error("SystemOne routing failed (%s)", type(error).__name__)
-            yield ServerSentEvent(
-                event="chat",
-                data=_stream_error_data(
-                    run_id, payload.thread_id, _ROUTING_ERROR_MESSAGE
-                ),
-            )
-        except StructuredOutputError as error:
-            logger.error("Structured model output failed in stage %s", error.stage)
-            yield ServerSentEvent(
-                event="chat",
-                data=_stream_error_data(
-                    run_id,
-                    payload.thread_id,
-                    _structured_output_error_message(error),
-                ),
-            )
-        except ArtifactPersistenceError:
-            logger.error("ArchHypo artifact persistence failed")
-            yield ServerSentEvent(
-                event="chat",
-                data=_stream_error_data(
-                    run_id,
-                    payload.thread_id,
-                    _artifact_persistence_error_message(),
-                ),
-            )
-        except Exception as error:
-            logger.error("Chat stream failed (%s)", type(error).__name__)
-            yield ServerSentEvent(
-                event="chat",
-                data=_stream_error_data(
-                    run_id,
-                    payload.thread_id,
-                    "The OpenRouter request failed. Check the API key, model, "
-                    "and provider limits.",
-                ),
-            )
-
-    return events()
-
-
-def _stream_error_data(run_id: str, thread_id: str, message: str) -> dict[str, object]:
-    return {
-        "protocol_version": 1,
-        "run_id": run_id,
-        "thread_id": thread_id,
-        "type": "error",
-        "message": message,
-    }
 
 
 def _structured_output_error_message(error: StructuredOutputError) -> str:

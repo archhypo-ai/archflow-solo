@@ -13,6 +13,7 @@ export type HypothesisReviewDecision = HumanReviewDecision;
 export type TechnicalPlanReviewDecision = HumanReviewDecision;
 
 export type PendingHypothesisReview = {
+  interrupt_id?: string;
   kind: "hypothesis_review";
   hypothesis: {
     uncertainty: string;
@@ -25,6 +26,7 @@ export type PendingHypothesisReview = {
 export type AssessmentLevel = "Very Low" | "Low" | "Medium" | "High" | "Very High";
 
 export type PendingTechnicalPlanReview = {
+  interrupt_id?: string;
   kind: "technical_plan_review";
   assessment: {
     impact: AssessmentLevel;

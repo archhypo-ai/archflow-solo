@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react";
+import { IconChevronRight as ChevronRight } from "@tabler/icons-react";
 import { useTranslation } from "react-i18next";
 import type { PendingHypothesisReview } from "../types";
 import "./HumanReviewCard.css";

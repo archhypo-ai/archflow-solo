@@ -1,4 +1,3 @@
-import { useAui } from "@assistant-ui/react";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
@@ -6,12 +5,13 @@ import type {
   HumanReviewDecision,
   PendingTechnicalPlanReview,
 } from "../types";
-import { ApprovedReviewSummary } from "./ApprovedReviewSummary";
 import { TechnicalPlanReviewContent } from "./TechnicalPlanReviewContent";
 import "./HumanReviewCard.css";
 import "./TechnicalPlanReviewCard.css";
 
 type TechnicalPlanReviewCardProps = {
+  onDecision: (decision: HumanReviewDecision) => void;
+  disabled?: boolean;
   review: PendingTechnicalPlanReview;
 };
 
@@ -74,30 +74,12 @@ function isTechnicalPlanItem(value: unknown): boolean {
 }
 
 export function TechnicalPlanReviewCard({
-  review,
+  review, onDecision, disabled,
 }: TechnicalPlanReviewCardProps) {
-  const aui = useAui();
   const { t } = useTranslation();
   const reasonId = useId();
   const [note, setNote] = useState("");
-  const [submittedDecision, setSubmittedDecision] =
-    useState<HumanReviewDecision | null>(null);
-
-  const submit = (decision: HumanReviewDecision) => {
-    aui.thread.append({
-      role: "user",
-      content: [{ type: "text", text: "\u2063" }],
-      metadata: {
-        custom: { technicalPlanReview: decision, isReviewAction: true },
-      },
-      startRun: true,
-    });
-    setSubmittedDecision(decision);
-  };
-
-  if (submittedDecision?.decision === "approved") {
-    return <ApprovedReviewSummary review={review} />;
-  }
+  const submit = onDecision;
 
   return (
     <section
@@ -106,12 +88,6 @@ export function TechnicalPlanReviewCard({
     >
       <TechnicalPlanReviewContent review={review} />
 
-      {submittedDecision ? (
-        <p className="human-review-submitted" role="status">
-          {t("chat.reviewSubmitted")}
-        </p>
-      ) : (
-        <>
           <div className="human-review-note-section">
             <div className="human-review-note-heading">
               <label className="human-review-note-label" htmlFor={reasonId}>
@@ -135,7 +111,7 @@ export function TechnicalPlanReviewCard({
               <button
                 className="human-review-reject"
                 type="button"
-                disabled={!note.trim()}
+                disabled={disabled || !note.trim()}
                 onClick={() =>
                   submit({ decision: "rejected", reason: note.trim() })
                 }
@@ -144,6 +120,7 @@ export function TechnicalPlanReviewCard({
               </button>
               <button
                 className="human-review-approve"
+                disabled={disabled}
                 type="button"
                 onClick={() =>
                   submit({
@@ -156,8 +133,7 @@ export function TechnicalPlanReviewCard({
               </button>
             </div>
           </div>
-        </>
-      )}
+
     </section>
   );
 }

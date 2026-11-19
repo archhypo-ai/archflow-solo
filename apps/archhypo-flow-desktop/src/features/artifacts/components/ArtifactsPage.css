@@ -278,7 +278,7 @@
 .artifact-card-identity code {
   overflow: hidden;
   color: var(--color-subtle);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -396,7 +396,7 @@
   justify-content: center;
   gap: 10px;
   border: 1px dashed var(--color-border-strong);
-  border-radius: 14px;
+  border-radius: var(--ds-surface-radius);
   color: var(--color-muted);
   padding: 28px;
   text-align: center;
@@ -475,4 +475,86 @@
   .artifact-card {
     transition: none;
   }
+}
+
+.artifact-overview {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.artifact-overview h2,
+.artifact-overview h3 { margin: 0; }
+.artifact-overview h2 { font-size: 1.1rem; }
+.artifact-overview h3 { font-size: 0.9rem; }
+
+.artifact-overview-metrics,
+.artifact-overview-charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 10rem), 1fr));
+  gap: 0.75rem;
+}
+
+.artifact-overview-metrics button,
+.artifact-overview-chart {
+  padding: 0.85rem 1rem;
+  color: var(--color-foreground);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--ds-surface-radius);
+}
+
+.artifact-overview-metrics button {
+  display: grid;
+  gap: 0.3rem;
+  text-align: start;
+  cursor: pointer;
+}
+
+.artifact-overview-metrics button:hover { border-color: var(--color-accent); }
+.artifact-overview-metrics button span,
+.artifact-overview-chart p { color: var(--color-muted); font-size: 0.8rem; }
+.artifact-overview-metrics strong { font-size: 1.5rem; }
+.artifact-overview-chart ul { display: grid; gap: 0.4rem; list-style: none; padding: 0; }
+.artifact-overview-chart li {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr 2rem;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+.artifact-overview-track { background: var(--color-border); border-radius: 1rem; }
+.artifact-overview-track > span {
+  display: block;
+  height: 0.35rem;
+  background: var(--color-accent);
+  border-radius: inherit;
+}
+.artifact-search {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-space-2);
+  min-height: var(--ds-control-size);
+  max-width: 22rem;
+  padding-inline: var(--ds-space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--ds-control-radius);
+  background: var(--color-input);
+  color: var(--color-muted);
+}
+
+.artifact-search:focus-within {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+.artifact-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  outline: none;
+  border: 0;
+  color: var(--color-foreground);
+  background: transparent;
+  font: inherit;
 }

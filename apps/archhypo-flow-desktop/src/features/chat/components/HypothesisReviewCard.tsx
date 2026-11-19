@@ -1,14 +1,14 @@
-import { useAui } from "@assistant-ui/react";
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type {
   HypothesisReviewDecision,
   PendingHypothesisReview,
 } from "../types";
-import { ApprovedReviewSummary } from "./ApprovedReviewSummary";
 import { HypothesisReviewContent } from "./HypothesisReviewContent";
 
 type HypothesisReviewCardProps = {
+  onDecision: (decision: HypothesisReviewDecision) => void;
+  disabled?: boolean;
   review: PendingHypothesisReview;
 };
 
@@ -34,29 +34,11 @@ export function isPendingHypothesisReview(
   );
 }
 
-export function HypothesisReviewCard({ review }: HypothesisReviewCardProps) {
-  const aui = useAui();
+export function HypothesisReviewCard({ review, onDecision, disabled }: HypothesisReviewCardProps) {
   const { t } = useTranslation();
   const reasonId = useId();
   const [note, setNote] = useState("");
-  const [submittedDecision, setSubmittedDecision] =
-    useState<HypothesisReviewDecision | null>(null);
-
-  const submit = (decision: HypothesisReviewDecision) => {
-    aui.thread.append({
-      role: "user",
-      content: [{ type: "text", text: "\u2063" }],
-      metadata: {
-        custom: { hypothesisReview: decision, isReviewAction: true },
-      },
-      startRun: true,
-    });
-    setSubmittedDecision(decision);
-  };
-
-  if (submittedDecision?.decision === "approved") {
-    return <ApprovedReviewSummary review={review} />;
-  }
+  const submit = onDecision;
 
   return (
     <section
@@ -64,12 +46,6 @@ export function HypothesisReviewCard({ review }: HypothesisReviewCardProps) {
       aria-label={t("chat.hypothesisReviewTitle")}
     >
       <HypothesisReviewContent hypothesis={review.hypothesis} />
-      {submittedDecision ? (
-        <p className="human-review-submitted" role="status">
-          {t("chat.reviewSubmitted")}
-        </p>
-      ) : (
-        <>
           <div className="human-review-note-section">
             <div className="human-review-note-heading">
               <label className="human-review-note-label" htmlFor={reasonId}>
@@ -93,7 +69,7 @@ export function HypothesisReviewCard({ review }: HypothesisReviewCardProps) {
               <button
                 className="human-review-reject"
                 type="button"
-                disabled={!note.trim()}
+                disabled={disabled || !note.trim()}
                 onClick={() =>
                   submit({ decision: "rejected", reason: note.trim() })
                 }
@@ -102,6 +78,7 @@ export function HypothesisReviewCard({ review }: HypothesisReviewCardProps) {
               </button>
               <button
                 className="human-review-approve"
+                disabled={disabled}
                 type="button"
                 onClick={() =>
                   submit({
@@ -114,8 +91,7 @@ export function HypothesisReviewCard({ review }: HypothesisReviewCardProps) {
               </button>
             </div>
           </div>
-        </>
-      )}
+
     </section>
   );
 }

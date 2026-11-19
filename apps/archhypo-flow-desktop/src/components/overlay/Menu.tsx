@@ -1,5 +1,5 @@
 import "./Menu.css";
-import { Check } from "lucide-react";
+import { IconCheck as Check } from "@tabler/icons-react";
 import {
   useEffect,
   useRef,
@@ -95,10 +95,11 @@ export function MenuItem({
 type MenuRadioItemProps = {
   checked: boolean;
   label: string;
+  icon?: ReactNode;
   onClick: () => void;
 };
 
-export function MenuRadioItem({ checked, label, onClick }: MenuRadioItemProps) {
+export function MenuRadioItem({ checked, label, icon, onClick }: MenuRadioItemProps) {
   return (
     <button
       className="menu-item menu-radio-item"
@@ -107,6 +108,7 @@ export function MenuRadioItem({ checked, label, onClick }: MenuRadioItemProps) {
       aria-checked={checked}
       onClick={onClick}
     >
+      {icon}
       <span>{label}</span>
       <span className="menu-radio-indicator" aria-hidden="true">
         {checked && <Check size={15} />}

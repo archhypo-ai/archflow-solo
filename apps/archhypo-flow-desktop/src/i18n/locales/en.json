@@ -32,6 +32,12 @@
     "actionError": "Could not update this conversation. Please try again."
   },
   "artifacts": {
+    "search": "Search artifacts",
+    "overview": {
+      "title": "Gallery overview",
+      "total": "Total artifacts",
+      "unrated": "Unrated: {{count}}"
+    },
     "pageTitle": "Artifacts",
     "count_one": "{{count}} artifact",
     "count_other": "{{count}} artifacts",
@@ -136,6 +142,8 @@
     "reviewNoteLabel": "Note",
     "reviewNoteHint": "Optional to approve; required to reject.",
     "reviewApprove": "Approve",
+    "reviewPaused": "The analysis is paused. Approve to continue or reject to request changes.",
+    "goToReview": "Go to review",
     "reviewReject": "Reject",
     "reviewReasonPlaceholder": "Add a note or explain what should change...",
     "completedHypothesisReview": "Hypothesis review",
@@ -149,11 +157,10 @@
     "reviewPreviewApproved": "Approved example",
     "copyMessage": "Copy message",
     "tableScrollRegion": "Markdown table. Scroll horizontally to see all columns.",
-    "toolCall": "{{count}} tool call",
-    "toolCalls": "{{count}} tool calls",
-    "toolArguments": "Arguments",
-    "toolResult": "Result",
     "loading": "Loading conversation…",
+    "chartLoading": "Preparing chart…",
+    "chartEmpty": "No chart data to display.",
+    "chartTitle": "Chart",
     "loadError": "Could not load this conversation from the local chat service.",
     "retry": "Retry"
   },
@@ -226,8 +233,8 @@
     "appearance": "Appearance",
     "appearanceDescription": "Manage the interface appearance and language.",
     "theme": "Theme",
-    "themeDay": "Day",
-    "themeNight": "Night",
+    "themeDay": "Light",
+    "themeNight": "Dark",
     "themeSystem": "System",
     "language": "Language",
     "english": "English",

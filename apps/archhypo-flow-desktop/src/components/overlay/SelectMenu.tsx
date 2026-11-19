@@ -1,10 +1,11 @@
-import { ChevronDown } from "lucide-react";
-import { useState } from "react";
+import { IconChevronDown as ChevronDown } from "@tabler/icons-react";
+import { useState, type ReactNode } from "react";
 import { Menu, MenuContent, MenuRadioItem } from "./Menu";
 
 type SelectMenuOption<Value extends string> = {
   value: Value;
   label: string;
+  icon?: ReactNode;
 };
 
 type SelectMenuProps<Value extends string> = {
@@ -40,6 +41,7 @@ export function SelectMenu<Value extends string>({
         aria-haspopup="menu"
         onClick={() => setOpen((current) => !current)}
       >
+        {selectedOption?.icon}
         <span>{selectedOption?.label ?? value}</span>
         <ChevronDown size={15} aria-hidden="true" />
       </button>
@@ -53,6 +55,7 @@ export function SelectMenu<Value extends string>({
             key={option.value}
             checked={option.value === value}
             label={option.label}
+            icon={option.icon}
             onClick={() => {
               onChange(option.value);
               setOpen(false);
